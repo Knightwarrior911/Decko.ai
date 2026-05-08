@@ -676,6 +676,22 @@ def test_action_kind_clear_relative():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_speaker_notes():
+    print("test_action_speaker_notes")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        app.Run("PPT_AI_Editor!Do_set_speaker_notes", 2, "Slide 2 talking points")
+        app.Run("PPT_AI_Editor!Do_append_speaker_notes", 2, "Additional context")
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        notes = snap["slides"][1]["speaker_notes"]
+        assert "Slide 2 talking points" in notes, f"set: {notes!r}"
+        assert "Additional context" in notes, f"append: {notes!r}"
+        print("  ok  [speaker notes]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def test_action_cross_cutting():
     print("test_action_cross_cutting")
     app = open_app()
@@ -722,6 +738,7 @@ def main() -> int:
     test_action_add_line_and_shape()
     test_action_kind_clear_relative()
     test_action_cross_cutting()
+    test_action_speaker_notes()
     print("\nall tests passed")
     return 0
 

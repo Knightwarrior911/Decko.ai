@@ -181,3 +181,42 @@ Private Sub SetCellText(c As Object, t As String)
     On Error Resume Next
     c.Shape.TextFrame.TextRange.Text = t
 End Sub
+
+Public Sub Do_set_speaker_notes(slideNum As Long, value As String)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 5001, "Do_set_speaker_notes", "slide_out_of_range"
+    End If
+    Dim sl As Slide: Set sl = pres.Slides(slideNum)
+    Dim ph As Object
+    Dim i As Long
+    For i = 1 To sl.NotesPage.Shapes.Placeholders.Count
+        Set ph = sl.NotesPage.Shapes.Placeholders(i)
+        If ph.PlaceholderFormat.Type = ppPlaceholderBody Then
+            ph.TextFrame.TextRange.Text = value
+            Exit Sub
+        End If
+    Next i
+End Sub
+
+Public Sub Do_append_speaker_notes(slideNum As Long, value As String)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 5001, "Do_append_speaker_notes", "slide_out_of_range"
+    End If
+    Dim sl As Slide: Set sl = pres.Slides(slideNum)
+    Dim ph As Object
+    Dim i As Long
+    For i = 1 To sl.NotesPage.Shapes.Placeholders.Count
+        Set ph = sl.NotesPage.Shapes.Placeholders(i)
+        If ph.PlaceholderFormat.Type = ppPlaceholderBody Then
+            Dim cur As String: cur = ph.TextFrame.TextRange.Text
+            If Len(cur) = 0 Then
+                ph.TextFrame.TextRange.Text = value
+            Else
+                ph.TextFrame.TextRange.Text = cur & vbCrLf & value
+            End If
+            Exit Sub
+        End If
+    Next i
+End Sub

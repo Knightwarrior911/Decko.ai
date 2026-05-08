@@ -180,6 +180,9 @@ Private Function ValidateAction(act As Object) As String
             ValidateAction = RequireFields(act, Array("scope", "from", "to"))
         Case "delete_shapes_match"
             ValidateAction = RequireFields(act, Array("scope"))
+        Case "set_speaker_notes", "append_speaker_notes"
+            ValidateAction = RequireFields(act, Array("slide", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -328,6 +331,10 @@ Private Sub DispatchAction(act As Object)
             If act.Exists("fill") Then ff = CStr(act("fill"))
             If act.Exists("text_contains") Then tc = CStr(act("text_contains"))
             modActionsLayout.Do_delete_shapes_match CStr(act("scope")), kf, ff, tc
+        Case "set_speaker_notes"
+            modActions.Do_set_speaker_notes CLng(act("slide")), CStr(act("value"))
+        Case "append_speaker_notes"
+            modActions.Do_append_speaker_notes CLng(act("slide")), CStr(act("value"))
     End Select
 End Sub
 
