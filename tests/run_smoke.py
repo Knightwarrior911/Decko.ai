@@ -91,8 +91,25 @@ def test_snapshot_smoke_3slide():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_snapshot_full_visual_font():
+    print("test_snapshot_full_visual_font")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "full_visual.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        slide = snap["slides"][0]
+        title_box = next(s for s in slide["shapes"] if s.get("text", "").startswith("Q3 Visual"))
+        font = title_box["font"]
+        assert_eq(font["bold"], True, "title bold")
+        assert_eq(font["size"], 32, "title size")
+        assert_eq(font["color"].upper(), "#1F4E79", "title color")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
+    test_snapshot_full_visual_font()
     print("\nall tests passed")
     return 0
 

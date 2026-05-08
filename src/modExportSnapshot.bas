@@ -63,6 +63,7 @@ Private Function BuildShapeDict(sh As Shape) As Object
     If sh.HasTextFrame Then
         If sh.TextFrame.HasText Then
             d.Add "text", sh.TextFrame.TextRange.Text
+            d.Add "font", BuildFontDict(sh.TextFrame.TextRange.Font)
         End If
     End If
 
@@ -100,4 +101,28 @@ Private Function BuildPosDict(sh As Shape) As Object
     d.Add "width", CDbl(sh.Width)
     d.Add "height", CDbl(sh.Height)
     Set BuildPosDict = d
+End Function
+
+Private Function BuildFontDict(fnt As Font) As Object
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    d.Add "name", fnt.Name
+    ' fnt.Size returns Single; can be -1 if mixed across runs
+    If fnt.Size > 0 Then
+        d.Add "size", CDbl(fnt.Size)
+    Else
+        d.Add "size", Null
+    End If
+    d.Add "bold", (fnt.Bold = msoTrue)
+    d.Add "italic", (fnt.Italic = msoTrue)
+    d.Add "color", RgbToHex(fnt.Color.RGB)
+    Set BuildFontDict = d
+End Function
+
+Public Function RgbToHex(ByVal rgbVal As Long) As String
+    Dim r As Long, g As Long, b As Long
+    r = rgbVal And &HFF
+    g = (rgbVal \ &H100) And &HFF
+    b = (rgbVal \ &H10000) And &HFF
+    RgbToHex = "#" & UCase(Right("00" & Hex(r), 2) & Right("00" & Hex(g), 2) & Right("00" & Hex(b), 2))
 End Function
