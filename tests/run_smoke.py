@@ -772,6 +772,27 @@ def test_action_extract_slides():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_import_slides():
+    print("test_action_import_slides")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        from shutil import copy2
+        src_copy = tmpdir / "src.pptx"
+        copy2(REPO_ROOT / "test_decks" / "smoke_3slide.pptx", src_copy)
+
+        before = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        before_count = len(before["slides"])
+
+        app.Run("PPT_AI_Editor!Do_import_slides_from_deck", str(src_copy), [1, 2], 2)
+
+        after = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        assert_eq(len(after["slides"]), before_count + 2, "slide count after import")
+        print("  ok  [import_slides_from_deck]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -804,6 +825,7 @@ def main() -> int:
     test_action_images()
     test_action_move_slide()
     test_action_extract_slides()
+    test_action_import_slides()
     print("\nall tests passed")
     return 0
 
