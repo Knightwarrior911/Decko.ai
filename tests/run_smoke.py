@@ -31,14 +31,18 @@ def open_pair(app, deck_name: str):
     shutil.copy2(src, deck_copy)
 
     app.Visible = True
+    carrier = app.Presentations.Open(str(CARRIER), WithWindow=True)
     deck = app.Presentations.Open(str(deck_copy), WithWindow=True)
-    carrier = app.Presentations.Open(str(CARRIER), WithWindow=False)
     deck.Windows(1).Activate()
     return deck, carrier, tmpdir
 
 
 def teardown(app, *presentations, tmpdir=None):
     for p in presentations:
+        try:
+            p.Saved = True
+        except Exception:
+            pass
         try:
             p.Close()
         except Exception:
@@ -66,7 +70,7 @@ def test_snapshot_smoke_3slide():
     app = open_app()
     deck, carrier, tmpdir = open_pair(app, "smoke_3slide.pptx")
     try:
-        json_text = app.Run("BuildSnapshotJson")
+        json_text = app.Run("PPT_AI_Editor!BuildSnapshotJson")
         snap = json.loads(json_text)
         assert_eq(len(snap["slides"]), 3, "slide count")
         assert_eq(snap["slides"][0]["slide_number"], 1, "slide 1 number")
