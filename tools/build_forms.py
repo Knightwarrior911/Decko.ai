@@ -115,6 +115,101 @@ Private Sub CopyToClipboard(s As String)
 End Sub
 '''
 
+FRM_IMPORT_SLIDES_CODE = '''\
+Option Explicit
+
+Private Sub UserForm_Initialize()
+    txtPath.Text = ""
+    txtRange.Text = ""
+    txtPosition.Text = "1"
+    btnImport.Enabled = False
+    lblStatus.Caption = ""
+End Sub
+
+Private Sub btnBrowse_Click()
+    Dim picked As String
+    On Error Resume Next
+    Dim fd As Object
+    Set fd = Application.FileDialog(3)
+    If Not fd Is Nothing Then
+        fd.Filters.Clear
+        fd.Filters.Add "PowerPoint Files", "*.pptx; *.pptm"
+        If fd.Show = -1 Then
+            picked = fd.SelectedItems(1)
+        End If
+    End If
+    On Error GoTo 0
+
+    If Len(picked) = 0 Then
+        picked = InputBox("Path to source deck:", "Source deck")
+    End If
+
+    If Len(picked) > 0 Then
+        txtPath.Text = picked
+        UpdateImportButton
+    End If
+End Sub
+
+Private Sub txtRange_Change()
+    UpdateImportButton
+End Sub
+
+Private Sub txtPosition_Change()
+    UpdateImportButton
+End Sub
+
+Private Sub UpdateImportButton()
+    btnImport.Enabled = (Len(txtPath.Text) > 0 And Len(txtRange.Text) > 0 And Len(txtPosition.Text) > 0)
+End Sub
+
+Private Sub btnImport_Click()
+    On Error GoTo Failure
+    Dim ids As Variant
+    ids = ParseRange(txtRange.Text)
+    Dim pos As Long: pos = CLng(txtPosition.Text)
+
+    Dim before As Long: before = ActivePresentation.Slides.Count
+    modActionsSlide.Do_import_slides_from_deck txtPath.Text, ids, pos
+    Dim afterCount As Long: afterCount = ActivePresentation.Slides.Count
+    lblStatus.Caption = "Imported " & (afterCount - before) & " slide(s) at position " & pos
+    Exit Sub
+Failure:
+    lblStatus.Caption = "ERROR: " & Err.Description
+End Sub
+
+Private Sub btnCancel_Click()
+    Unload Me
+End Sub
+
+Private Function ParseRange(s As String) As Variant
+    Dim parts() As String
+    parts = Split(s, ",")
+    Dim col As New Collection
+    Dim i As Long
+    For i = LBound(parts) To UBound(parts)
+        Dim p As String: p = Trim(parts(i))
+        If InStr(p, "-") > 0 Then
+            Dim ab() As String: ab = Split(p, "-")
+            Dim a As Long: a = CLng(Trim(ab(0)))
+            Dim b As Long: b = CLng(Trim(ab(1)))
+            Dim k As Long
+            For k = a To b
+                col.Add k
+            Next k
+        Else
+            col.Add CLng(p)
+        End If
+    Next i
+    Dim arr() As Long
+    ReDim arr(0 To col.Count - 1)
+    Dim j As Long
+    For j = 1 To col.Count
+        arr(j - 1) = col(j)
+    Next j
+    ParseRange = arr
+End Function
+'''
+
 FRM_EXECUTE_CODE = '''\
 Option Explicit
 
@@ -347,6 +442,90 @@ def build_frm_execute(components):
     return comp
 
 
+def build_frm_import_slides(components):
+    """Add frmImportSlides to the VBProject."""
+    name = "frmImportSlides"
+    remove_component(components, name)
+
+    print(f"  [add] {name}")
+    comp = components.Add(VB_FORM)
+    comp.Name = name
+
+    # Form-level properties via Designer
+    designer = comp.Designer
+    try:
+        designer.Caption = "PPT AI Editor — Import Slides"
+        designer.Width = 480
+        designer.Height = 320
+    except Exception as e:
+        print(f"  [warn] Could not set form designer props: {e}")
+        try:
+            comp.Properties("Caption").Value = "PPT AI Editor — Import Slides"
+            comp.Properties("Width").Value = 480
+            comp.Properties("Height").Value = 320
+        except Exception as e2:
+            print(f"  [warn] Properties fallback also failed: {e2}")
+
+    controls = designer.Controls
+
+    # lblPath
+    lbl_path = controls.Add(LABEL, "lblPath", True)
+    set_control_props(lbl_path, Caption="Source deck",
+                      Top=12, Left=12, Width=100, Height=20)
+
+    # txtPath
+    txt_path = controls.Add(TEXTBOX, "txtPath", True)
+    set_control_props(txt_path, Top=12, Left=120, Width=280, Height=22,
+                      Locked=True)
+
+    # btnBrowse
+    btn_browse = controls.Add(CMDBTN, "btnBrowse", True)
+    set_control_props(btn_browse, Caption="Browse...",
+                      Top=12, Left=408, Width=60, Height=22)
+
+    # lblRange
+    lbl_range = controls.Add(LABEL, "lblRange", True)
+    set_control_props(lbl_range, Caption="Slide range (e.g. 1-3,5,7-9)",
+                      Top=50, Left=12, Width=240, Height=20)
+
+    # txtRange
+    txt_range = controls.Add(TEXTBOX, "txtRange", True)
+    set_control_props(txt_range, Top=50, Left=256, Width=212, Height=22)
+
+    # lblPosition
+    lbl_pos = controls.Add(LABEL, "lblPosition", True)
+    set_control_props(lbl_pos, Caption="Insert at position",
+                      Top=90, Left=12, Width=240, Height=20)
+
+    # txtPosition
+    txt_pos = controls.Add(TEXTBOX, "txtPosition", True)
+    set_control_props(txt_pos, Top=90, Left=256, Width=60, Height=22)
+
+    # btnImport
+    btn_import = controls.Add(CMDBTN, "btnImport", True)
+    set_control_props(btn_import, Caption="Import", Enabled=False,
+                      Top=250, Left=12, Width=80, Height=28)
+
+    # btnCancel
+    btn_cancel = controls.Add(CMDBTN, "btnCancel", True)
+    set_control_props(btn_cancel, Caption="Cancel",
+                      Top=250, Left=100, Width=80, Height=28)
+
+    # lblStatus
+    lbl_status = controls.Add(LABEL, "lblStatus", True)
+    set_control_props(lbl_status, Caption="",
+                      Top=130, Left=12, Width=456, Height=100)
+
+    # Set VBA code
+    module = comp.CodeModule
+    if module.CountOfLines > 0:
+        module.DeleteLines(1, module.CountOfLines)
+    module.AddFromString(FRM_IMPORT_SLIDES_CODE)
+
+    print(f"  [ok] {name} built")
+    return comp
+
+
 # ---------------------------------------------------------------------------
 # Post-processing helpers
 # ---------------------------------------------------------------------------
@@ -373,6 +552,24 @@ def _fix_frm_dimensions(frm_path: Path, client_width: int, client_height: int) -
     print(f"  [fix-dims] {frm_path.name}: ClientWidth={client_width}, ClientHeight={client_height}")
 
 
+def _fix_frm_caption(frm_path: Path, caption: str) -> None:
+    """Rewrite the Caption line in a .frm file.
+
+    Some COM Designer Caption setattr calls are silently ignored (when Width/Height
+    cannot be set), leaving the auto-generated 'UserForm1' caption. This corrects it.
+    """
+    content = frm_path.read_bytes().decode("cp1252")
+    # Caption is stored in cp1252; em-dash U+2014 -> 0x97
+    caption_cp1252 = caption.encode("cp1252", errors="replace").decode("cp1252")
+    content = re.sub(
+        r'(   Caption\s+=\s+)[^\r\n]+',
+        lambda m: m.group(1) + f'"{caption_cp1252}"',
+        content,
+    )
+    frm_path.write_bytes(content.encode("cp1252"))
+    print(f"  [fix-caption] {frm_path.name}: Caption={caption!r}")
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -396,6 +593,7 @@ def main() -> int:
 
             comp_export  = build_frm_export(components)
             comp_execute = build_frm_execute(components)
+            comp_import_slides = build_frm_import_slides(components)
 
             pres.Save()
             print("[saved] carrier saved")
@@ -403,12 +601,16 @@ def main() -> int:
             # Export .frm + .frx to src/
             export_path_export  = str(SRC / "frmExport.frm")
             export_path_execute = str(SRC / "frmExecute.frm")
+            export_path_import_slides = str(SRC / "frmImportSlides.frm")
 
             comp_export.Export(export_path_export)
             print(f"[export] frmExport.frm -> {export_path_export}")
 
             comp_execute.Export(export_path_execute)
             print(f"[export] frmExecute.frm -> {export_path_execute}")
+
+            comp_import_slides.Export(export_path_import_slides)
+            print(f"[export] frmImportSlides.frm -> {export_path_import_slides}")
 
         finally:
             pres.Close()
@@ -426,10 +628,18 @@ def main() -> int:
     _fix_frm_dimensions(SRC / "frmExecute.frm",
                         client_width=12000,   # 600pt * 20
                         client_height=9600)   # 480pt * 20
+    _fix_frm_dimensions(SRC / "frmImportSlides.frm",
+                        client_width=9600,    # 480pt * 20
+                        client_height=6400)   # 320pt * 20
+    # Caption fix: COM Designer.Caption is not set when Width/Height setattr fails
+    _fix_frm_caption(SRC / "frmImportSlides.frm",
+                     "PPT AI Editor — Import Slides")
 
     # Verify files exist
     ok = True
-    for fname in ("frmExport.frm", "frmExport.frx", "frmExecute.frm", "frmExecute.frx"):
+    for fname in ("frmExport.frm", "frmExport.frx",
+                  "frmExecute.frm", "frmExecute.frx",
+                  "frmImportSlides.frm", "frmImportSlides.frx"):
         fp = SRC / fname
         if fp.exists():
             print(f"[verify] {fname} exists ({fp.stat().st_size} bytes)")

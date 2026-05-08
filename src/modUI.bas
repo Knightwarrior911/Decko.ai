@@ -9,3 +9,7 @@ End Sub
 Public Sub ExecuteInstructions()
     frmExecute.Show vbModeless
 End Sub
+
+Public Sub ImportSlides()
+    frmImportSlides.Show vbModeless
+End Sub
