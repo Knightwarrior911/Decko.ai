@@ -471,6 +471,31 @@ def test_action_set_paragraph_text():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_paragraph_add_delete():
+    print("test_action_paragraph_add_delete")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        body = next(s for s in snap["slides"][0]["shapes"]
+                    if s.get("text", "").startswith("First point"))
+        sid = body["shape_id"]
+
+        app.Run("PPT_AI_Editor!Do_add_paragraph", 1, sid, 0, "INSERTED")
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        body2 = next(s for s in snap2["slides"][0]["shapes"] if s["shape_id"] == sid)
+        assert_eq(len(body2["paragraphs"]), 4, "paragraph count after add")
+        assert_eq(body2["paragraphs"][1]["text"].strip(), "INSERTED", "inserted text")
+
+        app.Run("PPT_AI_Editor!Do_delete_paragraph", 1, sid, 1)
+        snap3 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        body3 = next(s for s in snap3["slides"][0]["shapes"] if s["shape_id"] == sid)
+        assert_eq(len(body3["paragraphs"]), 3, "paragraph count after delete")
+        assert "First point" in body3["paragraphs"][0]["text"]
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -489,6 +514,7 @@ def main() -> int:
     test_snapshot_group_children()
     test_snapshot_chart()
     test_action_set_paragraph_text()
+    test_action_paragraph_add_delete()
     print("\nall tests passed")
     return 0
 

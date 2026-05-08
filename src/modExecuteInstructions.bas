@@ -126,6 +126,12 @@ Private Function ValidateAction(act As Object) As String
         Case "swap_table_rows"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "row_a", "row_b"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "add_paragraph"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "after_paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "delete_paragraph"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "set_paragraph_text"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
@@ -204,6 +210,12 @@ Private Sub DispatchAction(act As Object)
         Case "set_paragraph_text"
             modActionsText.Do_set_paragraph_text CLng(act("slide")), CLng(act("shape_id")), _
                                                  CLng(act("paragraph_index")), CStr(act("value"))
+        Case "add_paragraph"
+            modActionsText.Do_add_paragraph CLng(act("slide")), CLng(act("shape_id")), _
+                                            CLng(act("after_paragraph_index")), CStr(act("value"))
+        Case "delete_paragraph"
+            modActionsText.Do_delete_paragraph CLng(act("slide")), CLng(act("shape_id")), _
+                                               CLng(act("paragraph_index"))
     End Select
 End Sub
 
