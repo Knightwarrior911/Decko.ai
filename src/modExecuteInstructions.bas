@@ -212,3 +212,8 @@ Private Function GetVar(d As Object, key As String) As Variant
         GetVar = Null
     End If
 End Function
+
+' Public wrapper around private validation, for the dry-run preview UI.
+Public Function PreviewValidate(act As Object) As String
+    PreviewValidate = ValidateAction(act)
+End Function
