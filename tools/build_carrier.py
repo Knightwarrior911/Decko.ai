@@ -25,6 +25,15 @@ def main() -> int:
     app = win32com.client.DispatchEx("PowerPoint.Application")
     try:
         pres = app.Presentations.Add(WithWindow=False)
+        # Add Microsoft Scripting Runtime reference — required by modJSON (uses early-bound Dictionary).
+        # Without this reference modJSON fails to compile, causing RPC_E_SERVERFAULT on any call.
+        try:
+            pres.VBProject.References.AddFromGuid(
+                "{420B2830-E718-11CF-893D-00A0C9054228}", 1, 0
+            )
+            print("  [ref] Added Microsoft Scripting Runtime")
+        except Exception as ref_err:
+            print(f"  [warn] Could not add Scripting Runtime reference: {ref_err}")
         # ppSaveAsOpenXMLPresentationMacroEnabled = 25
         pres.SaveAs(str(CARRIER), 25)
         pres.Close()

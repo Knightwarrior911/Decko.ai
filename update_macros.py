@@ -42,16 +42,42 @@ def main() -> int:
         pres = app.Presentations.Open(str(CARRIER), WithWindow=False)
         try:
             project = pres.VBProject
+
+            # Ensure Microsoft Scripting Runtime reference is present.
+            # modJSON uses early-bound Dictionary (New Dictionary); without this
+            # reference the module fails to compile and every call to it raises
+            # RPC_E_SERVERFAULT via COM.
+            _scripting_guid = "{420B2830-E718-11CF-893D-00A0C9054228}"
+            _has_scripting = any(
+                getattr(r, "Guid", "") == _scripting_guid
+                for r in project.References
+            )
+            if not _has_scripting:
+                try:
+                    project.References.AddFromGuid(_scripting_guid, 1, 0)
+                    print("  [ref] Added Microsoft Scripting Runtime")
+                except Exception as ref_err:
+                    print(f"  [warn] Could not add Scripting Runtime reference: {ref_err}")
+
             components = project.VBComponents
 
             for src in sources:
                 name = src.stem
-                # Remove existing component by name (if any)
-                for comp in list(components):
-                    if comp.Name == name:
-                        print(f"  [remove] {name}")
-                        components.Remove(comp)
-                        break
+                # Remove existing component by name (if any).
+                # Re-enumerate fresh each time: the COM collection reference can
+                # become stale after a prior Import(), causing 0x80070006
+                # (ERROR_INVALID_HANDLE) on the next .Name access.
+                to_remove = None
+                for comp in components:
+                    try:
+                        if comp.Name == name:
+                            to_remove = comp
+                            break
+                    except Exception:
+                        pass
+                if to_remove is not None:
+                    print(f"  [remove] {name}")
+                    components.Remove(to_remove)
                 print(f"  [import] {src.name}")
                 components.Import(str(src))
 

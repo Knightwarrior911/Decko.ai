@@ -2,68 +2,70 @@ Attribute VB_Name = "modExportSnapshot"
 Option Explicit
 
 ' Build a JSON snapshot of ActivePresentation.
-' V0: text shapes only - slides, slide_number, shapes[].{shape_id, shape_name, type, text}
+' V0: text shapes only — slides, slide_number, shapes[].{shape_id, shape_name, type, text}
 ' Later tasks add pos, font, fill, table, picture, theme.
 Public Function BuildSnapshotJson() As String
-    On Error GoTo ErrHandler
     Dim pres As Presentation
     Set pres = ActivePresentation
 
-    Dim parts() As String
-    Dim nSlides As Long
-    nSlides = pres.Slides.Count
+    Dim root As Object
+    Set root = CreateObject("Scripting.Dictionary")
+    root.Add "deck", BuildDeckDict(pres)
+    root.Add "slides", BuildSlidesCollection(pres)
 
-    Dim slideParts() As String
-    ReDim slideParts(1 To nSlides)
+    BuildSnapshotJson = modJSON.ConvertToJson(root)
+End Function
+
+Private Function BuildDeckDict(pres As Presentation) As Object
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    d.Add "path", pres.FullName
+    d.Add "slide_width_pt", pres.PageSetup.SlideWidth
+    d.Add "slide_height_pt", pres.PageSetup.SlideHeight
+    Set BuildDeckDict = d
+End Function
+
+Private Function BuildSlidesCollection(pres As Presentation) As Collection
+    Dim col As New Collection
     Dim i As Long
-    For i = 1 To nSlides
-        slideParts(i) = BuildSlideJson(pres.Slides(i))
+    For i = 1 To pres.Slides.Count
+        col.Add BuildSlideDict(pres.Slides(i))
     Next i
-
-    Dim deckJson As String
-    deckJson = "{""path"":" & JsonStr(pres.FullName) & _
-               ",""slide_width_pt"":" & CStr(pres.PageSetup.SlideWidth) & _
-               ",""slide_height_pt"":" & CStr(pres.PageSetup.SlideHeight) & "}"
-
-    Dim slidesJson As String
-    slidesJson = "[" & Join(slideParts, ",") & "]"
-
-    BuildSnapshotJson = "{""deck"":" & deckJson & ",""slides"":" & slidesJson & "}"
-    Exit Function
-ErrHandler:
-    BuildSnapshotJson = "{""error"":""" & JsonEscStr(Err.Description) & """}"
+    Set BuildSlidesCollection = col
 End Function
 
-Private Function BuildSlideJson(sl As Slide) As String
-    Dim nShapes As Long
-    nShapes = sl.Shapes.Count
-    Dim shapeParts() As String
-    ReDim shapeParts(1 To nShapes)
-    Dim j As Long
-    For j = 1 To nShapes
-        shapeParts(j) = BuildShapeJson(sl.Shapes(j))
-    Next j
-    Dim shapesJson As String
-    shapesJson = "[" & Join(shapeParts, ",") & "]"
-    BuildSlideJson = "{""slide_number"":" & CStr(sl.SlideIndex) & _
-                     ",""layout_name"":" & JsonStr(sl.CustomLayout.Name) & _
-                     ",""shapes"":" & shapesJson & "}"
+Private Function BuildSlideDict(sl As Slide) As Object
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    d.Add "slide_number", sl.SlideIndex
+    d.Add "layout_name", sl.CustomLayout.Name
+    d.Add "shapes", BuildShapesCollection(sl)
+    Set BuildSlideDict = d
 End Function
 
-Private Function BuildShapeJson(sh As Shape) As String
-    Dim typeStr As String
-    typeStr = ClassifyShapeType(sh)
-    Dim result As String
-    result = "{""shape_id"":" & CStr(sh.Id) & _
-             ",""shape_name"":" & JsonStr(sh.Name) & _
-             ",""type"":" & JsonStr(typeStr)
+Private Function BuildShapesCollection(sl As Slide) As Collection
+    Dim col As New Collection
+    Dim sh As Shape
+    For Each sh In sl.Shapes
+        col.Add BuildShapeDict(sh)
+    Next sh
+    Set BuildShapesCollection = col
+End Function
+
+Private Function BuildShapeDict(sh As Shape) As Object
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    d.Add "shape_id", sh.Id
+    d.Add "shape_name", sh.Name
+    d.Add "type", ClassifyShapeType(sh)
+
     If sh.HasTextFrame Then
         If sh.TextFrame.HasText Then
-            result = result & ",""text"":" & JsonStr(sh.TextFrame.TextRange.Text)
+            d.Add "text", sh.TextFrame.TextRange.Text
         End If
     End If
-    result = result & "}"
-    BuildShapeJson = result
+
+    Set BuildShapeDict = d
 End Function
 
 Private Function ClassifyShapeType(sh As Shape) As String
@@ -87,21 +89,4 @@ Private Function ClassifyShapeType(sh As Shape) As String
     Else
         ClassifyShapeType = "other"
     End If
-End Function
-
-' JSON string: wrap in quotes and escape special chars
-Private Function JsonStr(s As String) As String
-    JsonStr = """" & JsonEscStr(s) & """"
-End Function
-
-Private Function JsonEscStr(s As String) As String
-    Dim result As String
-    result = s
-    result = Replace(result, "\", "\\")
-    result = Replace(result, """", "\""")
-    result = Replace(result, Chr(13) & Chr(10), "\n")
-    result = Replace(result, Chr(10), "\n")
-    result = Replace(result, Chr(13), "\r")
-    result = Replace(result, Chr(9), "\t")
-    JsonEscStr = result
 End Function
