@@ -180,12 +180,110 @@ def test_action_font_ops():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_fill_color():
+    print("test_action_fill_color")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "full_visual.pptx")
+    try:
+        before = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        rect = next(s for s in before["slides"][0]["shapes"] if s.get("text") == "Box")
+        sid = rect["shape_id"]
+        app.Run("PPT_AI_Editor!Do_set_fill_color", 1, sid, "#A9D18E")
+        after = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        sh = next(s for s in after["slides"][0]["shapes"] if s["shape_id"] == sid)
+        assert_eq(sh["fill"].upper(), "#A9D18E", "rect fill after set")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
+def test_action_geometry():
+    print("test_action_geometry")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "full_visual.pptx")
+    try:
+        before = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        rect = next(s for s in before["slides"][0]["shapes"] if s.get("text") == "Box")
+        sid = rect["shape_id"]
+        app.Run("PPT_AI_Editor!Do_move_shape", 1, sid, 100.0, 200.0)
+        app.Run("PPT_AI_Editor!Do_resize_shape", 1, sid, 250.0, 80.0)
+        moved = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        sh = next(s for s in moved["slides"][0]["shapes"] if s["shape_id"] == sid)
+        assert abs(sh["pos"]["left"] - 100.0) < 0.5, f"left {sh['pos']['left']}"
+        assert abs(sh["pos"]["top"] - 200.0) < 0.5, f"top {sh['pos']['top']}"
+        assert abs(sh["pos"]["width"] - 250.0) < 0.5, f"width {sh['pos']['width']}"
+        assert abs(sh["pos"]["height"] - 80.0) < 0.5, f"height {sh['pos']['height']}"
+        print("  ok  [move + resize]")
+
+        app.Run("PPT_AI_Editor!Do_delete_shape", 1, sid)
+        gone = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        assert all(s["shape_id"] != sid for s in gone["slides"][0]["shapes"]), "shape not deleted"
+        print("  ok  [delete]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
+def test_action_slide_ops():
+    print("test_action_slide_ops")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "smoke_3slide.pptx")
+    try:
+        # Add at position 2, layout_index 0 (title slide layout)
+        app.Run("PPT_AI_Editor!Do_add_slide", 2, 0)
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        assert_eq(len(snap["slides"]), 4, "slide count after add")
+
+        app.Run("PPT_AI_Editor!Do_duplicate_slide", 1)
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        assert_eq(len(snap["slides"]), 5, "slide count after duplicate")
+
+        app.Run("PPT_AI_Editor!Do_delete_slide", 5)
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        assert_eq(len(snap["slides"]), 4, "slide count after delete")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
+def test_action_table_ops():
+    print("test_action_table_ops")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "full_visual.pptx")
+    try:
+        before = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        table = next(s for s in before["slides"][0]["shapes"] if s["type"] == "table")
+        sid = table["shape_id"]
+
+        app.Run("PPT_AI_Editor!Do_set_cell_text", 1, sid, 1, 1, "ZZZ")
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        t = next(s for s in snap["slides"][0]["shapes"] if s["shape_id"] == sid)
+        assert_eq(t["table"]["cells"][0][0]["text"].strip(), "ZZZ", "cell after set_cell_text")
+
+        # Swap col 2 (Q2) with col 3 (Q3)
+        app.Run("PPT_AI_Editor!Do_swap_table_columns", 1, sid, 2, 3)
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        t = next(s for s in snap["slides"][0]["shapes"] if s["shape_id"] == sid)
+        assert_eq(t["table"]["cells"][0][1]["text"].strip(), "Q3", "header after col swap")
+        assert_eq(t["table"]["cells"][0][2]["text"].strip(), "Q2", "header after col swap")
+
+        # Swap rows 2 and 3 (data rows)
+        app.Run("PPT_AI_Editor!Do_swap_table_rows", 1, sid, 2, 3)
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        t = next(s for s in snap["slides"][0]["shapes"] if s["shape_id"] == sid)
+        assert_eq(t["table"]["cells"][1][0]["text"].strip(), "Margin", "row after swap")
+        assert_eq(t["table"]["cells"][2][0]["text"].strip(), "Revenue", "row after swap")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
     test_backup_creates_file()
     test_action_set_text()
     test_action_font_ops()
+    test_action_fill_color()
+    test_action_geometry()
+    test_action_slide_ops()
+    test_action_table_ops()
     print("\nall tests passed")
     return 0
 
