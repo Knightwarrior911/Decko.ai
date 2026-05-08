@@ -210,6 +210,12 @@ Private Function ValidateAction(act As Object) As String
         Case "merge_cells"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "row_a", "col_a", "row_b", "col_b"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "group_shapes"
+            ValidateAction = RequireFields(act, Array("slide", "shape_ids"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "ungroup"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -389,6 +395,10 @@ Private Sub DispatchAction(act As Object)
             modActionsTable.Do_merge_cells CLng(act("slide")), CLng(act("shape_id")), _
                                            CLng(act("row_a")), CLng(act("col_a")), _
                                            CLng(act("row_b")), CLng(act("col_b"))
+        Case "group_shapes"
+            modActionsGroup.Do_group_shapes CLng(act("slide")), act("shape_ids")
+        Case "ungroup"
+            modActionsGroup.Do_ungroup CLng(act("slide")), CLng(act("shape_id"))
     End Select
 End Sub
 

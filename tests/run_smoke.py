@@ -860,6 +860,29 @@ def test_action_merge_cells():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_group_ungroup():
+    print("test_action_group_ungroup")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        boxes = [s for s in snap["slides"][2]["shapes"] if s.get("text") in ("A", "B", "C")]
+        ids = [b["shape_id"] for b in boxes]
+        app.Run("PPT_AI_Editor!Do_group_shapes", 3, ids)
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        groups = [s for s in snap2["slides"][2]["shapes"] if "group_children" in s]
+        assert len(groups) >= 1, "no group after group_shapes"
+        gid = groups[0]["shape_id"]
+
+        app.Run("PPT_AI_Editor!Do_ungroup", 3, gid)
+        snap3 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        groups3 = [s for s in snap3["slides"][2]["shapes"] if "group_children" in s]
+        assert len(groups3) == 0, "group still present after ungroup"
+        print("  ok  [group + ungroup]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -896,6 +919,7 @@ def main() -> int:
     test_action_table_row_ops()
     test_action_table_col_ops()
     test_action_merge_cells()
+    test_action_group_ungroup()
     print("\nall tests passed")
     return 0
 
