@@ -653,6 +653,29 @@ def test_action_add_line_and_shape():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_kind_clear_relative():
+    print("test_action_kind_clear_relative")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        rect_id = next(s["shape_id"] for s in snap["slides"][3]["shapes"] if s.get("text") == "Plain")
+        app.Run("PPT_AI_Editor!Do_set_shape_kind", 4, rect_id, "capsule")
+
+        before_top = next(s["pos"]["top"] for s in snap["slides"][3]["shapes"] if s["shape_id"] == rect_id)
+        app.Run("PPT_AI_Editor!Do_move_shape_relative", 4, rect_id, 0.0, 50.0)
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        new_top = next(s["pos"]["top"] for s in snap2["slides"][3]["shapes"] if s["shape_id"] == rect_id)
+        assert abs(new_top - (before_top + 50.0)) < 1.0, f"move_shape_relative: {before_top} -> {new_top}"
+
+        app.Run("PPT_AI_Editor!Do_clear_slide", 3, [])
+        snap3 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        assert len(snap3["slides"][2]["shapes"]) == 0, "clear_slide should empty slide 3"
+        print("  ok  [set_kind + move_relative + clear_slide]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -679,6 +702,7 @@ def main() -> int:
     test_action_distribute()
     test_action_tile_and_fit()
     test_action_add_line_and_shape()
+    test_action_kind_clear_relative()
     print("\nall tests passed")
     return 0
 

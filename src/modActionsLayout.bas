@@ -40,6 +40,11 @@ Public Function NormalizeIdsArray(v As Variant, ByRef out() As Long) As Long
     Dim col As Object
     If TypeName(v) = "Collection" Then
         Set col = v
+        If col.Count = 0 Then
+            ReDim out(0 To 0)
+            NormalizeIdsArray = 0
+            Exit Function
+        End If
         ReDim out(0 To col.Count - 1)
         Dim i As Long
         For i = 1 To col.Count
@@ -48,7 +53,15 @@ Public Function NormalizeIdsArray(v As Variant, ByRef out() As Long) As Long
         NormalizeIdsArray = col.Count
     ElseIf IsArray(v) Then
         Dim lo As Long, hi As Long
-        lo = LBound(v): hi = UBound(v)
+        On Error Resume Next
+        lo = LBound(v)
+        hi = UBound(v)
+        On Error GoTo 0
+        If hi < lo Then
+            ReDim out(0 To 0)
+            NormalizeIdsArray = 0
+            Exit Function
+        End If
         ReDim out(0 To hi - lo)
         For i = lo To hi
             out(i - lo) = CLng(v(i))
@@ -195,3 +208,49 @@ Public Function ResolveAutoShapeKind(kind As String) As Long
         Case Else: Err.Raise vbObjectError + 4006, "ResolveAutoShapeKind", "unknown kind: " & kind
     End Select
 End Function
+
+Public Sub Do_set_shape_kind(slideNum As Long, shapeId As Long, kind As String)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 4001, "Do_set_shape_kind", "shape not found"
+    On Error Resume Next
+    sh.AutoShapeType = ResolveAutoShapeKind(kind)
+    If Err.Number <> 0 Then
+        Dim msg As String: msg = "not_an_autoshape: " & Err.Description
+        Err.Clear
+        Err.Raise vbObjectError + 4007, "Do_set_shape_kind", msg
+    End If
+    On Error GoTo 0
+End Sub
+
+Public Sub Do_clear_slide(slideNum As Long, keepShapeIds As Variant)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 4005, "Do_clear_slide", "slide_out_of_range"
+    End If
+    Dim sl As Slide: Set sl = pres.Slides(slideNum)
+
+    Dim keepIds() As Long
+    Dim keepCount As Long: keepCount = NormalizeIdsArray(keepShapeIds, keepIds)
+
+    Dim toDelete As New Collection
+    Dim sh As Shape, i As Long, keep As Boolean
+    For Each sh In sl.Shapes
+        keep = False
+        For i = 0 To keepCount - 1
+            If sh.Id = keepIds(i) Then keep = True: Exit For
+        Next i
+        If Not keep Then toDelete.Add sh.Id
+    Next sh
+
+    For i = 1 To toDelete.Count
+        Dim victim As Shape: Set victim = modActions.FindShape(slideNum, CLng(toDelete(i)))
+        If Not victim Is Nothing Then victim.Delete
+    Next i
+End Sub
+
+Public Sub Do_move_shape_relative(slideNum As Long, shapeId As Long, dxPt As Single, dyPt As Single)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 4001, "Do_move_shape_relative", "shape not found"
+    sh.Left = sh.Left + dxPt
+    sh.Top = sh.Top + dyPt
+End Sub

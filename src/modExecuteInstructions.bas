@@ -167,6 +167,15 @@ Private Function ValidateAction(act As Object) As String
         Case "add_shape"
             ValidateAction = RequireFields(act, Array("slide", "kind", "pos"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "set_shape_kind"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "kind"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "clear_slide"
+            ValidateAction = RequireFields(act, Array("slide"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "move_shape_relative"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "dx_pt", "dy_pt"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -291,6 +300,19 @@ Private Sub DispatchAction(act As Object)
                                           CSng(posDict("left")), CSng(posDict("top")), _
                                           CSng(posDict("width")), CSng(posDict("height")), _
                                           fh, shex, swt
+        Case "set_shape_kind"
+            modActionsLayout.Do_set_shape_kind CLng(act("slide")), CLng(act("shape_id")), CStr(act("kind"))
+        Case "clear_slide"
+            Dim keep As Variant
+            If act.Exists("keep_shape_ids") Then
+                keep = act("keep_shape_ids")
+            Else
+                keep = Array()
+            End If
+            modActionsLayout.Do_clear_slide CLng(act("slide")), keep
+        Case "move_shape_relative"
+            modActionsLayout.Do_move_shape_relative CLng(act("slide")), CLng(act("shape_id")), _
+                                                    CSng(act("dx_pt")), CSng(act("dy_pt"))
     End Select
 End Sub
 
