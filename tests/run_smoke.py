@@ -536,6 +536,21 @@ def test_action_paragraph_font():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_find_replace_text():
+    print("test_action_find_replace_text")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        before = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        app.Run("PPT_AI_Editor!Do_find_replace_text", "deck", "revenue", "REVENUE")
+        after = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        body = next((s for s in after["slides"][0]["shapes"]
+                     if "REVENUE" in s.get("text", "")), None)
+        assert body, "find_replace did not change any text"
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -557,6 +572,7 @@ def main() -> int:
     test_action_paragraph_add_delete()
     test_action_bullet_indent()
     test_action_paragraph_font()
+    test_action_find_replace_text()
     print("\nall tests passed")
     return 0
 

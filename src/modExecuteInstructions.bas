@@ -144,6 +144,8 @@ Private Function ValidateAction(act As Object) As String
         Case "set_paragraph_font_color"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "find_replace_text"
+            ValidateAction = RequireFields(act, Array("scope", "find", "replace"))
         Case "set_paragraph_text"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
@@ -240,6 +242,8 @@ Private Sub DispatchAction(act As Object)
         Case "set_paragraph_font_color"
             modActionsText.Do_set_paragraph_font_color CLng(act("slide")), CLng(act("shape_id")), _
                                                         CLng(act("paragraph_index")), CStr(act("value"))
+        Case "find_replace_text"
+            modActionsText.Do_find_replace_text CStr(act("scope")), CStr(act("find")), CStr(act("replace"))
     End Select
 End Sub
 
