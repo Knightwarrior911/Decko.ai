@@ -67,6 +67,16 @@ Private Function BuildShapeDict(sh As Shape) As Object
         End If
     End If
 
+    d.Add "fill", BuildFillHex(sh)
+
+    If sh.HasTable Then
+        d.Add "table", BuildTableDict(sh.Table)
+    End If
+
+    If sh.Type = msoPicture Then
+        d.Add "picture", BuildPictureDict(sh)
+    End If
+
     Set BuildShapeDict = d
 End Function
 
@@ -125,4 +135,68 @@ Public Function RgbToHex(ByVal rgbVal As Long) As String
     g = (rgbVal \ &H100) And &HFF
     b = (rgbVal \ &H10000) And &HFF
     RgbToHex = "#" & UCase(Right("00" & Hex(r), 2) & Right("00" & Hex(g), 2) & Right("00" & Hex(b), 2))
+End Function
+
+Private Function BuildFillHex(sh As Shape) As Variant
+    On Error Resume Next
+    Dim v As Variant
+    v = Null
+    If sh.Fill.Visible = msoTrue Then
+        If sh.Fill.Type = msoFillSolid Then
+            v = RgbToHex(sh.Fill.ForeColor.RGB)
+        End If
+    End If
+    BuildFillHex = v
+End Function
+
+Private Function BuildTableDict(tbl As Table) As Object
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    d.Add "rows", tbl.Rows.Count
+    d.Add "cols", tbl.Columns.Count
+
+    Dim cells As Collection
+    Dim rowCol As Collection
+    Dim r As Long, c As Long
+    Set cells = New Collection
+    For r = 1 To tbl.Rows.Count
+        Set rowCol = New Collection
+        For c = 1 To tbl.Columns.Count
+            rowCol.Add BuildCellDict(tbl.Cell(r, c))
+        Next c
+        cells.Add rowCol
+    Next r
+    d.Add "cells", cells
+    Set BuildTableDict = d
+End Function
+
+Private Function BuildCellDict(cell As Object) As Object
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    Dim shp As Shape
+    Set shp = cell.Shape
+    Dim txt As String
+    txt = ""
+    If shp.HasTextFrame Then
+        If shp.TextFrame.HasText Then
+            txt = shp.TextFrame.TextRange.Text
+        End If
+    End If
+    d.Add "text", txt
+    If shp.HasTextFrame Then
+        If shp.TextFrame.HasText Then
+            d.Add "font", BuildFontDict(shp.TextFrame.TextRange.Font)
+        End If
+    End If
+    d.Add "fill", BuildFillHex(shp)
+    Set BuildCellDict = d
+End Function
+
+Private Function BuildPictureDict(sh As Shape) As Object
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    On Error Resume Next
+    d.Add "filename", sh.PictureFormat.SourceFileName
+    On Error GoTo 0
+    Set BuildPictureDict = d
 End Function

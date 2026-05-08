@@ -91,25 +91,38 @@ def test_snapshot_smoke_3slide():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
-def test_snapshot_full_visual_font():
-    print("test_snapshot_full_visual_font")
+def test_snapshot_full_visual():
+    print("test_snapshot_full_visual")
     app = open_app()
     deck, carrier, tmpdir = open_pair(app, "full_visual.pptx")
     try:
         snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
         slide = snap["slides"][0]
+
         title_box = next(s for s in slide["shapes"] if s.get("text", "").startswith("Q3 Visual"))
         font = title_box["font"]
         assert_eq(font["bold"], True, "title bold")
         assert_eq(font["size"], 32, "title size")
         assert_eq(font["color"].upper(), "#1F4E79", "title color")
+
+        rect = next(s for s in slide["shapes"] if s.get("text") == "Box")
+        assert_eq(rect["fill"].upper(), "#2E75B6", "rect fill")
+
+        table = next(s for s in slide["shapes"] if s["type"] == "table")
+        assert "table" in table, "table key missing"
+        t = table["table"]
+        assert_eq(t["rows"], 3, "table rows")
+        assert_eq(t["cols"], 3, "table cols")
+        assert_eq(t["cells"][0][0]["text"], "Metric", "table[0][0]")
+        assert_eq(t["cells"][1][0]["text"], "Revenue", "table[1][0]")
+        assert_eq(t["cells"][1][2]["text"], "112", "table[1][2]")
     finally:
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
 def main() -> int:
     test_snapshot_smoke_3slide()
-    test_snapshot_full_visual_font()
+    test_snapshot_full_visual()
     print("\nall tests passed")
     return 0
 
