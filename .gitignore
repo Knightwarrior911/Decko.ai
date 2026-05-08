@@ -1,0 +1,18 @@
+# PowerPoint backups created at runtime
+*_backup_*.pptm
+*_backup_*.pptx
+
+# Action logs created at runtime
+*.action_log.jsonl
+
+# Snapshot exports
+*_snapshot_*.txt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+Thumbs.db
+.DS_Store

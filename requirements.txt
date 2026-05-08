@@ -1,0 +1,2 @@
+pywin32>=305
+python-pptx>=0.6.21
