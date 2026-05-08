@@ -75,6 +75,7 @@ Private Function BuildShapeDict(sh As Shape) As Object
 
     If sh.HasTable Then
         d.Add "table", BuildTableDict(sh.Table)
+        d.Add "table_extra", BuildTableExtra(sh.Table)
     End If
 
     If sh.HasChart Then
@@ -430,4 +431,80 @@ Private Function LegendPositionName(p As Long) As String
         Case 2:     LegendPositionName = "corner"
         Case Else:  LegendPositionName = "right"
     End Select
+End Function
+
+Private Function BuildTableExtra(tbl As Table) As Object
+    ' PowerPoint COM Cell object does not expose Merged/RowSpan/ColSpan.
+    ' We detect merges by comparing cell.Shape.Width/Height against the
+    ' individual column/row widths stored in tbl.Columns(c).Width.
+    ' A merged cell has Width > its single column width.
+    ' "Leader" cells are those where the previous cell in the same axis
+    ' has a DIFFERENT (smaller) width — i.e. the span starts here.
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    Dim merges As New Collection
+
+    Dim nRows As Long: nRows = tbl.Rows.Count
+    Dim nCols As Long: nCols = tbl.Columns.Count
+
+    ' Cache individual column widths and row heights
+    Dim colW() As Double
+    Dim rowH() As Double
+    ReDim colW(1 To nCols)
+    ReDim rowH(1 To nRows)
+    Dim ci As Long, ri As Long
+    For ci = 1 To nCols
+        colW(ci) = tbl.Columns(ci).Width
+    Next ci
+    For ri = 1 To nRows
+        rowH(ri) = tbl.Rows(ri).Height
+    Next ri
+
+    Dim r As Long, c As Long
+    For r = 1 To nRows
+        For c = 1 To nCols
+            Dim cellObj As Object
+            Set cellObj = tbl.Cell(r, c)
+            Dim cw As Double: cw = cellObj.Shape.Width
+            Dim ch As Double: ch = cellObj.Shape.Height
+
+            ' Compute spans by ratio (round to nearest integer)
+            Dim cs As Long: cs = CLng(cw / colW(c) + 0.4999)
+            Dim rs As Long: rs = CLng(ch / rowH(r) + 0.4999)
+            If cs < 1 Then cs = 1
+            If rs < 1 Then rs = 1
+
+            If cs > 1 Or rs > 1 Then
+                ' Only record if this is the leader cell.
+                ' Leader: no previous cell in same span direction has same dimensions.
+                Dim isLeader As Boolean: isLeader = True
+                If cs > 1 And c > 1 Then
+                    Dim prevCell As Object
+                    Set prevCell = tbl.Cell(r, c - 1)
+                    If Abs(prevCell.Shape.Width - cw) < 1 Then
+                        isLeader = False
+                    End If
+                End If
+                If rs > 1 And r > 1 And isLeader Then
+                    Dim aboveCell As Object
+                    Set aboveCell = tbl.Cell(r - 1, c)
+                    If Abs(aboveCell.Shape.Height - ch) < 1 Then
+                        isLeader = False
+                    End If
+                End If
+                If isLeader Then
+                    Dim m As Object
+                    Set m = CreateObject("Scripting.Dictionary")
+                    m.Add "row", r
+                    m.Add "col", c
+                    m.Add "row_span", rs
+                    m.Add "col_span", cs
+                    merges.Add m
+                End If
+            End If
+        Next c
+    Next r
+
+    d.Add "merged_cells", merges
+    Set BuildTableExtra = d
 End Function

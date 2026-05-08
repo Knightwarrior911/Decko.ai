@@ -407,6 +407,31 @@ def test_snapshot_chart():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_snapshot_table_extra():
+    print("test_snapshot_table_extra")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        # Merge cells (1,2) and (1,3) on the table on slide 4
+        s4 = deck.Slides(4)
+        tbl_shape = next(sh for sh in s4.Shapes if sh.HasTable)
+        tbl_shape.Table.Cell(1, 2).Merge(tbl_shape.Table.Cell(1, 3))
+
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        slide4 = snap["slides"][3]
+        tab = next(s for s in slide4["shapes"] if s["type"] == "table")
+        assert "table_extra" in tab, "missing table_extra"
+        merges = tab["table_extra"]["merged_cells"]
+        assert len(merges) >= 1, f"no merges reported"
+        m = merges[0]
+        assert_eq(m["row"], 1, "merged row")
+        assert_eq(m["col"], 2, "merged col")
+        assert m["col_span"] == 2, f"col_span {m['col_span']}"
+        print("  ok  [table_extra reports merged cells]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def test_snapshot_group_children():
     print("test_snapshot_group_children")
     app = open_app()
@@ -443,6 +468,7 @@ def main() -> int:
     test_snapshot_occupied_rects()
     test_snapshot_speaker_notes()
     test_snapshot_paragraphs()
+    test_snapshot_table_extra()
     test_snapshot_group_children()
     test_snapshot_chart()
     print("\nall tests passed")
