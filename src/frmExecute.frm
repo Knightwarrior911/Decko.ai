@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmExecute 
-   Caption         =   "Execute Instructions"
-   ClientHeight    =   10800
+   Caption         =   "PPT AI Editor — Execute Instructions"
+   ClientHeight    =   9600
    ClientLeft      =   91
    ClientTop       =   406
    ClientWidth     =   12000
@@ -20,7 +20,7 @@ Private mValid() As Boolean
 
 Private Sub btnParse_Click()
     lblStatus.Caption = ""
-    btnApply.enabled = False
+    btnApply.Enabled = False
     lstActions.Clear
 
     On Error Resume Next
@@ -60,7 +60,7 @@ Private Sub btnParse_Click()
         lstActions.AddItem row
     Next i
 
-    btnApply.enabled = anyValid
+    btnApply.Enabled = anyValid
     lblStatus.Caption = actions.Count & " actions parsed. " & _
                         IIf(anyValid, "Click Apply to run valid actions.", _
                                       "No valid actions; nothing to apply.")
@@ -71,7 +71,7 @@ Private Sub btnApply_Click()
     Dim summary As String
     summary = modExecuteInstructions.ExecuteFromString(txtInstructions.Text)
     lblStatus.Caption = summary
-    btnApply.enabled = False
+    btnApply.Enabled = False
 End Sub
 
 Private Sub btnCancel_Click()

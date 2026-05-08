@@ -1,6 +1,6 @@
-"""Build frmExport, frmExecute, and frmImportSlides UserForms in PPT_AI_Editor.pptm via COM.
+"""Build frmExport and frmExecute UserForms in PPT_AI_Editor.pptm via COM.
 
-Adds the three UserForms programmatically, sets their controls and VBA code,
+Adds the two UserForms programmatically, sets their controls and VBA code,
 saves the carrier, and exports .frm + .frx to src/ so update_macros.py
 can re-import them on every sync.
 
@@ -23,30 +23,6 @@ TEXTBOX  = "Forms.TextBox.1"
 CMDBTN   = "Forms.CommandButton.1"
 LABEL    = "Forms.Label.1"
 LISTBOX  = "Forms.ListBox.1"
-
-
-# ---------------------------------------------------------------------------
-# macOS-style design system constants
-# OLE colors are BGR-packed: color = R + G*256 + B*65536
-# ---------------------------------------------------------------------------
-
-COLOR_BG_WINDOW  = 245 + 245 * 256 + 247 * 65536   # RGB(245, 245, 247) – window bg
-COLOR_BG_CARD    = 255 + 255 * 256 + 255 * 65536   # RGB(255, 255, 255) – card / input bg
-COLOR_BORDER     = 229 + 229 * 256 + 234 * 65536   # RGB(229, 229, 234) – subtle border
-COLOR_TEXT_PRI   = 28  +  28 * 256 +  30 * 65536   # RGB(28, 28, 30)    – primary text
-COLOR_TEXT_SEC   = 99  +  99 * 256 + 102 * 65536   # RGB(99, 99, 102)   – secondary text
-COLOR_TEXT_TER   = 142 + 142 * 256 + 147 * 65536   # RGB(142, 142, 147) – tertiary / hint
-COLOR_ACCENT     =   0 + 122 * 256 + 255 * 65536   # RGB(0, 122, 255)   – macOS blue
-COLOR_SUCCESS    =  52 + 199 * 256 +  89 * 65536   # RGB(52, 199, 89)   – success green
-COLOR_ERROR      = 255 +  59 * 256 +  48 * 65536   # RGB(255, 59, 48)   – error red
-COLOR_DISABLED   = 199 + 199 * 256 + 204 * 65536   # RGB(199, 199, 204) – disabled gray
-COLOR_WHITE      = 255 + 255 * 256 + 255 * 65536   # pure white
-
-FONT_BODY    = ("Segoe UI", 13, False)
-FONT_HEADING = ("Segoe UI", 16, True)
-FONT_SECTION = ("Segoe UI", 13, True)
-FONT_BUTTON  = ("Segoe UI", 13, True)
-FONT_HINT    = ("Segoe UI", 11, False)
 
 
 # ---------------------------------------------------------------------------
@@ -381,106 +357,6 @@ End Function
 
 
 # ---------------------------------------------------------------------------
-# Style helpers
-# ---------------------------------------------------------------------------
-
-def _set(ctrl, **kwargs):
-    """Set named properties on a Forms control, swallowing individual failures."""
-    for k, v in kwargs.items():
-        try:
-            setattr(ctrl, k, v)
-        except Exception as e:
-            print(f"    [warn] Could not set {k}={v!r}: {e}")
-
-
-def _font(ctrl, name, size, bold=False):
-    """Apply font properties to a control's Font object."""
-    try:
-        ctrl.Font.Name = name
-        ctrl.Font.Size = size
-        ctrl.Font.Bold = bold
-    except Exception as e:
-        print(f"    [warn] Font set failed: {e}")
-
-
-def style_form(designer, title, width_pt):
-    """Add a macOS-style title strip + 1pt divider to the form."""
-    designer.BackColor = COLOR_BG_WINDOW
-
-    # Title strip (card-white bar across the top)
-    title_lbl = designer.Controls.Add(LABEL, "lblFormTitle", True)
-    _set(title_lbl,
-         Caption=title,
-         Top=0, Left=0, Width=width_pt, Height=48,
-         BackColor=COLOR_BG_CARD, BackStyle=1,
-         ForeColor=COLOR_TEXT_PRI,
-         TextAlign=2)
-    _font(title_lbl, FONT_HEADING[0], FONT_HEADING[1], FONT_HEADING[2])
-
-    # 1pt divider line
-    divider = designer.Controls.Add(LABEL, "lblFormDivider", True)
-    _set(divider,
-         Caption="",
-         Top=48, Left=0, Width=width_pt, Height=1,
-         BackColor=COLOR_BORDER, BackStyle=1)
-
-
-def style_textbox(ctrl, multiline=False, locked=False):
-    _set(ctrl,
-         BackColor=COLOR_BG_CARD, BackStyle=1,
-         ForeColor=COLOR_TEXT_PRI,
-         BorderStyle=1)
-    try:
-        ctrl.SpecialEffect = 0   # fmSpecialEffectFlat
-    except Exception as e:
-        print(f"    [warn] SpecialEffect=0 failed: {e}")
-    _font(ctrl, FONT_BODY[0], FONT_BODY[1])
-    _set(ctrl, MultiLine=multiline, Locked=locked)
-    if multiline:
-        _set(ctrl, ScrollBars=3)
-
-
-def style_listbox(ctrl):
-    _set(ctrl,
-         BackColor=COLOR_BG_CARD, BackStyle=1,
-         ForeColor=COLOR_TEXT_PRI,
-         BorderStyle=1)
-    try:
-        ctrl.SpecialEffect = 0
-    except Exception as e:
-        print(f"    [warn] SpecialEffect=0 on listbox failed: {e}")
-    _font(ctrl, FONT_BODY[0], FONT_BODY[1])
-
-
-def style_label(ctrl, text, secondary=False, hint=False, bold=False):
-    _set(ctrl, Caption=text, BackStyle=0, ForeColor=COLOR_TEXT_PRI)
-    if hint:
-        _font(ctrl, FONT_HINT[0], FONT_HINT[1])
-        _set(ctrl, ForeColor=COLOR_TEXT_TER)
-    elif secondary:
-        _font(ctrl, FONT_BODY[0], FONT_BODY[1])
-        _set(ctrl, ForeColor=COLOR_TEXT_SEC)
-    else:
-        _font(ctrl, FONT_BODY[0], FONT_BODY[1], bold)
-
-
-def style_button_primary(ctrl, caption):
-    _set(ctrl,
-         Caption=caption,
-         BackColor=COLOR_ACCENT, BackStyle=1,
-         ForeColor=COLOR_WHITE)
-    _font(ctrl, FONT_BUTTON[0], FONT_BUTTON[1], True)
-
-
-def style_button_secondary(ctrl, caption):
-    _set(ctrl,
-         Caption=caption,
-         BackColor=COLOR_BG_CARD, BackStyle=1,
-         ForeColor=COLOR_TEXT_PRI)
-    _font(ctrl, FONT_BUTTON[0], FONT_BUTTON[1], False)
-
-
-# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -497,17 +373,6 @@ def remove_component(components, name: str) -> None:
     if to_remove is not None:
         print(f"  [remove] {name}")
         components.Remove(to_remove)
-        time.sleep(0.3)
-
-
-def clear_controls(designer) -> None:
-    """Remove all controls from a UserForm designer."""
-    names = [c.Name for c in designer.Controls]
-    for n in names:
-        try:
-            designer.Controls.Remove(n)
-        except Exception as e:
-            print(f"    [warn] Could not remove control {n!r}: {e}")
 
 
 def set_control_props(ctrl, **kwargs) -> None:
@@ -519,75 +384,62 @@ def set_control_props(ctrl, **kwargs) -> None:
             print(f"    [warn] Could not set {k}={v!r}: {e}")
 
 
-# ---------------------------------------------------------------------------
-# Form builders
-# ---------------------------------------------------------------------------
-
-def build_frm_export(components):
-    """Add frmExport to the VBProject — macOS aesthetic.
-
-    Strategy: Import the existing .frm (bypasses VBA name-reservation bug),
-    clear all controls, add new styled controls, update VBA code.
-    """
+def build_frm_export(components, designer_mode: bool = True):
+    """Add frmExport to the VBProject."""
     name = "frmExport"
     remove_component(components, name)
 
-    frm_path = SRC / "frmExport.frm"
-    print(f"  [import] {name} from {frm_path.name}")
-    comp = components.Import(str(frm_path))
+    print(f"  [add] {name}")
+    comp = components.Add(VB_FORM)
+    comp.Name = name
 
-    # Form dimensions: 540 x 460
-    W, H = 540, 460
+    # Form-level properties via Designer
     designer = comp.Designer
     try:
-        designer.Caption = "Export Snapshot"
+        designer.Caption = "PPT AI Editor — Export Snapshot"
+        designer.Width = 540
+        designer.Height = 360
     except Exception as e:
-        print(f"  [warn] Caption: {e}")
+        print(f"  [warn] Could not set form designer props: {e}")
+        # Fallback: try Properties collection
+        try:
+            comp.Properties("Caption").Value = "PPT AI Editor — Export Snapshot"
+            comp.Properties("Width").Value = 540
+            comp.Properties("Height").Value = 360
+        except Exception as e2:
+            print(f"  [warn] Properties fallback also failed: {e2}")
 
-    designer.BackColor = COLOR_BG_WINDOW
-
-    # Clear old controls and rebuild
-    clear_controls(designer)
     controls = designer.Controls
 
-    # ---- Title strip + divider ----
-    style_form(designer, "Export Snapshot", W)
-
-    # Content starts at Top=64 (48 strip + 1pt divider + 15 padding)
-    # Hint label
-    lbl_hint = controls.Add(LABEL, "lblHint", True)
-    _set(lbl_hint, Top=64, Left=24, Width=492, Height=20)
-    style_label(lbl_hint,
-                "Snapshot of the active deck. Copy and paste into your LLM tool.",
-                hint=True)
-
-    # txtSnapshot – large read-only text area
+    # txtSnapshot
     txt = controls.Add(TEXTBOX, "txtSnapshot", True)
-    _set(txt, Top=92, Left=24, Width=492, Height=240)
-    style_textbox(txt, multiline=True, locked=True)
+    set_control_props(txt, Top=12, Left=12, Width=510, Height=240,
+                      MultiLine=True, ScrollBars=3, Locked=True)
 
-    # Status label
-    lbl_status = controls.Add(LABEL, "lblStatus", True)
-    _set(lbl_status, Top=344, Left=24, Width=492, Height=20)
-    style_label(lbl_status, "", secondary=True)
+    # btnCopySnapshot
+    btn1 = controls.Add(CMDBTN, "btnCopySnapshot", True)
+    set_control_props(btn1, Caption="Copy snapshot only",
+                      Top=264, Left=12, Width=150, Height=24)
 
-    # ---- Bottom button row (Top=388) ----
-    # macOS convention: secondary buttons left → primary rightmost
-    btn_save = controls.Add(CMDBTN, "btnSaveTxt", True)
-    _set(btn_save, Top=388, Left=24, Width=140, Height=32)
-    style_button_secondary(btn_save, "Save .txt")
+    # btnCopyWithTemplate
+    btn2 = controls.Add(CMDBTN, "btnCopyWithTemplate", True)
+    set_control_props(btn2, Caption="Copy snapshot + prompt template",
+                      Top=264, Left=174, Width=230, Height=24)
 
-    btn_copy = controls.Add(CMDBTN, "btnCopySnapshot", True)
-    _set(btn_copy, Top=388, Left=176, Width=140, Height=32)
-    style_button_secondary(btn_copy, "Copy snapshot")
+    # btnSaveTxt
+    btn3 = controls.Add(CMDBTN, "btnSaveTxt", True)
+    set_control_props(btn3, Caption="Save .txt next to deck",
+                      Top=264, Left=414, Width=108, Height=24)
 
-    btn_close = controls.Add(CMDBTN, "btnClose", True)
-    _set(btn_close, Top=388, Left=332, Width=80, Height=32)
-    style_button_secondary(btn_close, "Close")
+    # btnClose
+    btn4 = controls.Add(CMDBTN, "btnClose", True)
+    set_control_props(btn4, Caption="Close",
+                      Top=300, Left=414, Width=108, Height=24)
 
-    btn_copy_tmpl = controls.Add(CMDBTN, "btnCopyWithTemplate", True)
-    _set(btn_copy_tmpl, Top=388, Left=420, Width=96, Height=32)
-    style_button_primary(btn_copy_tmpl, "Copy + Prompt")
+    # lblStatus
+    lbl = controls.Add(LABEL, "lblStatus", True)
+    set_control_props(lbl, Caption="",
+                      Top=300, Left=12, Width=390, Height=24)
 
     # Set VBA code
     module = comp.CodeModule
@@ -600,70 +452,59 @@ def build_frm_export(components):
 
 
 def build_frm_execute(components):
-    """Add frmExecute to the VBProject — macOS aesthetic."""
+    """Add frmExecute to the VBProject."""
     name = "frmExecute"
     remove_component(components, name)
 
-    frm_path = SRC / "frmExecute.frm"
-    print(f"  [import] {name} from {frm_path.name}")
-    comp = components.Import(str(frm_path))
+    print(f"  [add] {name}")
+    comp = components.Add(VB_FORM)
+    comp.Name = name
 
-    W, H = 600, 540
+    # Form-level properties via Designer
     designer = comp.Designer
     try:
-        designer.Caption = "Execute Instructions"
+        designer.Caption = "PPT AI Editor — Execute Instructions"
+        designer.Width = 600
+        designer.Height = 480
     except Exception as e:
-        print(f"  [warn] Caption: {e}")
+        print(f"  [warn] Could not set form designer props: {e}")
+        try:
+            comp.Properties("Caption").Value = "PPT AI Editor — Execute Instructions"
+            comp.Properties("Width").Value = 600
+            comp.Properties("Height").Value = 480
+        except Exception as e2:
+            print(f"  [warn] Properties fallback also failed: {e2}")
 
-    designer.BackColor = COLOR_BG_WINDOW
-
-    # Clear old controls and rebuild
-    clear_controls(designer)
     controls = designer.Controls
-
-    # ---- Title strip + divider ----
-    style_form(designer, "Execute Instructions", W)
-
-    # Hint label
-    lbl_hint = controls.Add(LABEL, "lblHint", True)
-    _set(lbl_hint, Top=64, Left=24, Width=552, Height=20)
-    style_label(lbl_hint,
-                "Paste the instructions JSON from your LLM. Review parsed actions, then Apply.",
-                hint=True)
 
     # txtInstructions
     txt = controls.Add(TEXTBOX, "txtInstructions", True)
-    _set(txt, Top=92, Left=24, Width=552, Height=120)
-    style_textbox(txt, multiline=True)
+    set_control_props(txt, Top=12, Left=12, Width=570, Height=120,
+                      MultiLine=True, ScrollBars=3)
 
     # btnParse
     btn_parse = controls.Add(CMDBTN, "btnParse", True)
-    _set(btn_parse, Top=224, Left=24, Width=100, Height=32)
-    style_button_secondary(btn_parse, "Parse")
-
-    # Section label "Parsed Actions"
-    lbl_section = controls.Add(LABEL, "lblParsedActions", True)
-    _set(lbl_section, Top=268, Left=24, Width=552, Height=20)
-    style_label(lbl_section, "Parsed Actions", bold=True)
+    set_control_props(btn_parse, Caption="Parse",
+                      Top=144, Left=12, Width=80, Height=24)
 
     # lstActions
     lst = controls.Add(LISTBOX, "lstActions", True)
-    _set(lst, Top=292, Left=24, Width=552, Height=144)
-    style_listbox(lst)
+    set_control_props(lst, Top=180, Left=12, Width=570, Height=180)
 
-    # Status label
-    lbl_status = controls.Add(LABEL, "lblStatus", True)
-    _set(lbl_status, Top=448, Left=24, Width=552, Height=36)
-    style_label(lbl_status, "", secondary=True)
-
-    # ---- Bottom button row (Top=492) ----
-    btn_cancel = controls.Add(CMDBTN, "btnCancel", True)
-    _set(btn_cancel, Top=492, Left=412, Width=80, Height=32)
-    style_button_secondary(btn_cancel, "Cancel")
-
+    # btnApply
     btn_apply = controls.Add(CMDBTN, "btnApply", True)
-    _set(btn_apply, Top=492, Left=500, Width=76, Height=32, Enabled=False)
-    style_button_primary(btn_apply, "Apply")
+    set_control_props(btn_apply, Caption="Apply", Enabled=False,
+                      Top=372, Left=12, Width=80, Height=24)
+
+    # btnCancel
+    btn_cancel = controls.Add(CMDBTN, "btnCancel", True)
+    set_control_props(btn_cancel, Caption="Cancel",
+                      Top=372, Left=102, Width=80, Height=24)
+
+    # lblStatus
+    lbl = controls.Add(LABEL, "lblStatus", True)
+    set_control_props(lbl, Caption="",
+                      Top=408, Left=12, Width=570, Height=36)
 
     # Set VBA code
     module = comp.CodeModule
@@ -676,74 +517,78 @@ def build_frm_execute(components):
 
 
 def build_frm_import_slides(components):
-    """Add frmImportSlides to the VBProject — macOS aesthetic."""
+    """Add frmImportSlides to the VBProject."""
     name = "frmImportSlides"
     remove_component(components, name)
 
-    frm_path = SRC / "frmImportSlides.frm"
-    print(f"  [import] {name} from {frm_path.name}")
-    comp = components.Import(str(frm_path))
+    print(f"  [add] {name}")
+    comp = components.Add(VB_FORM)
+    comp.Name = name
 
-    W, H = 480, 360
+    # Form-level properties via Designer
     designer = comp.Designer
     try:
-        designer.Caption = "Import Slides"
+        designer.Caption = "PPT AI Editor — Import Slides"
+        designer.Width = 480
+        designer.Height = 320
     except Exception as e:
-        print(f"  [warn] Caption: {e}")
+        print(f"  [warn] Could not set form designer props: {e}")
+        try:
+            comp.Properties("Caption").Value = "PPT AI Editor — Import Slides"
+            comp.Properties("Width").Value = 480
+            comp.Properties("Height").Value = 320
+        except Exception as e2:
+            print(f"  [warn] Properties fallback also failed: {e2}")
 
-    designer.BackColor = COLOR_BG_WINDOW
-
-    # Clear old controls and rebuild
-    clear_controls(designer)
     controls = designer.Controls
 
-    # ---- Title strip + divider ----
-    style_form(designer, "Import Slides", W)
-
-    # Source deck row
+    # lblPath
     lbl_path = controls.Add(LABEL, "lblPath", True)
-    _set(lbl_path, Top=76, Left=24, Width=100, Height=22)
-    style_label(lbl_path, "Source deck")
+    set_control_props(lbl_path, Caption="Source deck",
+                      Top=12, Left=12, Width=100, Height=20)
 
+    # txtPath
     txt_path = controls.Add(TEXTBOX, "txtPath", True)
-    _set(txt_path, Top=76, Left=132, Width=256, Height=22)
-    style_textbox(txt_path, locked=True)
+    set_control_props(txt_path, Top=12, Left=120, Width=280, Height=22,
+                      Locked=True)
 
+    # btnBrowse
     btn_browse = controls.Add(CMDBTN, "btnBrowse", True)
-    _set(btn_browse, Top=76, Left=396, Width=60, Height=22)
-    style_button_secondary(btn_browse, "Browse...")
+    set_control_props(btn_browse, Caption="Browse...",
+                      Top=12, Left=408, Width=60, Height=22)
 
-    # Slide range row
+    # lblRange
     lbl_range = controls.Add(LABEL, "lblRange", True)
-    _set(lbl_range, Top=116, Left=24, Width=224, Height=22)
-    style_label(lbl_range, "Slide range (e.g. 1-3,5,7-9)")
+    set_control_props(lbl_range, Caption="Slide range (e.g. 1-3,5,7-9)",
+                      Top=50, Left=12, Width=240, Height=20)
 
+    # txtRange
     txt_range = controls.Add(TEXTBOX, "txtRange", True)
-    _set(txt_range, Top=116, Left=252, Width=204, Height=22)
-    style_textbox(txt_range)
+    set_control_props(txt_range, Top=50, Left=256, Width=212, Height=22)
 
-    # Position row
+    # lblPosition
     lbl_pos = controls.Add(LABEL, "lblPosition", True)
-    _set(lbl_pos, Top=156, Left=24, Width=224, Height=22)
-    style_label(lbl_pos, "Insert at position")
+    set_control_props(lbl_pos, Caption="Insert at position",
+                      Top=90, Left=12, Width=240, Height=20)
 
+    # txtPosition
     txt_pos = controls.Add(TEXTBOX, "txtPosition", True)
-    _set(txt_pos, Top=156, Left=252, Width=60, Height=22)
-    style_textbox(txt_pos)
+    set_control_props(txt_pos, Top=90, Left=256, Width=60, Height=22)
 
-    # Status label
-    lbl_status = controls.Add(LABEL, "lblStatus", True)
-    _set(lbl_status, Top=200, Left=24, Width=432, Height=60)
-    style_label(lbl_status, "", secondary=True)
-
-    # ---- Bottom button row (Top=296) ----
-    btn_cancel = controls.Add(CMDBTN, "btnCancel", True)
-    _set(btn_cancel, Top=296, Left=312, Width=76, Height=32)
-    style_button_secondary(btn_cancel, "Cancel")
-
+    # btnImport
     btn_import = controls.Add(CMDBTN, "btnImport", True)
-    _set(btn_import, Top=296, Left=392, Width=72, Height=32, Enabled=False)
-    style_button_primary(btn_import, "Import")
+    set_control_props(btn_import, Caption="Import", Enabled=False,
+                      Top=250, Left=12, Width=80, Height=28)
+
+    # btnCancel
+    btn_cancel = controls.Add(CMDBTN, "btnCancel", True)
+    set_control_props(btn_cancel, Caption="Cancel",
+                      Top=250, Left=100, Width=80, Height=28)
+
+    # lblStatus
+    lbl_status = controls.Add(LABEL, "lblStatus", True)
+    set_control_props(lbl_status, Caption="",
+                      Top=130, Left=12, Width=456, Height=100)
 
     # Set VBA code
     module = comp.CodeModule
@@ -810,10 +655,8 @@ def main() -> int:
 
     print(f"[build_forms] Opening carrier: {CARRIER}")
     import win32com.client
-
-    # Single-pass: open, remove old forms, import existing .frm (bypasses VBA
-    # name-reservation bug), clear controls, rebuild with macOS style, save, export.
     app = win32com.client.DispatchEx("PowerPoint.Application")
+    # WithWindow=True required for Designer access (UserForm visual designer)
     app.Visible = True
 
     try:
@@ -822,16 +665,16 @@ def main() -> int:
             project = pres.VBProject
             components = project.VBComponents
 
-            comp_export        = build_frm_export(components)
-            comp_execute       = build_frm_execute(components)
+            comp_export  = build_frm_export(components)
+            comp_execute = build_frm_execute(components)
             comp_import_slides = build_frm_import_slides(components)
 
             pres.Save()
             print("[saved] carrier saved")
 
             # Export .frm + .frx to src/
-            export_path_export        = str(SRC / "frmExport.frm")
-            export_path_execute       = str(SRC / "frmExecute.frm")
+            export_path_export  = str(SRC / "frmExport.frm")
+            export_path_execute = str(SRC / "frmExecute.frm")
             export_path_import_slides = str(SRC / "frmImportSlides.frm")
 
             comp_export.Export(export_path_export)
@@ -854,19 +697,17 @@ def main() -> int:
     # exported .frm will reflect auto-sized dimensions from the controls.
     # We fix them here to match the spec (dimensions in twips: 1pt = 20 twips).
     _fix_frm_dimensions(SRC / "frmExport.frm",
-                        client_width=10800,    # 540pt * 20
-                        client_height=9200)    # 460pt * 20
+                        client_width=10800,   # 540pt * 20
+                        client_height=7200)   # 360pt * 20
     _fix_frm_dimensions(SRC / "frmExecute.frm",
-                        client_width=12000,    # 600pt * 20
-                        client_height=10800)   # 540pt * 20
+                        client_width=12000,   # 600pt * 20
+                        client_height=9600)   # 480pt * 20
     _fix_frm_dimensions(SRC / "frmImportSlides.frm",
-                        client_width=9600,     # 480pt * 20
-                        client_height=7200)    # 360pt * 20
-
-    # Caption fix: COM Designer.Caption is not always set via setattr
-    _fix_frm_caption(SRC / "frmExport.frm",        "Export Snapshot")
-    _fix_frm_caption(SRC / "frmExecute.frm",        "Execute Instructions")
-    _fix_frm_caption(SRC / "frmImportSlides.frm",   "Import Slides")
+                        client_width=9600,    # 480pt * 20
+                        client_height=6400)   # 320pt * 20
+    # Caption fix: COM Designer.Caption is not set when Width/Height setattr fails
+    _fix_frm_caption(SRC / "frmImportSlides.frm",
+                     "PPT AI Editor — Import Slides")
 
     # Verify files exist
     ok = True
