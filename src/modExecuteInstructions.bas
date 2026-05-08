@@ -189,6 +189,12 @@ Private Function ValidateAction(act As Object) As String
         Case "replace_picture"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "path"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "move_slide"
+            ValidateAction = RequireFields(act, Array("from", "to"))
+        Case "extract_slides"
+            ValidateAction = RequireFields(act, Array("slide_indices", "output_path"))
+        Case "import_slides_from_deck"
+            ValidateAction = RequireFields(act, Array("source_path", "slide_indices", "target_position"))
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -348,6 +354,14 @@ Private Sub DispatchAction(act As Object)
                                               CSng(ipos("width")), CSng(ipos("height"))
         Case "replace_picture"
             modActionsImage.Do_replace_picture CLng(act("slide")), CLng(act("shape_id")), CStr(act("path"))
+        Case "move_slide"
+            modActionsSlide.Do_move_slide CLng(act("from")), CLng(act("to"))
+        Case "extract_slides"
+            modActionsSlide.Do_extract_slides act("slide_indices"), CStr(act("output_path"))
+        Case "import_slides_from_deck"
+            modActionsSlide.Do_import_slides_from_deck CStr(act("source_path")), _
+                                                       act("slide_indices"), _
+                                                       CLng(act("target_position"))
     End Select
 End Sub
 

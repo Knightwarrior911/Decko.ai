@@ -736,6 +736,23 @@ def test_action_cross_cutting():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_move_slide():
+    print("test_action_move_slide")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        before = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        app.Run("PPT_AI_Editor!Do_move_slide", 3, 1)
+        after = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        assert_eq(len(after["slides"]), len(before["slides"]), "slide count preserved")
+        s1 = after["slides"][0]
+        any_box = any(sh.get("text") in ("A", "B", "C") for sh in s1["shapes"])
+        assert any_box, f"slide 1 doesn't contain expected boxes"
+        print("  ok  [move_slide]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -766,6 +783,7 @@ def main() -> int:
     test_action_cross_cutting()
     test_action_speaker_notes()
     test_action_images()
+    test_action_move_slide()
     print("\nall tests passed")
     return 0
 
