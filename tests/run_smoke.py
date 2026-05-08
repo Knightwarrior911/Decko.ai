@@ -320,6 +320,24 @@ def test_executor_end_to_end():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_snapshot_occupied_rects():
+    print("test_snapshot_occupied_rects")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        for sl in snap["slides"]:
+            assert "occupied_rects" in sl, f"slide {sl['slide_number']} missing occupied_rects"
+            for r in sl["occupied_rects"]:
+                for k in ("shape_id", "left", "top", "right", "bottom"):
+                    assert k in r, f"occupied_rect missing {k}"
+                assert r["right"] >= r["left"], "right < left"
+                assert r["bottom"] >= r["top"], "bottom < top"
+        print("  ok  [occupied_rects on every slide]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -331,6 +349,7 @@ def main() -> int:
     test_action_slide_ops()
     test_action_table_ops()
     test_executor_end_to_end()
+    test_snapshot_occupied_rects()
     print("\nall tests passed")
     return 0
 

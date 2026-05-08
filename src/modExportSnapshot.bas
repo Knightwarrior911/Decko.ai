@@ -40,6 +40,7 @@ Private Function BuildSlideDict(sl As Slide) As Object
     Set d = CreateObject("Scripting.Dictionary")
     d.Add "slide_number", sl.SlideIndex
     d.Add "layout_name", sl.CustomLayout.Name
+    d.Add "occupied_rects", BuildOccupiedRects(sl)
     d.Add "shapes", BuildShapesCollection(sl)
     Set BuildSlideDict = d
 End Function
@@ -222,4 +223,20 @@ Private Function BuildThemeDict(pres As Presentation) As Object
     d.Add "folHlink", RgbToHex(scheme.Colors(msoThemeFollowedHyperlink).RGB)
 
     Set BuildThemeDict = d
+End Function
+
+Private Function BuildOccupiedRects(sl As Slide) As Collection
+    Dim col As New Collection
+    Dim sh As Shape
+    For Each sh In sl.Shapes
+        Dim d As Object
+        Set d = CreateObject("Scripting.Dictionary")
+        d.Add "shape_id", sh.Id
+        d.Add "left", CDbl(sh.Left)
+        d.Add "top", CDbl(sh.Top)
+        d.Add "right", CDbl(sh.Left + sh.Width)
+        d.Add "bottom", CDbl(sh.Top + sh.Height)
+        col.Add d
+    Next sh
+    Set BuildOccupiedRects = col
 End Function
