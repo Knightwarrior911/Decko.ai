@@ -126,9 +126,22 @@ def test_snapshot_full_visual():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_backup_creates_file():
+    print("test_backup_creates_file")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "smoke_3slide.pptx")
+    try:
+        backup_path = app.Run("PPT_AI_Editor!BackupActiveDeck")
+        assert Path(backup_path).exists(), f"backup not found: {backup_path}"
+        print(f"  ok  [backup at {backup_path}]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
+    test_backup_creates_file()
     print("\nall tests passed")
     return 0
 
