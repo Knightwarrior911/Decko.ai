@@ -551,6 +551,29 @@ def test_action_find_replace_text():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_align_shapes():
+    print("test_action_align_shapes")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        boxes = sorted(
+            [s for s in snap["slides"][2]["shapes"] if s.get("text") in ("A", "B", "C")],
+            key=lambda s: s["pos"]["left"],
+        )
+        ids = [b["shape_id"] for b in boxes]
+        # Move second box's top to be different
+        app.Run("PPT_AI_Editor!Do_move_shape", 3, ids[1], boxes[1]["pos"]["left"], boxes[1]["pos"]["top"] + 30.0)
+        app.Run("PPT_AI_Editor!Do_align_shapes", 3, ids, "top")
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        boxes2 = [s for s in snap2["slides"][2]["shapes"] if s["shape_id"] in ids]
+        tops = [b["pos"]["top"] for b in boxes2]
+        assert max(tops) - min(tops) < 0.5, f"tops not aligned: {tops}"
+        print("  ok  [align top]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -573,6 +596,7 @@ def main() -> int:
     test_action_bullet_indent()
     test_action_paragraph_font()
     test_action_find_replace_text()
+    test_action_align_shapes()
     print("\nall tests passed")
     return 0
 
