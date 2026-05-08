@@ -116,6 +116,12 @@ def test_snapshot_full_visual():
         assert_eq(t["cells"][0][0]["text"], "Metric", "table[0][0]")
         assert_eq(t["cells"][1][0]["text"], "Revenue", "table[1][0]")
         assert_eq(t["cells"][1][2]["text"], "112", "table[1][2]")
+
+        theme = snap["deck"]["theme"]
+        for slot in ("accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "dk1", "lt1"):
+            assert slot in theme, f"theme missing {slot}"
+            assert theme[slot].startswith("#"), f"theme.{slot} not hex"
+        print("  ok  [theme palette present]")
     finally:
         teardown(app, deck, carrier, tmpdir=tmpdir)
 

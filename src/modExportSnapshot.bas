@@ -22,6 +22,7 @@ Private Function BuildDeckDict(pres As Presentation) As Object
     d.Add "path", pres.FullName
     d.Add "slide_width_pt", pres.PageSetup.SlideWidth
     d.Add "slide_height_pt", pres.PageSetup.SlideHeight
+    d.Add "theme", BuildThemeDict(pres)
     Set BuildDeckDict = d
 End Function
 
@@ -199,4 +200,26 @@ Private Function BuildPictureDict(sh As Shape) As Object
     d.Add "filename", sh.PictureFormat.SourceFileName
     On Error GoTo 0
     Set BuildPictureDict = d
+End Function
+
+Private Function BuildThemeDict(pres As Presentation) As Object
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    Dim scheme As Object
+    Set scheme = pres.SlideMaster.Theme.ThemeColorScheme
+
+    d.Add "dk1", RgbToHex(scheme.Colors(msoThemeDark1).RGB)
+    d.Add "lt1", RgbToHex(scheme.Colors(msoThemeLight1).RGB)
+    d.Add "dk2", RgbToHex(scheme.Colors(msoThemeDark2).RGB)
+    d.Add "lt2", RgbToHex(scheme.Colors(msoThemeLight2).RGB)
+    d.Add "accent1", RgbToHex(scheme.Colors(msoThemeAccent1).RGB)
+    d.Add "accent2", RgbToHex(scheme.Colors(msoThemeAccent2).RGB)
+    d.Add "accent3", RgbToHex(scheme.Colors(msoThemeAccent3).RGB)
+    d.Add "accent4", RgbToHex(scheme.Colors(msoThemeAccent4).RGB)
+    d.Add "accent5", RgbToHex(scheme.Colors(msoThemeAccent5).RGB)
+    d.Add "accent6", RgbToHex(scheme.Colors(msoThemeAccent6).RGB)
+    d.Add "hlink", RgbToHex(scheme.Colors(msoThemeHyperlink).RGB)
+    d.Add "folHlink", RgbToHex(scheme.Colors(msoThemeFollowedHyperlink).RGB)
+
+    Set BuildThemeDict = d
 End Function
