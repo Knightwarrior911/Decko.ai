@@ -58,6 +58,7 @@ Private Function BuildShapeDict(sh As Shape) As Object
     d.Add "shape_id", sh.Id
     d.Add "shape_name", sh.Name
     d.Add "type", ClassifyShapeType(sh)
+    d.Add "pos", BuildPosDict(sh)
 
     If sh.HasTextFrame Then
         If sh.TextFrame.HasText Then
@@ -89,4 +90,14 @@ Private Function ClassifyShapeType(sh As Shape) As String
     Else
         ClassifyShapeType = "other"
     End If
+End Function
+
+Private Function BuildPosDict(sh As Shape) As Object
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    d.Add "left", CDbl(sh.Left)
+    d.Add "top", CDbl(sh.Top)
+    d.Add "width", CDbl(sh.Width)
+    d.Add "height", CDbl(sh.Height)
+    Set BuildPosDict = d
 End Function

@@ -78,6 +78,15 @@ def test_snapshot_smoke_3slide():
         first_slide_texts = [s.get("text", "") for s in snap["slides"][0]["shapes"]]
         assert "Q3 Results" in first_slide_texts, f"title text not found in {first_slide_texts}"
         print("  ok  [title text present]")
+        # pos must be present on every shape
+        for sl in snap["slides"]:
+            for sh in sl["shapes"]:
+                assert "pos" in sh, f"shape {sh['shape_id']} missing pos"
+                pos = sh["pos"]
+                for k in ("left", "top", "width", "height"):
+                    assert k in pos, f"shape {sh['shape_id']} pos missing {k}"
+                    assert isinstance(pos[k], (int, float)), f"pos.{k} not numeric"
+        print("  ok  [pos present on all shapes]")
     finally:
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
