@@ -110,3 +110,33 @@ Private Sub SortShapesByTop(ByRef arr() As Shape)
         Next j
     Next i
 End Sub
+
+Public Sub Do_tile_grid(slideNum As Long, shapeIds As Variant, cols As Long, gapPt As Single)
+    If cols < 1 Then Err.Raise vbObjectError + 4004, "Do_tile_grid", "cols must be >=1"
+    Dim shapes() As Shape
+    Dim n As Long: n = ShapesByIds(slideNum, shapeIds, shapes)
+    If n < 1 Then Err.Raise vbObjectError + 4001, "Do_tile_grid", "no shapes"
+    Dim originX As Single: originX = shapes(0).Left
+    Dim originY As Single: originY = shapes(0).Top
+    Dim cellW As Single: cellW = shapes(0).Width + gapPt
+    Dim cellH As Single: cellH = shapes(0).Height + gapPt
+    Dim i As Long
+    For i = 0 To n - 1
+        Dim row As Long: row = i \ cols
+        Dim col As Long: col = i Mod cols
+        shapes(i).Left = originX + col * cellW
+        shapes(i).Top = originY + row * cellH
+    Next i
+End Sub
+
+Public Sub Do_fit_to_slide_margins(slideNum As Long, shapeId As Long, marginPt As Single)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 4001, "Do_fit_to_slide_margins", "shape not found"
+    Dim sw As Single: sw = ActivePresentation.PageSetup.SlideWidth
+    Dim shgt As Single: shgt = ActivePresentation.PageSetup.SlideHeight
+    sh.Left = marginPt
+    sh.Top = marginPt
+    sh.LockAspectRatio = msoFalse
+    sh.Width = sw - 2 * marginPt
+    sh.Height = shgt - 2 * marginPt
+End Sub

@@ -601,6 +601,33 @@ def test_action_distribute():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_tile_and_fit():
+    print("test_action_tile_and_fit")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        boxes = [s for s in snap["slides"][2]["shapes"] if s.get("text") in ("A", "B", "C")]
+        ids = [b["shape_id"] for b in boxes]
+        app.Run("PPT_AI_Editor!Do_tile_grid", 3, ids, 3, 10.0)
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        boxes2 = [s for s in snap2["slides"][2]["shapes"] if s["shape_id"] in ids]
+        tops = [b["pos"]["top"] for b in boxes2]
+        assert max(tops) - min(tops) < 0.5, f"tile_grid: tops not equal: {tops}"
+
+        rect_id = next(s["shape_id"] for s in snap2["slides"][3]["shapes"] if s.get("text") == "Plain")
+        app.Run("PPT_AI_Editor!Do_fit_to_slide_margins", 4, rect_id, 36.0)
+        snap3 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        rect3 = next(s for s in snap3["slides"][3]["shapes"] if s["shape_id"] == rect_id)
+        slide_w = snap3["deck"]["slide_width_pt"]
+        slide_h = snap3["deck"]["slide_height_pt"]
+        assert abs(rect3["pos"]["left"] - 36.0) < 1.0, f"left {rect3['pos']['left']}"
+        assert abs(rect3["pos"]["width"] - (slide_w - 72.0)) < 1.0, f"width {rect3['pos']['width']}"
+        print("  ok  [tile + fit]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -625,6 +652,7 @@ def main() -> int:
     test_action_find_replace_text()
     test_action_align_shapes()
     test_action_distribute()
+    test_action_tile_and_fit()
     print("\nall tests passed")
     return 0
 

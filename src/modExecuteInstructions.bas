@@ -155,6 +155,12 @@ Private Function ValidateAction(act As Object) As String
         Case "distribute_horizontal", "distribute_vertical"
             ValidateAction = RequireFields(act, Array("slide", "shape_ids"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "tile_grid"
+            ValidateAction = RequireFields(act, Array("slide", "shape_ids", "cols", "gap_pt"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "fit_to_slide_margins"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -256,6 +262,13 @@ Private Sub DispatchAction(act As Object)
             modActionsLayout.Do_distribute_horizontal CLng(act("slide")), act("shape_ids")
         Case "distribute_vertical"
             modActionsLayout.Do_distribute_vertical CLng(act("slide")), act("shape_ids")
+        Case "tile_grid"
+            modActionsLayout.Do_tile_grid CLng(act("slide")), act("shape_ids"), _
+                                          CLng(act("cols")), CSng(act("gap_pt"))
+        Case "fit_to_slide_margins"
+            Dim m As Single: m = 36.0
+            If act.Exists("margin_pt") Then m = CSng(act("margin_pt"))
+            modActionsLayout.Do_fit_to_slide_margins CLng(act("slide")), CLng(act("shape_id")), m
     End Select
 End Sub
 
