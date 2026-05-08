@@ -274,6 +274,52 @@ def test_action_table_ops():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_executor_end_to_end():
+    print("test_executor_end_to_end")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "smoke_3slide.pptx")
+    try:
+        before = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        title_sid = next(s["shape_id"] for s in before["slides"][0]["shapes"] if s["type"] == "title")
+        body_sid = next(s["shape_id"] for s in before["slides"][1]["shapes"] if s["type"] == "body")
+        instructions = {
+            "actions": [
+                {"type": "set_text", "slide": 1, "shape_id": title_sid, "value": "BOARD UPDATE"},
+                {"type": "set_font_color", "slide": 1, "shape_id": title_sid, "value": "#FF0000"},
+                {"type": "set_text", "slide": 2, "shape_id": body_sid, "value": "Bullet A\nBullet B"},
+                {"type": "set_text", "slide": 99, "shape_id": 1, "value": "should skip"},  # invalid
+                {"type": "unknown_op", "slide": 1, "shape_id": title_sid},  # invalid
+            ]
+        }
+        summary = app.Run("PPT_AI_Editor!ExecuteFromString", json.dumps(instructions))
+        assert "applied" in summary.lower(), f"summary missing 'applied': {summary}"
+        assert "skipped" in summary.lower(), f"summary missing 'skipped': {summary}"
+
+        after = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        title = next(s for s in after["slides"][0]["shapes"] if s["shape_id"] == title_sid)
+        assert_eq(title["text"].strip(), "BOARD UPDATE", "title applied")
+        assert_eq(title["font"]["color"].upper(), "#FF0000", "title color applied")
+
+        # Backup file must exist next to the deck
+        deck_path = Path(deck.FullName)
+        backups = list(deck_path.parent.glob(deck_path.stem + "_backup_*.pptm"))
+        # smoke_3slide.pptx is .pptx not .pptm so backup keeps .pptx ext
+        backups += list(deck_path.parent.glob(deck_path.stem + "_backup_*.pptx"))
+        assert backups, f"no backup found in {deck_path.parent}"
+        print(f"  ok  [backup at {backups[0].name}]")
+
+        log_path = deck_path.with_suffix(deck_path.suffix + ".action_log.jsonl")
+        assert log_path.exists(), f"action log not written at {log_path}"
+        lines = log_path.read_text().strip().splitlines()
+        # 5 actions in instructions = 5 log lines
+        assert_eq(len(lines), 5, "action log line count")
+        for line in lines:
+            json.loads(line)  # must be valid JSON
+        print(f"  ok  [log has {len(lines)} entries]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -284,6 +330,7 @@ def main() -> int:
     test_action_geometry()
     test_action_slide_ops()
     test_action_table_ops()
+    test_executor_end_to_end()
     print("\nall tests passed")
     return 0
 
