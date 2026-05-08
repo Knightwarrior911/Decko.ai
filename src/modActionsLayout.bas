@@ -60,3 +60,53 @@ Public Function NormalizeIdsArray(v As Variant, ByRef out() As Long) As Long
         NormalizeIdsArray = 1
     End If
 End Function
+
+Public Sub Do_distribute_horizontal(slideNum As Long, shapeIds As Variant)
+    Dim shapes() As Shape
+    Dim n As Long: n = ShapesByIds(slideNum, shapeIds, shapes)
+    If n < 3 Then Err.Raise vbObjectError + 4003, "Do_distribute_horizontal", "need >=3 shapes"
+    SortShapesByLeft shapes
+    Dim minLeft As Single: minLeft = shapes(0).Left
+    Dim maxLeft As Single: maxLeft = shapes(n - 1).Left
+    Dim gapStep As Single: gapStep = (maxLeft - minLeft) / (n - 1)
+    Dim i As Long
+    For i = 1 To n - 2
+        shapes(i).Left = minLeft + gapStep * i
+    Next i
+End Sub
+
+Public Sub Do_distribute_vertical(slideNum As Long, shapeIds As Variant)
+    Dim shapes() As Shape
+    Dim n As Long: n = ShapesByIds(slideNum, shapeIds, shapes)
+    If n < 3 Then Err.Raise vbObjectError + 4003, "Do_distribute_vertical", "need >=3 shapes"
+    SortShapesByTop shapes
+    Dim minTop As Single: minTop = shapes(0).Top
+    Dim maxTop As Single: maxTop = shapes(n - 1).Top
+    Dim gapStep As Single: gapStep = (maxTop - minTop) / (n - 1)
+    Dim i As Long
+    For i = 1 To n - 2
+        shapes(i).Top = minTop + gapStep * i
+    Next i
+End Sub
+
+Private Sub SortShapesByLeft(ByRef arr() As Shape)
+    Dim i As Long, j As Long, tmp As Shape
+    For i = LBound(arr) To UBound(arr) - 1
+        For j = i + 1 To UBound(arr)
+            If arr(j).Left < arr(i).Left Then
+                Set tmp = arr(i): Set arr(i) = arr(j): Set arr(j) = tmp
+            End If
+        Next j
+    Next i
+End Sub
+
+Private Sub SortShapesByTop(ByRef arr() As Shape)
+    Dim i As Long, j As Long, tmp As Shape
+    For i = LBound(arr) To UBound(arr) - 1
+        For j = i + 1 To UBound(arr)
+            If arr(j).Top < arr(i).Top Then
+                Set tmp = arr(i): Set arr(i) = arr(j): Set arr(j) = tmp
+            End If
+        Next j
+    Next i
+End Sub

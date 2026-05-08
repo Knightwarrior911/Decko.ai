@@ -152,6 +152,9 @@ Private Function ValidateAction(act As Object) As String
         Case "align_shapes"
             ValidateAction = RequireFields(act, Array("slide", "shape_ids", "anchor"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "distribute_horizontal", "distribute_vertical"
+            ValidateAction = RequireFields(act, Array("slide", "shape_ids"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -249,6 +252,10 @@ Private Sub DispatchAction(act As Object)
             modActionsText.Do_find_replace_text CStr(act("scope")), CStr(act("find")), CStr(act("replace"))
         Case "align_shapes"
             modActionsLayout.Do_align_shapes CLng(act("slide")), act("shape_ids"), CStr(act("anchor"))
+        Case "distribute_horizontal"
+            modActionsLayout.Do_distribute_horizontal CLng(act("slide")), act("shape_ids")
+        Case "distribute_vertical"
+            modActionsLayout.Do_distribute_vertical CLng(act("slide")), act("shape_ids")
     End Select
 End Sub
 

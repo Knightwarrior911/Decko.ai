@@ -574,6 +574,33 @@ def test_action_align_shapes():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_distribute():
+    print("test_action_distribute")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        boxes = sorted(
+            [s for s in snap["slides"][2]["shapes"] if s.get("text") in ("A", "B", "C")],
+            key=lambda s: s["pos"]["left"],
+        )
+        ids = [b["shape_id"] for b in boxes]
+        # Move B way to the left
+        app.Run("PPT_AI_Editor!Do_move_shape", 3, ids[1], 100.0, boxes[1]["pos"]["top"])
+        app.Run("PPT_AI_Editor!Do_distribute_horizontal", 3, ids)
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        boxes2 = sorted(
+            [s for s in snap2["slides"][2]["shapes"] if s["shape_id"] in ids],
+            key=lambda s: s["pos"]["left"],
+        )
+        gap1 = boxes2[1]["pos"]["left"] - boxes2[0]["pos"]["left"]
+        gap2 = boxes2[2]["pos"]["left"] - boxes2[1]["pos"]["left"]
+        assert abs(gap1 - gap2) < 1.0, f"gaps unequal: {gap1} vs {gap2}"
+        print("  ok  [distribute horizontal]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -597,6 +624,7 @@ def main() -> int:
     test_action_paragraph_font()
     test_action_find_replace_text()
     test_action_align_shapes()
+    test_action_distribute()
     print("\nall tests passed")
     return 0
 
