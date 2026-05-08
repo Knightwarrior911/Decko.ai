@@ -753,6 +753,25 @@ def test_action_move_slide():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_extract_slides():
+    print("test_action_extract_slides")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        out_path = str(tmpdir / "extracted.pptx")
+        app.Run("PPT_AI_Editor!Do_extract_slides", [1, 3], out_path)
+        assert Path(out_path).exists(), f"extracted file missing: {out_path}"
+        ext = app.Presentations.Open(out_path, WithWindow=False)
+        try:
+            assert ext.Slides.Count == 2, f"extracted slide count: {ext.Slides.Count}"
+        finally:
+            ext.Saved = True
+            ext.Close()
+        print("  ok  [extract_slides]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -784,6 +803,7 @@ def main() -> int:
     test_action_speaker_notes()
     test_action_images()
     test_action_move_slide()
+    test_action_extract_slides()
     print("\nall tests passed")
     return 0
 
