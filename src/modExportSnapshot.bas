@@ -208,9 +208,16 @@ End Function
 Private Function BuildPictureDict(sh As Shape) As Object
     Dim d As Object
     Set d = CreateObject("Scripting.Dictionary")
+    Dim sfn As String
+    sfn = ""
     On Error Resume Next
-    d.Add "filename", sh.PictureFormat.SourceFileName
+    Dim shObj As Object
+    Set shObj = sh
+    sfn = CStr(shObj.PictureFormat.SourceFullName)
+    If Len(sfn) = 0 Then sfn = CStr(shObj.PictureFormat.SourceFileName)
+    Err.Clear
     On Error GoTo 0
+    If Len(sfn) > 0 Then d.Add "filename", sfn
     Set BuildPictureDict = d
 End Function
 

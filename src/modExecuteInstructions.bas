@@ -183,6 +183,12 @@ Private Function ValidateAction(act As Object) As String
         Case "set_speaker_notes", "append_speaker_notes"
             ValidateAction = RequireFields(act, Array("slide", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "insert_picture"
+            ValidateAction = RequireFields(act, Array("slide", "path", "pos"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "replace_picture"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "path"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -335,6 +341,13 @@ Private Sub DispatchAction(act As Object)
             modActions.Do_set_speaker_notes CLng(act("slide")), CStr(act("value"))
         Case "append_speaker_notes"
             modActions.Do_append_speaker_notes CLng(act("slide")), CStr(act("value"))
+        Case "insert_picture"
+            Dim ipos As Object: Set ipos = act("pos")
+            modActionsImage.Do_insert_picture CLng(act("slide")), CStr(act("path")), _
+                                              CSng(ipos("left")), CSng(ipos("top")), _
+                                              CSng(ipos("width")), CSng(ipos("height"))
+        Case "replace_picture"
+            modActionsImage.Do_replace_picture CLng(act("slide")), CLng(act("shape_id")), CStr(act("path"))
     End Select
 End Sub
 

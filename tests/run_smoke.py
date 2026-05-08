@@ -676,6 +676,32 @@ def test_action_kind_clear_relative():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_images():
+    print("test_action_images")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        # Drop a tiny PNG into tmpdir
+        png_path = tmpdir / "tiny.png"
+        png_path.write_bytes(bytes.fromhex(
+            "89504E470D0A1A0A0000000D49484452000000010000000108060000001F15C489"
+            "0000000A49444154789C636000000002000156A2C8B40000000049454E44AE426082"
+        ))
+        app.Run("PPT_AI_Editor!Do_insert_picture", 4, str(png_path), 50.0, 50.0, 100.0, 100.0)
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        pics = [s for s in snap["slides"][3]["shapes"] if s["type"] == "picture"]
+        assert pics, "no picture inserted"
+        pic_id = pics[0]["shape_id"]
+
+        app.Run("PPT_AI_Editor!Do_replace_picture", 4, pic_id, str(png_path))
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        pics2 = [s for s in snap2["slides"][3]["shapes"] if s["type"] == "picture"]
+        assert pics2, "picture missing after replace"
+        print("  ok  [insert + replace picture]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def test_action_speaker_notes():
     print("test_action_speaker_notes")
     app = open_app()
@@ -739,6 +765,7 @@ def main() -> int:
     test_action_kind_clear_relative()
     test_action_cross_cutting()
     test_action_speaker_notes()
+    test_action_images()
     print("\nall tests passed")
     return 0
 
