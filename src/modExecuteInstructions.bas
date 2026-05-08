@@ -195,6 +195,21 @@ Private Function ValidateAction(act As Object) As String
             ValidateAction = RequireFields(act, Array("slide_indices", "output_path"))
         Case "import_slides_from_deck"
             ValidateAction = RequireFields(act, Array("source_path", "slide_indices", "target_position"))
+        Case "add_table_row"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "after_row"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "delete_table_row"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "add_table_col"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "after_col"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "delete_table_col"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "col"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "merge_cells"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row_a", "col_a", "row_b", "col_b"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -362,6 +377,18 @@ Private Sub DispatchAction(act As Object)
             modActionsSlide.Do_import_slides_from_deck CStr(act("source_path")), _
                                                        act("slide_indices"), _
                                                        CLng(act("target_position"))
+        Case "add_table_row"
+            modActionsTable.Do_add_table_row CLng(act("slide")), CLng(act("shape_id")), CLng(act("after_row"))
+        Case "delete_table_row"
+            modActionsTable.Do_delete_table_row CLng(act("slide")), CLng(act("shape_id")), CLng(act("row"))
+        Case "add_table_col"
+            modActionsTable.Do_add_table_col CLng(act("slide")), CLng(act("shape_id")), CLng(act("after_col"))
+        Case "delete_table_col"
+            modActionsTable.Do_delete_table_col CLng(act("slide")), CLng(act("shape_id")), CLng(act("col"))
+        Case "merge_cells"
+            modActionsTable.Do_merge_cells CLng(act("slide")), CLng(act("shape_id")), _
+                                           CLng(act("row_a")), CLng(act("col_a")), _
+                                           CLng(act("row_b")), CLng(act("col_b"))
     End Select
 End Sub
 

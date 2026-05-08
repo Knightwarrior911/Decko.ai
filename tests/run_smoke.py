@@ -793,6 +793,30 @@ def test_action_import_slides():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_table_row_ops():
+    print("test_action_table_row_ops")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        tab = next(s for s in snap["slides"][3]["shapes"] if s["type"] == "table")
+        sid = tab["shape_id"]
+        before_rows = tab["table"]["rows"]
+
+        app.Run("PPT_AI_Editor!Do_add_table_row", 4, sid, before_rows)
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        tab2 = next(s for s in snap2["slides"][3]["shapes"] if s["shape_id"] == sid)
+        assert_eq(tab2["table"]["rows"], before_rows + 1, "rows after add")
+
+        app.Run("PPT_AI_Editor!Do_delete_table_row", 4, sid, 1)
+        snap3 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        tab3 = next(s for s in snap3["slides"][3]["shapes"] if s["shape_id"] == sid)
+        assert_eq(tab3["table"]["rows"], before_rows, "rows after delete")
+        print("  ok  [table row ops]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -826,6 +850,7 @@ def main() -> int:
     test_action_move_slide()
     test_action_extract_slides()
     test_action_import_slides()
+    test_action_table_row_ops()
     print("\nall tests passed")
     return 0
 
