@@ -176,6 +176,10 @@ Private Function ValidateAction(act As Object) As String
         Case "move_shape_relative"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "dx_pt", "dy_pt"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "recolor_fill_match", "recolor_font_match"
+            ValidateAction = RequireFields(act, Array("scope", "from", "to"))
+        Case "delete_shapes_match"
+            ValidateAction = RequireFields(act, Array("scope"))
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -313,6 +317,17 @@ Private Sub DispatchAction(act As Object)
         Case "move_shape_relative"
             modActionsLayout.Do_move_shape_relative CLng(act("slide")), CLng(act("shape_id")), _
                                                     CSng(act("dx_pt")), CSng(act("dy_pt"))
+        Case "recolor_fill_match"
+            modActionsLayout.Do_recolor_fill_match CStr(act("scope")), CStr(act("from")), CStr(act("to"))
+        Case "recolor_font_match"
+            modActionsLayout.Do_recolor_font_match CStr(act("scope")), CStr(act("from")), CStr(act("to"))
+        Case "delete_shapes_match"
+            Dim kf As String, ff As String, tc As String
+            kf = "" : ff = "" : tc = ""
+            If act.Exists("kind") Then kf = CStr(act("kind"))
+            If act.Exists("fill") Then ff = CStr(act("fill"))
+            If act.Exists("text_contains") Then tc = CStr(act("text_contains"))
+            modActionsLayout.Do_delete_shapes_match CStr(act("scope")), kf, ff, tc
     End Select
 End Sub
 

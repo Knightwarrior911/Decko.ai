@@ -676,6 +676,24 @@ def test_action_kind_clear_relative():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_cross_cutting():
+    print("test_action_cross_cutting")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        app.Run("PPT_AI_Editor!Do_recolor_fill_match", "deck", "#2E75B6", "#FF0000")
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        rect = next(s for s in snap["slides"][3]["shapes"] if s.get("text") == "Plain")
+        assert_eq(rect["fill"].upper(), "#FF0000", "rect fill after recolor_match")
+
+        app.Run("PPT_AI_Editor!Do_delete_shapes_match", "slide:4", "", "", "Plain")
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        assert all(s.get("text") != "Plain" for s in snap2["slides"][3]["shapes"]), "delete_shapes_match failed"
+        print("  ok  [cross-cutting recolor + delete_shapes_match]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -703,6 +721,7 @@ def main() -> int:
     test_action_tile_and_fit()
     test_action_add_line_and_shape()
     test_action_kind_clear_relative()
+    test_action_cross_cutting()
     print("\nall tests passed")
     return 0
 

@@ -254,3 +254,130 @@ Public Sub Do_move_shape_relative(slideNum As Long, shapeId As Long, dxPt As Sin
     sh.Left = sh.Left + dxPt
     sh.Top = sh.Top + dyPt
 End Sub
+
+Public Sub Do_recolor_fill_match(scope As String, fromHex As String, toHex As String)
+    ApplyByScope scope, "fill", fromHex, toHex
+End Sub
+
+Public Sub Do_recolor_font_match(scope As String, fromHex As String, toHex As String)
+    ApplyByScope scope, "font", fromHex, toHex
+End Sub
+
+Public Sub Do_delete_shapes_match(scope As String, kindFilter As String, _
+                                  fillFilter As String, textContains As String)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    Dim slideFilter As Long: slideFilter = ParseScope(scope)
+    Dim i As Long
+    For i = 1 To pres.Slides.Count
+        If slideFilter = 0 Or slideFilter = i Then
+            Dim toDelete As New Collection
+            Dim sh As Shape
+            For Each sh In pres.Slides(i).Shapes
+                If MatchesShape(sh, kindFilter, fillFilter, textContains) Then
+                    toDelete.Add sh.Id
+                End If
+            Next sh
+            Dim j As Long
+            For j = 1 To toDelete.Count
+                Dim victim As Shape: Set victim = modActions.FindShape(i, CLng(toDelete(j)))
+                If Not victim Is Nothing Then victim.Delete
+            Next j
+        End If
+    Next i
+End Sub
+
+Private Function ParseScope(scope As String) As Long
+    If LCase(Left(scope, 6)) = "slide:" Then
+        ParseScope = CLng(Mid(scope, 7))
+    ElseIf LCase(scope) = "deck" Then
+        ParseScope = 0
+    Else
+        Err.Raise vbObjectError + 4008, "ParseScope", "scope must be 'deck' or 'slide:N'"
+    End If
+End Function
+
+Private Function MatchesShape(sh As Shape, kindFilter As String, _
+                              fillFilter As String, textContains As String) As Boolean
+    If Len(kindFilter) > 0 Then
+        On Error Resume Next
+        Dim k As Long: k = ResolveAutoShapeKind(kindFilter)
+        If sh.AutoShapeType <> k Then
+            MatchesShape = False
+            Err.Clear
+            Exit Function
+        End If
+        Err.Clear
+        On Error GoTo 0
+    End If
+    If Len(fillFilter) > 0 Then
+        On Error Resume Next
+        If sh.Fill.Type <> msoFillSolid Then
+            MatchesShape = False
+            Err.Clear
+            Exit Function
+        End If
+        Dim hexVal As String: hexVal = modExportSnapshot.RgbToHex(sh.Fill.ForeColor.RGB)
+        If LCase(hexVal) <> LCase(fillFilter) Then
+            MatchesShape = False
+            Err.Clear
+            Exit Function
+        End If
+        Err.Clear
+        On Error GoTo 0
+    End If
+    If Len(textContains) > 0 Then
+        Dim hasText As Boolean: hasText = False
+        On Error Resume Next
+        If sh.HasTextFrame Then
+            If sh.TextFrame.HasText Then
+                If InStr(sh.TextFrame.TextRange.Text, textContains) > 0 Then hasText = True
+            End If
+        End If
+        Err.Clear
+        On Error GoTo 0
+        If Not hasText Then
+            MatchesShape = False
+            Exit Function
+        End If
+    End If
+    MatchesShape = True
+End Function
+
+Private Sub ApplyByScope(scope As String, propertyKind As String, _
+                         fromHex As String, toHex As String)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    Dim slideFilter As Long: slideFilter = ParseScope(scope)
+    Dim i As Long
+    For i = 1 To pres.Slides.Count
+        If slideFilter = 0 Or slideFilter = i Then
+            Dim sh As Shape
+            For Each sh In pres.Slides(i).Shapes
+                ApplyToShape sh, propertyKind, fromHex, toHex
+            Next sh
+        End If
+    Next i
+End Sub
+
+Private Sub ApplyToShape(sh As Shape, propertyKind As String, _
+                         fromHex As String, toHex As String)
+    On Error Resume Next
+    If propertyKind = "fill" Then
+        If sh.Fill.Type = msoFillSolid Then
+            Dim curHex As String: curHex = modExportSnapshot.RgbToHex(sh.Fill.ForeColor.RGB)
+            If LCase(curHex) = LCase(fromHex) Then
+                sh.Fill.ForeColor.RGB = modActions.HexToRgb(toHex)
+            End If
+        End If
+    ElseIf propertyKind = "font" Then
+        If sh.HasTextFrame Then
+            If sh.TextFrame.HasText Then
+                Dim fc As String: fc = modExportSnapshot.RgbToHex(sh.TextFrame.TextRange.Font.Color.RGB)
+                If LCase(fc) = LCase(fromHex) Then
+                    sh.TextFrame.TextRange.Font.Color.RGB = modActions.HexToRgb(toHex)
+                End If
+            End If
+        End If
+    End If
+    Err.Clear
+    On Error GoTo 0
+End Sub
