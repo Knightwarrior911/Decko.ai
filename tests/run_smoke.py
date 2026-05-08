@@ -515,6 +515,27 @@ def test_action_bullet_indent():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_paragraph_font():
+    print("test_action_paragraph_font")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        body = next(s for s in snap["slides"][0]["shapes"]
+                    if s.get("text", "").startswith("First point"))
+        sid = body["shape_id"]
+        app.Run("PPT_AI_Editor!Do_set_paragraph_font_size", 1, sid, 0, 30)
+        app.Run("PPT_AI_Editor!Do_set_paragraph_font_color", 1, sid, 1, "#FF0000")
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        body2 = next(s for s in snap2["slides"][0]["shapes"] if s["shape_id"] == sid)
+        run0 = body2["paragraphs"][0]["runs"][0]
+        run1 = body2["paragraphs"][1]["runs"][0]
+        assert_eq(int(run0["font"]["size"]), 30, "p0 size after set")
+        assert_eq(run1["font"]["color"].upper(), "#FF0000", "p1 color after set")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -535,6 +556,7 @@ def main() -> int:
     test_action_set_paragraph_text()
     test_action_paragraph_add_delete()
     test_action_bullet_indent()
+    test_action_paragraph_font()
     print("\nall tests passed")
     return 0
 

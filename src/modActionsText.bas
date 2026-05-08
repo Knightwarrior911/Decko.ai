@@ -104,3 +104,17 @@ Public Sub Do_set_indent_level(slideNum As Long, shapeId As Long, _
     If p Is Nothing Then Err.Raise vbObjectError + 3001, "Do_set_indent_level", "paragraph not found"
     p.IndentLevel = value + 1
 End Sub
+
+Public Sub Do_set_paragraph_font_size(slideNum As Long, shapeId As Long, _
+                                      paragraphIndex As Long, value As Long)
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 3001, "Do_set_paragraph_font_size", "paragraph not found"
+    p.Font.Size = value
+End Sub
+
+Public Sub Do_set_paragraph_font_color(slideNum As Long, shapeId As Long, _
+                                       paragraphIndex As Long, hexValue As String)
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 3001, "Do_set_paragraph_font_color", "paragraph not found"
+    p.Font.Color.RGB = modActions.HexToRgb(hexValue)
+End Sub

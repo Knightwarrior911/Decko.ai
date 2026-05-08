@@ -138,6 +138,12 @@ Private Function ValidateAction(act As Object) As String
         Case "set_indent_level"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_paragraph_font_size"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_paragraph_font_color"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "set_paragraph_text"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
@@ -228,6 +234,12 @@ Private Sub DispatchAction(act As Object)
         Case "set_indent_level"
             modActionsText.Do_set_indent_level CLng(act("slide")), CLng(act("shape_id")), _
                                                CLng(act("paragraph_index")), CLng(act("value"))
+        Case "set_paragraph_font_size"
+            modActionsText.Do_set_paragraph_font_size CLng(act("slide")), CLng(act("shape_id")), _
+                                                       CLng(act("paragraph_index")), CLng(act("value"))
+        Case "set_paragraph_font_color"
+            modActionsText.Do_set_paragraph_font_color CLng(act("slide")), CLng(act("shape_id")), _
+                                                        CLng(act("paragraph_index")), CStr(act("value"))
     End Select
 End Sub
 
