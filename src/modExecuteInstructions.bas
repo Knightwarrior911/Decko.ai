@@ -161,6 +161,12 @@ Private Function ValidateAction(act As Object) As String
         Case "fit_to_slide_margins"
             ValidateAction = RequireFields(act, Array("slide", "shape_id"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "add_line"
+            ValidateAction = RequireFields(act, Array("slide", "x1", "y1", "x2", "y2", "color", "weight_pt"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "add_shape"
+            ValidateAction = RequireFields(act, Array("slide", "kind", "pos"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -269,6 +275,22 @@ Private Sub DispatchAction(act As Object)
             Dim m As Single: m = 36.0
             If act.Exists("margin_pt") Then m = CSng(act("margin_pt"))
             modActionsLayout.Do_fit_to_slide_margins CLng(act("slide")), CLng(act("shape_id")), m
+        Case "add_line"
+            modActionsLayout.Do_add_line CLng(act("slide")), CSng(act("x1")), CSng(act("y1")), _
+                                         CSng(act("x2")), CSng(act("y2")), _
+                                         CStr(act("color")), CSng(act("weight_pt"))
+        Case "add_shape"
+            Dim posDict As Object: Set posDict = act("pos")
+            Dim fh As String: fh = ""
+            Dim shex As String: shex = ""
+            Dim swt As Single: swt = 1.0
+            If act.Exists("fill") Then If Not IsNull(act("fill")) Then fh = CStr(act("fill"))
+            If act.Exists("stroke") Then If Not IsNull(act("stroke")) Then shex = CStr(act("stroke"))
+            If act.Exists("stroke_weight_pt") Then swt = CSng(act("stroke_weight_pt"))
+            modActionsLayout.Do_add_shape CLng(act("slide")), CStr(act("kind")), _
+                                          CSng(posDict("left")), CSng(posDict("top")), _
+                                          CSng(posDict("width")), CSng(posDict("height")), _
+                                          fh, shex, swt
     End Select
 End Sub
 

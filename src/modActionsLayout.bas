@@ -140,3 +140,58 @@ Public Sub Do_fit_to_slide_margins(slideNum As Long, shapeId As Long, marginPt A
     sh.Width = sw - 2 * marginPt
     sh.Height = shgt - 2 * marginPt
 End Sub
+
+Public Sub Do_add_line(slideNum As Long, x1 As Single, y1 As Single, _
+                       x2 As Single, y2 As Single, _
+                       hexColor As String, weightPt As Single)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 4005, "Do_add_line", "slide_out_of_range"
+    End If
+    Dim ln As Shape
+    Set ln = pres.Slides(slideNum).Shapes.AddLine(x1, y1, x2, y2)
+    ln.Line.ForeColor.RGB = modActions.HexToRgb(hexColor)
+    ln.Line.Weight = weightPt
+End Sub
+
+Public Sub Do_add_shape(slideNum As Long, kind As String, _
+                        leftPt As Single, topPt As Single, _
+                        widthPt As Single, heightPt As Single, _
+                        fillHex As String, strokeHex As String, _
+                        strokeWeight As Single)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 4005, "Do_add_shape", "slide_out_of_range"
+    End If
+    Dim msoKind As Long: msoKind = ResolveAutoShapeKind(kind)
+    Dim sh As Shape
+    Set sh = pres.Slides(slideNum).Shapes.AddShape(msoKind, leftPt, topPt, widthPt, heightPt)
+    If Len(fillHex) > 0 Then
+        sh.Fill.Visible = msoTrue
+        sh.Fill.Solid
+        sh.Fill.ForeColor.RGB = modActions.HexToRgb(fillHex)
+    Else
+        sh.Fill.Visible = msoFalse
+    End If
+    If Len(strokeHex) > 0 Then
+        sh.Line.Visible = msoTrue
+        sh.Line.ForeColor.RGB = modActions.HexToRgb(strokeHex)
+        sh.Line.Weight = strokeWeight
+    Else
+        sh.Line.Visible = msoFalse
+    End If
+End Sub
+
+Public Function ResolveAutoShapeKind(kind As String) As Long
+    Select Case LCase(kind)
+        Case "rect", "rectangle":   ResolveAutoShapeKind = 1
+        Case "rrect", "round_rect": ResolveAutoShapeKind = 5
+        Case "oval", "ellipse":     ResolveAutoShapeKind = 9
+        Case "circle":              ResolveAutoShapeKind = 9
+        Case "capsule":             ResolveAutoShapeKind = 73
+        Case "arrow", "right_arrow": ResolveAutoShapeKind = 13
+        Case "diamond":             ResolveAutoShapeKind = 4
+        Case "triangle":            ResolveAutoShapeKind = 7
+        Case Else: Err.Raise vbObjectError + 4006, "ResolveAutoShapeKind", "unknown kind: " & kind
+    End Select
+End Function

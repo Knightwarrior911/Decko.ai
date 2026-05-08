@@ -628,6 +628,31 @@ def test_action_tile_and_fit():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_add_line_and_shape():
+    print("test_action_add_line_and_shape")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        before = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        before_count_s4 = len(before["slides"][3]["shapes"])
+
+        instructions = {"actions": [
+            {"type": "add_line", "slide": 4, "x1": 50.0, "y1": 50.0, "x2": 500.0, "y2": 50.0,
+             "color": "#000000", "weight_pt": 1.5},
+            {"type": "add_shape", "slide": 4, "kind": "capsule",
+             "pos": {"left": 100.0, "top": 100.0, "width": 200.0, "height": 60.0},
+             "fill": "#1F4E79", "stroke": "#FFFFFF", "stroke_weight_pt": 2.0}
+        ]}
+        summary = app.Run("PPT_AI_Editor!ExecuteFromString", json.dumps(instructions))
+        assert "2 applied" in summary, f"summary: {summary}"
+
+        after = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        assert len(after["slides"][3]["shapes"]) == before_count_s4 + 2, "expected 2 new shapes"
+        print("  ok  [add_line + add_shape]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -653,6 +678,7 @@ def main() -> int:
     test_action_align_shapes()
     test_action_distribute()
     test_action_tile_and_fit()
+    test_action_add_line_and_shape()
     print("\nall tests passed")
     return 0
 
