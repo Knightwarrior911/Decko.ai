@@ -156,11 +156,36 @@ def test_action_set_text():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_font_ops():
+    print("test_action_font_ops")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "smoke_3slide.pptx")
+    try:
+        before = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        title = next(s for s in before["slides"][0]["shapes"] if s["type"] == "title")
+        sid = title["shape_id"]
+
+        app.Run("PPT_AI_Editor!Do_set_font_size", 1, sid, 28)
+        app.Run("PPT_AI_Editor!Do_set_font_bold", 1, sid, True)
+        app.Run("PPT_AI_Editor!Do_set_font_italic", 1, sid, True)
+        app.Run("PPT_AI_Editor!Do_set_font_color", 1, sid, "#FF0000")
+
+        after = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        sh = next(s for s in after["slides"][0]["shapes"] if s["shape_id"] == sid)
+        assert_eq(int(sh["font"]["size"]), 28, "font size")
+        assert_eq(sh["font"]["bold"], True, "font bold")
+        assert_eq(sh["font"]["italic"], True, "font italic")
+        assert_eq(sh["font"]["color"].upper(), "#FF0000", "font color")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
     test_backup_creates_file()
     test_action_set_text()
+    test_action_font_ops()
     print("\nall tests passed")
     return 0
 
