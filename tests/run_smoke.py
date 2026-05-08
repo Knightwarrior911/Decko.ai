@@ -883,6 +883,28 @@ def test_action_group_ungroup():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_add_connector():
+    print("test_action_add_connector")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        # Slide 3 boxes — but earlier tests may have grouped/ungrouped them.
+        # Look at slide 3 shapes; pick first 2 by text "A" / "B" if present, else first 2 shapes.
+        boxes = [s for s in snap["slides"][2]["shapes"] if s.get("text") in ("A", "B", "C")]
+        if len(boxes) < 2:
+            boxes = snap["slides"][2]["shapes"][:2]
+        a = boxes[0]["shape_id"]
+        b = boxes[1]["shape_id"]
+        before_count = len(snap["slides"][2]["shapes"])
+        app.Run("PPT_AI_Editor!Do_add_connector", 3, a, b, "straight", "filled", "#000000", 1.5)
+        after = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        assert len(after["slides"][2]["shapes"]) == before_count + 1, "expected new connector shape"
+        print("  ok  [add_connector]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -920,6 +942,7 @@ def main() -> int:
     test_action_table_col_ops()
     test_action_merge_cells()
     test_action_group_ungroup()
+    test_action_add_connector()
     print("\nall tests passed")
     return 0
 

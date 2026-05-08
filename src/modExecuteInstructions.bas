@@ -216,6 +216,9 @@ Private Function ValidateAction(act As Object) As String
         Case "ungroup"
             ValidateAction = RequireFields(act, Array("slide", "shape_id"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "add_connector"
+            ValidateAction = RequireFields(act, Array("slide", "from_shape_id", "to_shape_id", "kind"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -399,6 +402,16 @@ Private Sub DispatchAction(act As Object)
             modActionsGroup.Do_group_shapes CLng(act("slide")), act("shape_ids")
         Case "ungroup"
             modActionsGroup.Do_ungroup CLng(act("slide")), CLng(act("shape_id"))
+        Case "add_connector"
+            Dim ae As String, cc As String, cw As Single
+            ae = "filled" : cc = "#000000" : cw = 1.0
+            If act.Exists("arrow_end") Then ae = CStr(act("arrow_end"))
+            If act.Exists("color") Then cc = CStr(act("color"))
+            If act.Exists("weight_pt") Then cw = CSng(act("weight_pt"))
+            modActionsConnector.Do_add_connector CLng(act("slide")), _
+                                                 CLng(act("from_shape_id")), _
+                                                 CLng(act("to_shape_id")), _
+                                                 CStr(act("kind")), ae, cc, cw
     End Select
 End Sub
 
