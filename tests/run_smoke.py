@@ -454,6 +454,23 @@ def test_snapshot_group_children():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_set_paragraph_text():
+    print("test_action_set_paragraph_text")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        body = next(s for s in snap["slides"][0]["shapes"]
+                    if s.get("text", "").startswith("First point"))
+        sid = body["shape_id"]
+        app.Run("PPT_AI_Editor!Do_set_paragraph_text", 1, sid, 1, "REVISED")
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        body2 = next(s for s in snap2["slides"][0]["shapes"] if s["shape_id"] == sid)
+        assert_eq(body2["paragraphs"][1]["text"].strip(), "REVISED", "paragraph 1 text")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -471,6 +488,7 @@ def main() -> int:
     test_snapshot_table_extra()
     test_snapshot_group_children()
     test_snapshot_chart()
+    test_action_set_paragraph_text()
     print("\nall tests passed")
     return 0
 

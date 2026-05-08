@@ -126,6 +126,9 @@ Private Function ValidateAction(act As Object) As String
         Case "swap_table_rows"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "row_a", "row_b"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_paragraph_text"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -198,6 +201,9 @@ Private Sub DispatchAction(act As Object)
         Case "swap_table_rows"
             modActions.Do_swap_table_rows CLng(act("slide")), CLng(act("shape_id")), _
                                           CLng(act("row_a")), CLng(act("row_b"))
+        Case "set_paragraph_text"
+            modActionsText.Do_set_paragraph_text CLng(act("slide")), CLng(act("shape_id")), _
+                                                 CLng(act("paragraph_index")), CStr(act("value"))
     End Select
 End Sub
 
