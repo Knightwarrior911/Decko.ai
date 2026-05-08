@@ -338,6 +338,22 @@ def test_snapshot_occupied_rects():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_snapshot_speaker_notes():
+    print("test_snapshot_speaker_notes")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        s1 = snap["slides"][0]
+        assert "speaker_notes" in s1, "slide 1 missing speaker_notes"
+        assert "Q3" in s1["speaker_notes"], f"unexpected notes: {s1['speaker_notes']!r}"
+        s2 = snap["slides"][1]
+        assert s2["speaker_notes"] == "" or "speaker_notes" in s2
+        print("  ok  [speaker_notes present]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -350,6 +366,7 @@ def main() -> int:
     test_action_table_ops()
     test_executor_end_to_end()
     test_snapshot_occupied_rects()
+    test_snapshot_speaker_notes()
     print("\nall tests passed")
     return 0
 

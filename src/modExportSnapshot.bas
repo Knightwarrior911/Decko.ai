@@ -41,6 +41,7 @@ Private Function BuildSlideDict(sl As Slide) As Object
     d.Add "slide_number", sl.SlideIndex
     d.Add "layout_name", sl.CustomLayout.Name
     d.Add "occupied_rects", BuildOccupiedRects(sl)
+    d.Add "speaker_notes", BuildSpeakerNotes(sl)
     d.Add "shapes", BuildShapesCollection(sl)
     Set BuildSlideDict = d
 End Function
@@ -239,4 +240,24 @@ Private Function BuildOccupiedRects(sl As Slide) As Collection
         col.Add d
     Next sh
     Set BuildOccupiedRects = col
+End Function
+
+Private Function BuildSpeakerNotes(sl As Slide) As String
+    On Error Resume Next
+    Dim notesText As String
+    notesText = ""
+    Dim notesPg As Object
+    Set notesPg = sl.NotesPage
+    Dim ph As Object
+    Dim i As Long
+    For i = 1 To notesPg.Shapes.Placeholders.Count
+        Set ph = notesPg.Shapes.Placeholders(i)
+        If ph.HasTextFrame Then
+            If ph.PlaceholderFormat.Type = ppPlaceholderBody Then
+                notesText = ph.TextFrame.TextRange.Text
+                Exit For
+            End If
+        End If
+    Next i
+    BuildSpeakerNotes = notesText
 End Function
