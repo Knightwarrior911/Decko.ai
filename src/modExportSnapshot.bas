@@ -77,6 +77,10 @@ Private Function BuildShapeDict(sh As Shape) As Object
         d.Add "table", BuildTableDict(sh.Table)
     End If
 
+    If sh.HasChart Then
+        d.Add "chart", BuildChartDict(sh.Chart)
+    End If
+
     If sh.Type = msoPicture Then
         d.Add "picture", BuildPictureDict(sh)
     End If
@@ -98,14 +102,14 @@ Private Function ClassifyShapeType(sh As Shape) As String
             Case Else
                 ClassifyShapeType = "other"
         End Select
-    ElseIf sh.HasTextFrame Then
-        ClassifyShapeType = "textbox"
+    ElseIf sh.HasChart Then
+        ClassifyShapeType = "chart"
     ElseIf sh.HasTable Then
         ClassifyShapeType = "table"
     ElseIf sh.Type = msoPicture Then
         ClassifyShapeType = "picture"
-    ElseIf sh.HasChart Then
-        ClassifyShapeType = "chart"
+    ElseIf sh.HasTextFrame Then
+        ClassifyShapeType = "textbox"
     Else
         ClassifyShapeType = "other"
     End If
@@ -322,4 +326,108 @@ Private Function BuildGroupChildren(sh As Shape) As Collection
         col.Add BuildShapeDict(child)
     Next child
     Set BuildGroupChildren = col
+End Function
+
+Private Function BuildChartDict(ch As Chart) As Object
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    d.Add "is_native", True
+    d.Add "type", ChartTypeName(ch.ChartType)
+
+    On Error Resume Next
+    If ch.HasTitle Then
+        d.Add "title", ch.ChartTitle.Text
+    Else
+        d.Add "title", Null
+    End If
+    Err.Clear
+
+    Dim ax As Object
+    Set ax = CreateObject("Scripting.Dictionary")
+    Dim xt As String, yt As String
+    xt = "": yt = ""
+    On Error Resume Next
+    If ch.HasAxis(1) Then
+        If ch.Axes(1).HasTitle Then xt = ch.Axes(1).AxisTitle.Text
+    End If
+    If ch.HasAxis(2) Then
+        If ch.Axes(2).HasTitle Then yt = ch.Axes(2).AxisTitle.Text
+    End If
+    Err.Clear
+    On Error GoTo 0
+    ax.Add "x", xt
+    ax.Add "y", yt
+    d.Add "axis_titles", ax
+
+    On Error Resume Next
+    Dim leg As String: leg = "none"
+    If ch.HasLegend Then leg = LegendPositionName(ch.Legend.Position)
+    Err.Clear
+    On Error GoTo 0
+    d.Add "legend_position", leg
+
+    d.Add "series", BuildSeriesCollection(ch)
+
+    Set BuildChartDict = d
+End Function
+
+Private Function BuildSeriesCollection(ch As Chart) As Collection
+    Dim col As New Collection
+    On Error Resume Next
+    Dim n As Long: n = ch.SeriesCollection.Count
+    Dim i As Long
+    For i = 1 To n
+        Dim s As Object
+        Set s = CreateObject("Scripting.Dictionary")
+        s.Add "name", ch.SeriesCollection(i).Name
+        Dim cats As Variant
+        cats = ch.SeriesCollection(i).XValues
+        s.Add "categories", VariantArrayToCollection(cats)
+        Dim vals As Variant
+        vals = ch.SeriesCollection(i).Values
+        s.Add "values", VariantArrayToCollection(vals)
+        col.Add s
+    Next i
+    Err.Clear
+    On Error GoTo 0
+    Set BuildSeriesCollection = col
+End Function
+
+Private Function VariantArrayToCollection(arr As Variant) As Variant
+    On Error Resume Next
+    Dim col As New Collection
+    Dim i As Long
+    For i = LBound(arr) To UBound(arr)
+        col.Add arr(i)
+    Next i
+    If Err.Number <> 0 Then
+        Err.Clear
+        VariantArrayToCollection = Null
+        Exit Function
+    End If
+    Set VariantArrayToCollection = col
+End Function
+
+Private Function ChartTypeName(t As Long) As String
+    Select Case t
+        Case 51: ChartTypeName = "columnClustered"
+        Case 52: ChartTypeName = "columnStacked"
+        Case 4:  ChartTypeName = "line"
+        Case 5:  ChartTypeName = "pie"
+        Case 57: ChartTypeName = "barClustered"
+        Case 1:  ChartTypeName = "area"
+        Case -4169: ChartTypeName = "scatter"
+        Case Else: ChartTypeName = "type_" & t
+    End Select
+End Function
+
+Private Function LegendPositionName(p As Long) As String
+    Select Case p
+        Case -4131: LegendPositionName = "left"
+        Case -4152: LegendPositionName = "right"
+        Case -4160: LegendPositionName = "top"
+        Case -4107: LegendPositionName = "bottom"
+        Case 2:     LegendPositionName = "corner"
+        Case Else:  LegendPositionName = "right"
+    End Select
 End Function

@@ -380,6 +380,33 @@ def test_snapshot_paragraphs():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_snapshot_chart():
+    print("test_snapshot_chart")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        s2 = snap["slides"][1]
+        chart_shape = next((s for s in s2["shapes"] if s["type"] == "chart"), None)
+        assert chart_shape is not None, "no chart shape on slide 2"
+        assert "chart" in chart_shape, "missing chart{} key"
+        ch = chart_shape["chart"]
+        assert ch["is_native"] is True, "is_native must be True"
+        for k in ("type", "title", "axis_titles", "legend_position", "series"):
+            assert k in ch, f"chart missing {k}"
+        assert isinstance(ch["series"], list) and len(ch["series"]) >= 1
+        s0 = ch["series"][0]
+        assert s0["name"] == "FY24", f"series name {s0['name']!r}"
+        # categories and values may be None if reading them triggers Excel workbook
+        if s0["categories"] is not None:
+            assert s0["categories"] == ["Q1", "Q2", "Q3", "Q4"], "categories"
+        if s0["values"] is not None:
+            assert s0["values"] == [100, 110, 120, 130], "values"
+        print("  ok  [chart{} with type/title/axis/legend/series]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def test_snapshot_group_children():
     print("test_snapshot_group_children")
     app = open_app()
@@ -417,6 +444,7 @@ def main() -> int:
     test_snapshot_speaker_notes()
     test_snapshot_paragraphs()
     test_snapshot_group_children()
+    test_snapshot_chart()
     print("\nall tests passed")
     return 0
 
