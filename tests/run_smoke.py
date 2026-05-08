@@ -380,6 +380,28 @@ def test_snapshot_paragraphs():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_snapshot_group_children():
+    print("test_snapshot_group_children")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        # Group the 3 boxes on slide 3 via COM
+        s3 = deck.Slides(3)
+        names = [sh.Name for sh in s3.Shapes]
+        rng = s3.Shapes.Range(names)
+        rng.Group()
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        slide3 = snap["slides"][2]
+        group_shape = next((s for s in slide3["shapes"] if "group_children" in s), None)
+        assert group_shape is not None, "no shape with group_children"
+        kids = group_shape["group_children"]
+        assert len(kids) == 3, f"expected 3 children, got {len(kids)}"
+        texts = sorted([k.get("text", "").strip() for k in kids])
+        assert_eq(texts, ["A", "B", "C"], "group child texts")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -394,6 +416,7 @@ def main() -> int:
     test_snapshot_occupied_rects()
     test_snapshot_speaker_notes()
     test_snapshot_paragraphs()
+    test_snapshot_group_children()
     print("\nall tests passed")
     return 0
 

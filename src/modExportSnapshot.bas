@@ -81,6 +81,10 @@ Private Function BuildShapeDict(sh As Shape) As Object
         d.Add "picture", BuildPictureDict(sh)
     End If
 
+    If sh.Type = msoGroup Then
+        d.Add "group_children", BuildGroupChildren(sh)
+    End If
+
     Set BuildShapeDict = d
 End Function
 
@@ -309,4 +313,13 @@ Private Function BuildRunsCollection(para As TextRange) As Collection
         col.Add d
     Next i
     Set BuildRunsCollection = col
+End Function
+
+Private Function BuildGroupChildren(sh As Shape) As Collection
+    Dim col As New Collection
+    Dim child As Shape
+    For Each child In sh.GroupItems
+        col.Add BuildShapeDict(child)
+    Next child
+    Set BuildGroupChildren = col
 End Function
