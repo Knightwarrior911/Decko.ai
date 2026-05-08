@@ -132,6 +132,12 @@ Private Function ValidateAction(act As Object) As String
         Case "delete_paragraph"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_bullet_style"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_indent_level"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "set_paragraph_text"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
@@ -216,6 +222,12 @@ Private Sub DispatchAction(act As Object)
         Case "delete_paragraph"
             modActionsText.Do_delete_paragraph CLng(act("slide")), CLng(act("shape_id")), _
                                                CLng(act("paragraph_index"))
+        Case "set_bullet_style"
+            modActionsText.Do_set_bullet_style CLng(act("slide")), CLng(act("shape_id")), _
+                                               CLng(act("paragraph_index")), CStr(act("value"))
+        Case "set_indent_level"
+            modActionsText.Do_set_indent_level CLng(act("slide")), CLng(act("shape_id")), _
+                                               CLng(act("paragraph_index")), CLng(act("value"))
     End Select
 End Sub
 

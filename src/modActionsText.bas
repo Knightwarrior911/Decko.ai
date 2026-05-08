@@ -69,3 +69,38 @@ Public Sub Do_delete_paragraph(slideNum As Long, shapeId As Long, paragraphIndex
     If p Is Nothing Then Err.Raise vbObjectError + 3001, "Do_delete_paragraph", "paragraph not found"
     p.Delete
 End Sub
+
+Public Sub Do_set_bullet_style(slideNum As Long, shapeId As Long, _
+                               paragraphIndex As Long, value As String)
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 3001, "Do_set_bullet_style", "paragraph not found"
+    Dim b As Object: Set b = p.ParagraphFormat.Bullet
+    Select Case LCase(value)
+        Case "none"
+            b.Type = 0
+        Case "number"
+            b.Type = 2
+        Case "letter"
+            b.Type = 2
+            b.Style = 16
+        Case "disc", "bullet"
+            b.Type = 1
+            b.Character = 8226
+        Case "square"
+            b.Type = 1
+            b.Character = 9632
+        Case "dash"
+            b.Type = 1
+            b.Character = 8211
+        Case Else
+            Err.Raise vbObjectError + 3003, "Do_set_bullet_style", "unknown bullet style: " & value
+    End Select
+End Sub
+
+Public Sub Do_set_indent_level(slideNum As Long, shapeId As Long, _
+                               paragraphIndex As Long, value As Long)
+    If value < 0 Or value > 4 Then Err.Raise vbObjectError + 3004, "Do_set_indent_level", "indent_level must be 0..4"
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 3001, "Do_set_indent_level", "paragraph not found"
+    p.IndentLevel = value + 1
+End Sub

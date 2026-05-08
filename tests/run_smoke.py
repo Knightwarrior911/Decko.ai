@@ -496,6 +496,25 @@ def test_action_paragraph_add_delete():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_bullet_indent():
+    print("test_action_bullet_indent")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        body = next(s for s in snap["slides"][0]["shapes"]
+                    if s.get("text", "").startswith("First point"))
+        sid = body["shape_id"]
+        app.Run("PPT_AI_Editor!Do_set_bullet_style", 1, sid, 0, "number")
+        app.Run("PPT_AI_Editor!Do_set_indent_level", 1, sid, 1, 1)
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        body2 = next(s for s in snap2["slides"][0]["shapes"] if s["shape_id"] == sid)
+        assert_eq(body2["paragraphs"][0]["bullet_style"], "number", "p0 bullet style")
+        assert_eq(body2["paragraphs"][1]["indent_level"], 1, "p1 indent level")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -515,6 +534,7 @@ def main() -> int:
     test_snapshot_chart()
     test_action_set_paragraph_text()
     test_action_paragraph_add_delete()
+    test_action_bullet_indent()
     print("\nall tests passed")
     return 0
 
