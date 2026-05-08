@@ -354,6 +354,32 @@ def test_snapshot_speaker_notes():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_snapshot_paragraphs():
+    print("test_snapshot_paragraphs")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        body = next(s for s in snap["slides"][0]["shapes"]
+                    if s.get("text", "").startswith("First point"))
+        assert "paragraphs" in body, "body missing paragraphs"
+        ps = body["paragraphs"]
+        assert_eq(len(ps), 3, "paragraph count")
+        assert_eq(ps[0]["text"].strip(), "First point about revenue", "p0 text")
+        assert_eq(ps[2]["text"].strip(), "Third point about headcount", "p2 text")
+        for p in ps:
+            for k in ("index", "text", "bullet_style", "indent_level", "runs"):
+                assert k in p, f"paragraph missing {k}"
+            assert isinstance(p["index"], int)
+            assert isinstance(p["indent_level"], int)
+            assert len(p["runs"]) >= 1, "no runs"
+            for run in p["runs"]:
+                assert "text" in run and "font" in run
+        print("  ok  [paragraphs with text/bullet/indent/runs]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -367,6 +393,7 @@ def main() -> int:
     test_executor_end_to_end()
     test_snapshot_occupied_rects()
     test_snapshot_speaker_notes()
+    test_snapshot_paragraphs()
     print("\nall tests passed")
     return 0
 

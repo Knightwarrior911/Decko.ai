@@ -67,6 +67,7 @@ Private Function BuildShapeDict(sh As Shape) As Object
         If sh.TextFrame.HasText Then
             d.Add "text", sh.TextFrame.TextRange.Text
             d.Add "font", BuildFontDict(sh.TextFrame.TextRange.Font)
+            d.Add "paragraphs", BuildParagraphsCollection(sh.TextFrame.TextRange)
         End If
     End If
 
@@ -260,4 +261,52 @@ Private Function BuildSpeakerNotes(sl As Slide) As String
         End If
     Next i
     BuildSpeakerNotes = notesText
+End Function
+
+Private Function BuildParagraphsCollection(tr As TextRange) As Collection
+    Dim col As New Collection
+    Dim n As Long
+    n = tr.Paragraphs().Count
+    Dim i As Long
+    For i = 1 To n
+        col.Add BuildParagraphDict(tr.Paragraphs(i), i - 1)
+    Next i
+    Set BuildParagraphsCollection = col
+End Function
+
+Private Function BuildParagraphDict(para As TextRange, zeroIdx As Long) As Object
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    d.Add "index", zeroIdx
+    d.Add "text", para.Text
+    d.Add "bullet_style", BulletStyleName(para.ParagraphFormat.Bullet.Type, para.ParagraphFormat.Bullet.Style)
+    d.Add "indent_level", CLng(para.IndentLevel) - 1
+    d.Add "runs", BuildRunsCollection(para)
+    Set BuildParagraphDict = d
+End Function
+
+Private Function BulletStyleName(btype As Long, bstyle As Long) As String
+    Select Case btype
+        Case 0: BulletStyleName = "none"
+        Case 2: BulletStyleName = "number"
+        Case 3: BulletStyleName = "image"
+        Case Else: BulletStyleName = "disc"
+    End Select
+End Function
+
+Private Function BuildRunsCollection(para As TextRange) As Collection
+    Dim col As New Collection
+    Dim n As Long
+    n = para.Runs().Count
+    Dim i As Long
+    For i = 1 To n
+        Dim run As TextRange
+        Set run = para.Runs(i)
+        Dim d As Object
+        Set d = CreateObject("Scripting.Dictionary")
+        d.Add "text", run.Text
+        d.Add "font", BuildFontDict(run.Font)
+        col.Add d
+    Next i
+    Set BuildRunsCollection = col
 End Function
