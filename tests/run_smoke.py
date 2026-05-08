@@ -126,18 +126,6 @@ def test_snapshot_full_visual():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
-def test_backup_creates_file():
-    print("test_backup_creates_file")
-    app = open_app()
-    deck, carrier, tmpdir = open_pair(app, "smoke_3slide.pptx")
-    try:
-        backup_path = app.Run("PPT_AI_Editor!BackupActiveDeck")
-        assert Path(backup_path).exists(), f"backup not found: {backup_path}"
-        print(f"  ok  [backup at {backup_path}]")
-    finally:
-        teardown(app, deck, carrier, tmpdir=tmpdir)
-
-
 def test_action_set_text():
     print("test_action_set_text")
     app = open_app()
@@ -300,14 +288,7 @@ def test_executor_end_to_end():
         assert_eq(title["text"].strip(), "BOARD UPDATE", "title applied")
         assert_eq(title["font"]["color"].upper(), "#FF0000", "title color applied")
 
-        # Backup file must exist next to the deck
         deck_path = Path(deck.FullName)
-        backups = list(deck_path.parent.glob(deck_path.stem + "_backup_*.pptm"))
-        # smoke_3slide.pptx is .pptx not .pptm so backup keeps .pptx ext
-        backups += list(deck_path.parent.glob(deck_path.stem + "_backup_*.pptx"))
-        assert backups, f"no backup found in {deck_path.parent}"
-        print(f"  ok  [backup at {backups[0].name}]")
-
         log_path = deck_path.with_suffix(deck_path.suffix + ".action_log.jsonl")
         assert log_path.exists(), f"action log not written at {log_path}"
         lines = log_path.read_text().strip().splitlines()
@@ -961,7 +942,6 @@ def test_action_chart_legend_and_series():
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
-    test_backup_creates_file()
     test_action_set_text()
     test_action_font_ops()
     test_action_fill_color()

@@ -13,9 +13,6 @@ Public Function BackupActiveDeck() As String
                   "Cannot back up unsaved presentation. Save the deck first."
     End If
 
-    ' Save current state before copying so backup matches what we will edit.
-    pres.Save
-
     Dim base As String, ext As String, dirPath As String
     dirPath = pres.Path
     Dim full As String: full = pres.FullName

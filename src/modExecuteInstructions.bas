@@ -1,8 +1,8 @@
 Attribute VB_Name = "modExecuteInstructions"
 Option Explicit
 
-' Parse instructions JSON, validate each action, run backup, dispatch
-' valid actions, log per-action result. Returns a summary string.
+' Parse instructions JSON, validate each action, dispatch valid actions,
+' log per-action result. Returns a summary string. NO auto-backup, NO save.
 Public Function ExecuteFromString(jsonText As String) As String
     Dim parsed As Object
     On Error Resume Next
@@ -24,16 +24,6 @@ Public Function ExecuteFromString(jsonText As String) As String
 
     Dim deckPath As String
     deckPath = ActivePresentation.FullName
-
-    Dim backupPath As String
-    On Error Resume Next
-    backupPath = modBackup.BackupActiveDeck()
-    If Err.Number <> 0 Then
-        ExecuteFromString = "ERROR: backup failed: " & Err.Description
-        Err.Clear
-        Exit Function
-    End If
-    On Error GoTo 0
 
     Dim applied As Long, skipped As Long
     applied = 0: skipped = 0
@@ -73,13 +63,8 @@ Public Function ExecuteFromString(jsonText As String) As String
         End If
     Next i
 
-    On Error Resume Next
-    ActivePresentation.Save
-    On Error GoTo 0
-
     ExecuteFromString = applied & " applied, " & skipped & " skipped. " & _
-                        "Log: " & deckPath & ".action_log.jsonl. " & _
-                        "Backup: " & backupPath
+                        "Log: " & deckPath & ".action_log.jsonl"
 End Function
 
 ' Returns "" if valid, else a reason string.

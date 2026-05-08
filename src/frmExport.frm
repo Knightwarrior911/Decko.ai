@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmExport 
-   Caption         =   "PPT AI Editor � Export Snapshot"
-   ClientHeight    =   7200
+   Caption         =   "Export Snapshot"
+   ClientHeight    =   9200
    ClientLeft      =   91
    ClientTop       =   406
    ClientWidth     =   10800
@@ -79,13 +79,13 @@ Private Function PromptTemplate() As String
     s = s & "  {""type"":""append_speaker_notes"",""slide"":1,""value"":""Add this too""}" & vbCrLf & vbCrLf
 
     s = s & "IMAGES (LOCAL FILE PATHS ONLY - no URLs):" & vbCrLf
-    s = s & "  {""type"":""insert_picture"",""slide"":1,""path"":""C:\\\\path\\\\to\\\\img.png"",""pos"":{""left"":50,""top"":50,""width"":200,""height"":150}}" & vbCrLf
-    s = s & "  {""type"":""replace_picture"",""slide"":1,""shape_id"":7,""path"":""C:\\\\path\\\\to\\\\new.png""}" & vbCrLf & vbCrLf
+    s = s & "  {""type"":""insert_picture"",""slide"":1,""path"":""C:\\path\\to\\img.png"",""pos"":{""left"":50,""top"":50,""width"":200,""height"":150}}" & vbCrLf
+    s = s & "  {""type"":""replace_picture"",""slide"":1,""shape_id"":7,""path"":""C:\\path\\to\\new.png""}" & vbCrLf & vbCrLf
 
     s = s & "SLIDE STRUCTURE:" & vbCrLf
     s = s & "  {""type"":""move_slide"",""from"":3,""to"":1}" & vbCrLf
-    s = s & "  {""type"":""extract_slides"",""slide_indices"":[1,3,5],""output_path"":""C:\\\\path\\\\out.pptx""}" & vbCrLf
-    s = s & "  {""type"":""import_slides_from_deck"",""source_path"":""C:\\\\path\\\\other.pptx"",""slide_indices"":[1,2],""target_position"":3}" & vbCrLf & vbCrLf
+    s = s & "  {""type"":""extract_slides"",""slide_indices"":[1,3,5],""output_path"":""C:\\path\\out.pptx""}" & vbCrLf
+    s = s & "  {""type"":""import_slides_from_deck"",""source_path"":""C:\\path\\other.pptx"",""slide_indices"":[1,2],""target_position"":3}" & vbCrLf & vbCrLf
 
     s = s & "TABLES:" & vbCrLf
     s = s & "  {""type"":""add_table_row"",""slide"":1,""shape_id"":5,""after_row"":2}" & vbCrLf
@@ -170,5 +170,4 @@ Private Sub CopyToClipboard(s As String)
     doObj.SetText s
     doObj.PutInClipboard
 End Sub
-
 
