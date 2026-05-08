@@ -905,6 +905,59 @@ def test_action_add_connector():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_set_chart_type():
+    print("test_action_set_chart_type")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        ch = next(s for s in snap["slides"][1]["shapes"] if s["type"] == "chart")
+        sid = ch["shape_id"]
+        app.Run("PPT_AI_Editor!Do_set_chart_type", 2, sid, "barClustered")
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        ch2 = next(s for s in snap2["slides"][1]["shapes"] if s["shape_id"] == sid)
+        assert_eq(ch2["chart"]["type"], "barClustered", "chart type after set")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
+def test_action_chart_titles():
+    print("test_action_chart_titles")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        ch = next(s for s in snap["slides"][1]["shapes"] if s["type"] == "chart")
+        sid = ch["shape_id"]
+        app.Run("PPT_AI_Editor!Do_set_chart_title", 2, sid, "Quarterly Revenue", True)
+        app.Run("PPT_AI_Editor!Do_set_chart_axis_title", 2, sid, "x", "Quarter")
+        app.Run("PPT_AI_Editor!Do_set_chart_axis_title", 2, sid, "y", "Revenue ($M)")
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        ch2 = next(s for s in snap2["slides"][1]["shapes"] if s["shape_id"] == sid)
+        assert_eq(ch2["chart"]["title"], "Quarterly Revenue", "chart title")
+        assert_eq(ch2["chart"]["axis_titles"]["x"], "Quarter", "x axis title")
+        assert_eq(ch2["chart"]["axis_titles"]["y"], "Revenue ($M)", "y axis title")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
+def test_action_chart_legend_and_series():
+    print("test_action_chart_legend_and_series")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        ch = next(s for s in snap["slides"][1]["shapes"] if s["type"] == "chart")
+        sid = ch["shape_id"]
+        app.Run("PPT_AI_Editor!Do_set_chart_legend_position", 2, sid, "bottom")
+        app.Run("PPT_AI_Editor!Do_set_series_color", 2, sid, 1, "#1F4E79")
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        ch2 = next(s for s in snap2["slides"][1]["shapes"] if s["shape_id"] == sid)
+        assert_eq(ch2["chart"]["legend_position"], "bottom", "legend position")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -943,6 +996,9 @@ def main() -> int:
     test_action_merge_cells()
     test_action_group_ungroup()
     test_action_add_connector()
+    test_action_set_chart_type()
+    test_action_chart_titles()
+    test_action_chart_legend_and_series()
     print("\nall tests passed")
     return 0
 

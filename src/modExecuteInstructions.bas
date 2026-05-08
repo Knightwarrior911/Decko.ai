@@ -219,6 +219,21 @@ Private Function ValidateAction(act As Object) As String
         Case "add_connector"
             ValidateAction = RequireFields(act, Array("slide", "from_shape_id", "to_shape_id", "kind"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "set_chart_type"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_chart_title"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_chart_axis_title"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "axis", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_chart_legend_position"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_series_color"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "series_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -412,6 +427,22 @@ Private Sub DispatchAction(act As Object)
                                                  CLng(act("from_shape_id")), _
                                                  CLng(act("to_shape_id")), _
                                                  CStr(act("kind")), ae, cc, cw
+        Case "set_chart_type"
+            modActionsChart.Do_set_chart_type CLng(act("slide")), CLng(act("shape_id")), CStr(act("value"))
+        Case "set_chart_title"
+            Dim cte As Boolean: cte = True
+            If act.Exists("enabled") Then cte = CBool(act("enabled"))
+            modActionsChart.Do_set_chart_title CLng(act("slide")), CLng(act("shape_id")), _
+                                               CStr(act("value")), cte
+        Case "set_chart_axis_title"
+            modActionsChart.Do_set_chart_axis_title CLng(act("slide")), CLng(act("shape_id")), _
+                                                    CStr(act("axis")), CStr(act("value"))
+        Case "set_chart_legend_position"
+            modActionsChart.Do_set_chart_legend_position CLng(act("slide")), CLng(act("shape_id")), _
+                                                          CStr(act("value"))
+        Case "set_series_color"
+            modActionsChart.Do_set_series_color CLng(act("slide")), CLng(act("shape_id")), _
+                                                CLng(act("series_index")), CStr(act("value"))
     End Select
 End Sub
 
