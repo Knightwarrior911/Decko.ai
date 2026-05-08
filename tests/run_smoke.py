@@ -817,6 +817,49 @@ def test_action_table_row_ops():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_table_col_ops():
+    print("test_action_table_col_ops")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        tab = next(s for s in snap["slides"][3]["shapes"] if s["type"] == "table")
+        sid = tab["shape_id"]
+        before_cols = tab["table"]["cols"]
+
+        app.Run("PPT_AI_Editor!Do_add_table_col", 4, sid, before_cols)
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        tab2 = next(s for s in snap2["slides"][3]["shapes"] if s["shape_id"] == sid)
+        assert_eq(tab2["table"]["cols"], before_cols + 1, "cols after add")
+
+        app.Run("PPT_AI_Editor!Do_delete_table_col", 4, sid, 2)
+        snap3 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        tab3 = next(s for s in snap3["slides"][3]["shapes"] if s["shape_id"] == sid)
+        assert_eq(tab3["table"]["cols"], before_cols, "cols after delete")
+        print("  ok  [table col ops]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
+def test_action_merge_cells():
+    print("test_action_merge_cells")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "phase2.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        tab = next(s for s in snap["slides"][3]["shapes"] if s["type"] == "table")
+        sid = tab["shape_id"]
+        app.Run("PPT_AI_Editor!Do_merge_cells", 4, sid, 1, 1, 1, 3)
+        snap2 = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        tab2 = next(s for s in snap2["slides"][3]["shapes"] if s["shape_id"] == sid)
+        merges = tab2["table_extra"]["merged_cells"]
+        assert any(m["row"] == 1 and m["col"] == 1 and m["col_span"] == 3 for m in merges), \
+            f"merge not reflected: {merges}"
+        print("  ok  [merge_cells]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -851,6 +894,8 @@ def main() -> int:
     test_action_extract_slides()
     test_action_import_slides()
     test_action_table_row_ops()
+    test_action_table_col_ops()
+    test_action_merge_cells()
     print("\nall tests passed")
     return 0
 
