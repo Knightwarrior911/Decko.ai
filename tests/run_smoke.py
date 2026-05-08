@@ -138,10 +138,29 @@ def test_backup_creates_file():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_action_set_text():
+    print("test_action_set_text")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "smoke_3slide.pptx")
+    try:
+        before = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        title = next(s for s in before["slides"][0]["shapes"] if s["type"] == "title")
+        sid = title["shape_id"]
+
+        app.Run("PPT_AI_Editor!Do_set_text", 1, sid, "NEW TITLE")
+
+        after = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        new_title = next(s for s in after["slides"][0]["shapes"] if s["shape_id"] == sid)
+        assert_eq(new_title["text"].strip(), "NEW TITLE", "title after set_text")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
     test_backup_creates_file()
+    test_action_set_text()
     print("\nall tests passed")
     return 0
 
