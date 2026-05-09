@@ -939,6 +939,25 @@ def test_action_chart_legend_and_series():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_snapshot_v3_paragraph_layout():
+    """Each paragraph carries alignment, line_spacing, space_before, space_after."""
+    print("test_snapshot_v3_paragraph_layout")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "text_v3.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        para = snap["slides"][3]["shapes"][1]["paragraphs"][0]
+        assert para["alignment"] in ("left", "center", "right", "justify"), para["alignment"]
+        print(f"  ok  [alignment] {para['alignment']}")
+        assert abs(para["line_spacing"] - 1.5) < 0.05, f"line_spacing {para['line_spacing']}"
+        print(f"  ok  [line_spacing] {para['line_spacing']}")
+        assert "space_before" in para
+        assert "space_after" in para
+        print("  ok  [space_before/after present]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def test_snapshot_v3_text_frame():
     """text_frame block on text shapes captures vertical_align + margins."""
     print("test_snapshot_v3_text_frame")
@@ -997,6 +1016,7 @@ def main() -> int:
     test_action_chart_titles()
     test_action_chart_legend_and_series()
     test_snapshot_v3_text_frame()
+    test_snapshot_v3_paragraph_layout()
     print("\nall tests passed")
     return 0
 

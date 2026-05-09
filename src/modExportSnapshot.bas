@@ -309,6 +309,26 @@ Private Function BuildParagraphDict(para As TextRange, zeroIdx As Long) As Objec
     d.Add "bullet_style", BulletStyleName(para.ParagraphFormat.Bullet.Type, para.ParagraphFormat.Bullet.Style)
     d.Add "indent_level", CLng(para.IndentLevel) - 1
     d.Add "runs", BuildRunsCollection(para)
+    d.Add "alignment", AlignmentName(para.ParagraphFormat.Alignment)
+    ' line_spacing always emitted as a multiple
+    Dim lsMul As Double
+    If para.ParagraphFormat.LineRuleWithin = msoTrue Then
+        lsMul = CDbl(para.ParagraphFormat.SpaceWithin)
+    Else
+        Dim baseSize As Double
+        baseSize = 18#
+        On Error Resume Next
+        baseSize = CDbl(para.Runs(1).Font.Size)
+        On Error GoTo 0
+        If baseSize > 0 Then
+            lsMul = CDbl(para.ParagraphFormat.SpaceWithin) / baseSize
+        Else
+            lsMul = 1#
+        End If
+    End If
+    d.Add "line_spacing", lsMul
+    d.Add "space_before", CDbl(para.ParagraphFormat.SpaceBefore)
+    d.Add "space_after", CDbl(para.ParagraphFormat.SpaceAfter)
     Set BuildParagraphDict = d
 End Function
 
@@ -535,6 +555,16 @@ Private Function VerticalAnchorName(v As Long) As String
         Case 4: VerticalAnchorName = "bottom"        ' msoAnchorBottom
         Case 5: VerticalAnchorName = "bottom"        ' msoAnchorBottomBaseline
         Case Else: VerticalAnchorName = "top"
+    End Select
+End Function
+
+Private Function AlignmentName(v As Long) As String
+    Select Case v
+        Case 1: AlignmentName = "left"     ' ppAlignLeft
+        Case 2: AlignmentName = "center"   ' ppAlignCenter
+        Case 3: AlignmentName = "right"    ' ppAlignRight
+        Case 4: AlignmentName = "justify"  ' ppAlignJustify
+        Case Else: AlignmentName = "left"
     End Select
 End Function
 
