@@ -24,14 +24,22 @@ CMDBTN   = "Forms.CommandButton.1"
 LABEL    = "Forms.Label.1"
 LISTBOX  = "Forms.ListBox.1"
 
-# Green palette (VBA Long via RGB(r,g,b) = r + g*256 + b*65536)
-# #DAF1DE light mint   -> form bg
-# #8EB69B sage         -> secondary button bg
-# #235347 forest       -> primary button bg + body text
-GREEN_LIGHT = 218 + 241 * 256 + 222 * 65536   # 14610906
-GREEN_MID   = 142 + 182 * 256 + 155 * 65536   # 10204814
-GREEN_DARK  =  35 +  83 * 256 +  71 * 65536   # 4674339
-WHITE       = 16777215
+# Dark palette (VBA Long via RGB(r,g,b) = r + g*256 + b*65536)
+# #000000 pure black   -> form bg + label bg (labels render transparent)
+# #333333 dark gray    -> primary button bg
+# #575757 medium gray  -> secondary button bg
+# #FFFFFF white        -> all caption text on dark surfaces
+# #FFFFFF / #000000    -> white input bg with black input text
+DARK_BG    = 0                                       # #000000
+DARK_BTN   = 51 + 51 * 256 + 51 * 65536              # #333333 = 3355443
+MID_BTN    = 87 + 87 * 256 + 87 * 65536              # #575757 = 5723991
+WHITE      = 16777215                                # #FFFFFF
+BLACK      = 0                                       # #000000
+
+# Legacy aliases kept so any external script importing these still loads.
+GREEN_LIGHT = DARK_BG
+GREEN_MID   = MID_BTN
+GREEN_DARK  = DARK_BTN
 
 # Font: Cascadia Code (ships with Win11). Falls back to Consolas if missing.
 FONT_NAME = "Cascadia Code"
@@ -40,10 +48,10 @@ FONT_SIZE_BTN  = 10
 
 
 def style_input(ctrl):
-    """White input bg, dark forest text, Cascadia Code, sunken edge."""
+    """White input bg, black text, Cascadia Code, sunken edge."""
     try:
         ctrl.BackColor = WHITE
-        ctrl.ForeColor = GREEN_DARK
+        ctrl.ForeColor = BLACK
         ctrl.SpecialEffect = 2  # fmSpecialEffectSunken
         ctrl.Font.Name = FONT_NAME
         ctrl.Font.Size = FONT_SIZE_BODY
@@ -52,10 +60,10 @@ def style_input(ctrl):
 
 
 def style_label(ctrl):
-    """Transparent (matches form bg) with dark forest text."""
+    """Black bg (matches form), white caption text."""
     try:
-        ctrl.BackColor = GREEN_LIGHT
-        ctrl.ForeColor = GREEN_DARK
+        ctrl.BackColor = DARK_BG
+        ctrl.ForeColor = WHITE
         # Force Font via assignment of a fresh font object to bypass
         # Forms.Label edge case where Font.Size doesn't take effect when
         # the label was imported with a previously-saved font height.
@@ -76,10 +84,10 @@ def style_label(ctrl):
 
 
 def style_button_primary(ctrl):
-    """Forest fill, light mint caption, bold."""
+    """Dark gray (#333) fill, white caption, bold."""
     try:
-        ctrl.BackColor = GREEN_DARK
-        ctrl.ForeColor = GREEN_LIGHT
+        ctrl.BackColor = DARK_BTN
+        ctrl.ForeColor = WHITE
         ctrl.Font.Name = FONT_NAME
         ctrl.Font.Size = FONT_SIZE_BTN
         ctrl.Font.Bold = True
@@ -88,10 +96,10 @@ def style_button_primary(ctrl):
 
 
 def style_button_secondary(ctrl):
-    """Sage fill, forest caption, bold (good contrast at bold weight)."""
+    """Medium gray (#575757) fill, white caption, bold."""
     try:
-        ctrl.BackColor = GREEN_MID
-        ctrl.ForeColor = GREEN_DARK
+        ctrl.BackColor = MID_BTN
+        ctrl.ForeColor = WHITE
         ctrl.Font.Name = FONT_NAME
         ctrl.Font.Size = FONT_SIZE_BTN
         ctrl.Font.Bold = True
@@ -103,7 +111,7 @@ def style_listbox(ctrl):
     """Same look as input."""
     try:
         ctrl.BackColor = WHITE
-        ctrl.ForeColor = GREEN_DARK
+        ctrl.ForeColor = BLACK
         ctrl.SpecialEffect = 2
         ctrl.Font.Name = FONT_NAME
         ctrl.Font.Size = FONT_SIZE_BODY
@@ -112,7 +120,7 @@ def style_listbox(ctrl):
 
 
 def style_form(designer):
-    """Mint background + form-default font on the form itself.
+    """Black background + form-default font on the form itself.
 
     Setting designer.Font is critical: Forms 2.0 controls (especially Labels)
     can render at the form's *default* font size when a hidden FontEffects
@@ -120,7 +128,7 @@ def style_form(designer):
     fixes those controls without us touching the bit directly.
     """
     try:
-        designer.BackColor = GREEN_LIGHT
+        designer.BackColor = DARK_BG
     except Exception as e:
         print(f"  [warn] style_form bg: {e}")
     try:

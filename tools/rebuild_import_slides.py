@@ -18,11 +18,12 @@ TEXTBOX = "Forms.TextBox.1"
 CMDBTN  = "Forms.CommandButton.1"
 LABEL   = "Forms.Label.1"
 
-GREEN_LIGHT = 218 + 241 * 256 + 222 * 65536
-GREEN_MID   = 142 + 182 * 256 + 155 * 65536
-GREEN_DARK  =  35 +  83 * 256 +  71 * 65536
-WHITE       = 16777215
-FONT_NAME   = "Cascadia Code"
+DARK_BG  = 0                                  # #000000
+DARK_BTN = 51 + 51 * 256 + 51 * 65536          # #333333
+MID_BTN  = 87 + 87 * 256 + 87 * 65536          # #575757
+WHITE    = 16777215                            # #FFFFFF
+BLACK    = 0
+FONT_NAME = "Cascadia Code"
 
 
 def setp(c, **kw):
@@ -35,15 +36,15 @@ def setp(c, **kw):
 
 def style_input(c):
     c.BackColor = WHITE
-    c.ForeColor = GREEN_DARK
+    c.ForeColor = BLACK
     c.SpecialEffect = 2
     c.Font.Name = FONT_NAME
     c.Font.Size = 10
 
 
 def style_label(c):
-    c.BackColor = GREEN_LIGHT
-    c.ForeColor = GREEN_DARK
+    c.BackColor = DARK_BG
+    c.ForeColor = WHITE
     c.Font.Name = FONT_NAME
     c.Font.Size = 10
     try:
@@ -54,16 +55,16 @@ def style_label(c):
 
 
 def style_btn_primary(c):
-    c.BackColor = GREEN_DARK
-    c.ForeColor = GREEN_LIGHT
+    c.BackColor = DARK_BTN
+    c.ForeColor = WHITE
     c.Font.Name = FONT_NAME
     c.Font.Size = 10
     c.Font.Bold = True
 
 
 def style_btn_secondary(c):
-    c.BackColor = GREEN_MID
-    c.ForeColor = GREEN_DARK
+    c.BackColor = MID_BTN
+    c.ForeColor = WHITE
     c.Font.Name = FONT_NAME
     c.Font.Size = 10
     c.Font.Bold = True
@@ -230,8 +231,8 @@ def main():
         comp = components.Add(VB_FORM)
         comp.Name = "frmImportSlides"
         designer = comp.Designer
-        designer.Caption = "PPT AI Editor — Import Slides"
-        designer.BackColor = GREEN_LIGHT
+        designer.Caption = "Decko.ai • Import Slides"
+        designer.BackColor = DARK_BG
         designer.Font.Name = FONT_NAME
         designer.Font.Size = 10
 
