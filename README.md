@@ -37,7 +37,7 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 
 ## Action types
 
-56 actions total across 9 modules.
+71 actions total across 10 modules.
 
 ### Core shape + slide (`modActions.bas`, 17)
 
@@ -61,7 +61,7 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 | `set_speaker_notes` | Replace speaker notes on a slide. |
 | `append_speaker_notes` | Append text to existing speaker notes. |
 
-### Granular text (`modActionsText.bas`, 8)
+### Granular text (`modActionsText.bas`, 12)
 
 | Action | Effect |
 |---|---|
@@ -73,6 +73,26 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 | `set_paragraph_font_size` | Per-paragraph font size override. |
 | `set_paragraph_font_color` | Per-paragraph color override. |
 | `find_replace_text` | Scoped find/replace; scope = `deck` or `slide:N`. |
+| `set_paragraph_alignment` | Left / center / right / justify per paragraph. |
+| `set_paragraph_line_spacing` | Line spacing as multiple (1.0, 1.5, 2.0...). |
+| `set_text_vertical_align` | Whole-shape vertical anchor (top / middle / bottom). |
+| `set_text_margin` | Whole-shape internal margins (left / right / top / bottom in pt). |
+
+### Run-level formatting (`modActionsRun.bas`, 11)
+
+| Action | Effect |
+|---|---|
+| `set_run_bold` | Toggle bold on a single run. |
+| `set_run_italic` | Toggle italic. |
+| `set_run_underline` | Toggle underline. |
+| `set_run_strikethrough` | Toggle strikethrough. |
+| `set_run_subscript` | Subscript on/off (clears superscript). |
+| `set_run_superscript` | Superscript on/off (clears subscript). |
+| `set_run_font_color` | `#RRGGBB` on a single run. |
+| `set_run_font_size` | Run size in pt. |
+| `set_run_font_name` | Run font name. |
+| `set_run_text` | Replace this run's chars; siblings untouched. |
+| `set_run_hyperlink` | Set or clear (empty string) hyperlink on a run. |
 
 ### Layout + alignment (`modActionsLayout.bas`, 13)
 
@@ -185,7 +205,8 @@ src/
   modBackup.bas                   ← auto-backup helper
   modJSON.bas                     ← JSON parser/encoder
   modActions.bas                  ← core 17 actions (text/font/shape/slide/notes)
-  modActionsText.bas              ← granular text actions (8)
+  modActionsText.bas              ← granular text actions (12)
+  modActionsRun.bas               ← run-level formatting + hyperlink (11)
   modActionsLayout.bas            ← layout/align/distribute/recolor (13)
   modActionsTable.bas             ← table row/col/merge (5)
   modActionsChart.bas             ← chart type/title/axis/legend/series (5)
@@ -205,6 +226,7 @@ tools/rebuild_import_slides.py    ← escape hatch for frmImportSlides rebuild
 tools/precheck_carrier.py         ← carrier sanity check
 tests/                            ← smoke harness + deck generator
 test_decks/                       ← deterministic test inputs
-docs/specs/                       ← design specs (Phase 1 + Phase 2)
+docs/specs/                       ← Phase 1 + Phase 2 design specs
 docs/superpowers/plans/           ← implementation plans
+docs/superpowers/specs/           ← post-Phase-2 design specs (granular text, ...)
 ```
