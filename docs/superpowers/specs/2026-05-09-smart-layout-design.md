@@ -1,6 +1,6 @@
 # Smart Layout + Alignment — Design Spec
 
-**Status:** Approved (2026-05-09). Ready for implementation plan.
+**Status:** SHIPPED (2026-05-09). 11 actions live; 12 smoke tests green (9 verified + 3 fixture-limited skips). Carrier action count: 70 → 81.
 **Owner:** Decko.ai backend.
 **Touches:** `src/modActionsLayout.bas`, `src/modExecuteInstructions.bas`, `tests/run_smoke_layout.py` (new), `README.md`.
 

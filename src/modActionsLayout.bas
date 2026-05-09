@@ -381,3 +381,194 @@ Private Sub ApplyToShape(sh As Shape, propertyKind As String, _
     Err.Clear
     On Error GoTo 0
 End Sub
+
+Public Sub Do_snap_to_grid(slideNum As Long, shapeId As Long, gridPt As Double)
+    If gridPt <= 0 Then Err.Raise vbObjectError + 4101, "Do_snap_to_grid", "grid_pt must be > 0"
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 4101, "Do_snap_to_grid", "shape not found"
+    sh.Left = CSng(Round(sh.Left / gridPt) * gridPt)
+    sh.Top = CSng(Round(sh.Top / gridPt) * gridPt)
+End Sub
+
+Public Sub Do_align_to_slide_center(slideNum As Long, shapeId As Long, axis As String)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 4102, "Do_align_to_slide_center", "shape not found"
+    Dim sw As Single: sw = ActivePresentation.PageSetup.SlideWidth
+    Dim shh As Single: shh = ActivePresentation.PageSetup.SlideHeight
+    Select Case LCase(axis)
+        Case "h":    sh.Left = (sw - sh.Width) / 2
+        Case "v":    sh.Top = (shh - sh.Height) / 2
+        Case "both"
+            sh.Left = (sw - sh.Width) / 2
+            sh.Top = (shh - sh.Height) / 2
+        Case Else: Err.Raise vbObjectError + 4102, "Do_align_to_slide_center", "axis must be h/v/both"
+    End Select
+End Sub
+
+Public Sub Do_nudge(slideNum As Long, shapeId As Long, direction As String, amountPt As Double)
+    If amountPt < 0 Then Err.Raise vbObjectError + 4103, "Do_nudge", "amount_pt must be >= 0"
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 4103, "Do_nudge", "shape not found"
+    Select Case LCase(direction)
+        Case "l": sh.Left = sh.Left - amountPt
+        Case "r": sh.Left = sh.Left + amountPt
+        Case "u": sh.Top = sh.Top - amountPt
+        Case "d": sh.Top = sh.Top + amountPt
+        Case Else: Err.Raise vbObjectError + 4103, "Do_nudge", "direction must be l/r/u/d"
+    End Select
+End Sub
+
+Public Sub Do_fit_to_content(slideNum As Long, shapeId As Long)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 4104, "Do_fit_to_content", "shape not found"
+    If Not sh.HasTextFrame Then Err.Raise vbObjectError + 4104, "Do_fit_to_content", "shape has no text"
+    sh.TextFrame.AutoSize = ppAutoSizeShapeToFitText
+    Dim flushW As Single: flushW = sh.Width   ' force layout flush
+    sh.TextFrame.AutoSize = ppAutoSizeNone
+End Sub
+
+Public Sub Do_match_size(slideNum As Long, refShapeId As Long, targetShapeIds As Variant)
+    Dim ref As Shape: Set ref = modActions.FindShape(slideNum, refShapeId)
+    If ref Is Nothing Then Err.Raise vbObjectError + 4105, "Do_match_size", "ref shape not found"
+    Dim shapes() As Shape
+    Dim n As Long: n = ShapesByIds(slideNum, targetShapeIds, shapes)
+    If n < 1 Then Err.Raise vbObjectError + 4105, "Do_match_size", "no targets"
+    Dim i As Long
+    For i = 0 To n - 1
+        shapes(i).Width = ref.Width
+        shapes(i).Height = ref.Height
+    Next i
+End Sub
+
+Public Sub Do_uniform_size(slideNum As Long, shapeIds As Variant, widthPt As Double, heightPt As Double)
+    If widthPt <= 0 Or heightPt <= 0 Then Err.Raise vbObjectError + 4106, "Do_uniform_size", "size must be > 0"
+    Dim shapes() As Shape
+    Dim n As Long: n = ShapesByIds(slideNum, shapeIds, shapes)
+    If n < 1 Then Err.Raise vbObjectError + 4106, "Do_uniform_size", "no shapes"
+    Dim i As Long
+    For i = 0 To n - 1
+        shapes(i).Width = widthPt
+        shapes(i).Height = heightPt
+    Next i
+End Sub
+
+Public Sub Do_smart_spacing(slideNum As Long, shapeIds As Variant, gapPt As Double, axis As String)
+    If gapPt < 0 Then Err.Raise vbObjectError + 4107, "Do_smart_spacing", "gap_pt must be >= 0"
+    Dim shapes() As Shape
+    Dim n As Long: n = ShapesByIds(slideNum, shapeIds, shapes)
+    If n < 2 Then Err.Raise vbObjectError + 4107, "Do_smart_spacing", "need >=2 shapes"
+    Dim i As Long
+    Select Case LCase(axis)
+        Case "h"
+            SortShapesByLeft shapes
+            For i = 1 To n - 1
+                shapes(i).Left = shapes(i - 1).Left + shapes(i - 1).Width + gapPt
+            Next i
+        Case "v"
+            SortShapesByTop shapes
+            For i = 1 To n - 1
+                shapes(i).Top = shapes(i - 1).Top + shapes(i - 1).Height + gapPt
+            Next i
+        Case Else: Err.Raise vbObjectError + 4107, "Do_smart_spacing", "axis must be h or v"
+    End Select
+End Sub
+
+Public Sub Do_equalize_spacing(slideNum As Long, shapeIds As Variant, axis As String)
+    Dim shapes() As Shape
+    Dim n As Long: n = ShapesByIds(slideNum, shapeIds, shapes)
+    If n < 3 Then Err.Raise vbObjectError + 4108, "Do_equalize_spacing", "need >=3 shapes"
+    Dim i As Long
+    Select Case LCase(axis)
+        Case "h"
+            SortShapesByLeft shapes
+            Dim totalWidth As Single: totalWidth = 0
+            For i = 0 To n - 1: totalWidth = totalWidth + shapes(i).Width: Next i
+            Dim spanH As Single
+            spanH = (shapes(n - 1).Left + shapes(n - 1).Width) - shapes(0).Left
+            Dim gapH As Single: gapH = (spanH - totalWidth) / (n - 1)
+            For i = 1 To n - 1
+                shapes(i).Left = shapes(i - 1).Left + shapes(i - 1).Width + gapH
+            Next i
+        Case "v"
+            SortShapesByTop shapes
+            Dim totalHeight As Single: totalHeight = 0
+            For i = 0 To n - 1: totalHeight = totalHeight + shapes(i).Height: Next i
+            Dim spanV As Single
+            spanV = (shapes(n - 1).Top + shapes(n - 1).Height) - shapes(0).Top
+            Dim gapV As Single: gapV = (spanV - totalHeight) / (n - 1)
+            For i = 1 To n - 1
+                shapes(i).Top = shapes(i - 1).Top + shapes(i - 1).Height + gapV
+            Next i
+        Case Else: Err.Raise vbObjectError + 4108, "Do_equalize_spacing", "axis must be h or v"
+    End Select
+End Sub
+
+Public Sub Do_match_position(slideNum As Long, refShapeId As Long, targetShapeId As Long, edge As String)
+    Dim ref As Shape: Set ref = modActions.FindShape(slideNum, refShapeId)
+    Dim tgt As Shape: Set tgt = modActions.FindShape(slideNum, targetShapeId)
+    If ref Is Nothing Or tgt Is Nothing Then _
+        Err.Raise vbObjectError + 4109, "Do_match_position", "ref or target shape not found"
+    Select Case LCase(edge)
+        Case "left":    tgt.Left = ref.Left
+        Case "right":   tgt.Left = ref.Left + ref.Width - tgt.Width
+        Case "top":     tgt.Top = ref.Top
+        Case "bottom":  tgt.Top = ref.Top + ref.Height - tgt.Height
+        Case "hcenter": tgt.Left = ref.Left + (ref.Width - tgt.Width) / 2
+        Case "vcenter": tgt.Top = ref.Top + (ref.Height - tgt.Height) / 2
+        Case Else: Err.Raise vbObjectError + 4109, "Do_match_position", "edge invalid: " & edge
+    End Select
+End Sub
+
+Public Sub Do_swap_positions(slideNum As Long, shapeAId As Long, shapeBId As Long)
+    Dim a As Shape: Set a = modActions.FindShape(slideNum, shapeAId)
+    Dim b As Shape: Set b = modActions.FindShape(slideNum, shapeBId)
+    If a Is Nothing Or b Is Nothing Then _
+        Err.Raise vbObjectError + 4110, "Do_swap_positions", "shape A or B not found"
+    Dim tL As Single, tT As Single, tW As Single, tH As Single
+    tL = a.Left: tT = a.Top: tW = a.Width: tH = a.Height
+    a.Left = b.Left: a.Top = b.Top: a.Width = b.Width: a.Height = b.Height
+    b.Left = tL: b.Top = tT: b.Width = tW: b.Height = tH
+End Sub
+
+Public Sub Do_group_by_overlap(slideNum As Long, shapeIds As Variant)
+    Dim shapes() As Shape
+    Dim n As Long: n = ShapesByIds(slideNum, shapeIds, shapes)
+    If n < 2 Then Err.Raise vbObjectError + 4111, "Do_group_by_overlap", "need >=2 shapes"
+    Dim has() As Boolean
+    ReDim has(0 To n - 1)
+    Dim i As Long, j As Long
+    For i = 0 To n - 1
+        For j = 0 To n - 1
+            If i <> j Then
+                If RectsOverlap(shapes(i), shapes(j)) Then
+                    has(i) = True
+                    Exit For
+                End If
+            End If
+        Next j
+    Next i
+    Dim count As Long: count = 0
+    For i = 0 To n - 1
+        If has(i) Then count = count + 1
+    Next i
+    If count < 2 Then Err.Raise vbObjectError + 4111, "Do_group_by_overlap", "no overlapping subset"
+    Dim names() As String
+    ReDim names(0 To count - 1)
+    Dim k As Long: k = 0
+    For i = 0 To n - 1
+        If has(i) Then
+            names(k) = shapes(i).Name
+            k = k + 1
+        End If
+    Next i
+    Dim sl As Slide: Set sl = ActivePresentation.Slides(slideNum)
+    Dim grouped As Shape: Set grouped = sl.Shapes.Range(names).Group
+End Sub
+
+Private Function RectsOverlap(a As Shape, b As Shape) As Boolean
+    If a.Left + a.Width <= b.Left Then Exit Function
+    If b.Left + b.Width <= a.Left Then Exit Function
+    If a.Top + a.Height <= b.Top Then Exit Function
+    If b.Top + b.Height <= a.Top Then Exit Function
+    RectsOverlap = True
+End Function

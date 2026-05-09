@@ -37,7 +37,7 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 
 ## Action types
 
-70 actions total across 10 modules.
+81 actions total across 10 modules.
 
 ### Core shape + slide (`modActions.bas`, 17)
 
@@ -93,7 +93,7 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 | `set_run_text` | Replace this run's chars; siblings untouched. |
 | `set_run_hyperlink` | Set or clear (empty string) hyperlink on a run. |
 
-### Layout + alignment (`modActionsLayout.bas`, 13)
+### Layout + alignment (`modActionsLayout.bas`, 24)
 
 | Action | Effect |
 |---|---|
@@ -104,6 +104,17 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 | `fit_to_slide_margins` | Fit a shape inside slide minus margin. |
 | `add_line` | Add a line connector between (x1,y1) and (x2,y2). |
 | `add_shape` | Add an `msoAutoShape` (rect, oval, etc.) at given pos. |
+| `snap_to_grid` | Round shape `left`/`top` to nearest multiple of `grid_pt`. |
+| `align_to_slide_center` | Center shape on slide horizontally / vertically / both. |
+| `nudge` | Shift shape by `amount_pt` in direction `l`/`r`/`u`/`d`. |
+| `fit_to_content` | Auto-resize shape to its text bounding box. |
+| `match_size` | Copy reference shape's `width`/`height` to target shapes. |
+| `uniform_size` | Set all listed shapes to identical width and height. |
+| `smart_spacing` | After sorting, place each shape `gap_pt` from previous's far edge. |
+| `equalize_spacing` | Distribute shapes with equal gaps along axis. |
+| `match_position` | Align target's edge to reference's same edge. |
+| `swap_positions` | Swap two shapes' positions and sizes. |
+| `group_by_overlap` | Group only shapes whose bounding boxes intersect. |
 | `set_shape_kind` | Change autoshape kind on existing shape. |
 | `clear_slide` | Delete all shapes except those in `keep_ids`. |
 | `move_shape_relative` | Nudge a shape by (dx, dy). |
@@ -206,7 +217,7 @@ src/
   modActions.bas                  ← core 17 actions (text/font/shape/slide/notes)
   modActionsText.bas              ← granular text actions (12)
   modActionsRun.bas               ← run-level formatting + hyperlink (10)
-  modActionsLayout.bas            ← layout/align/distribute/recolor (13)
+  modActionsLayout.bas            ← layout/align/distribute/recolor (24)
   modActionsTable.bas             ← table row/col/merge (5)
   modActionsChart.bas             ← chart type/title/axis/legend/series (5)
   modActionsImage.bas             ← insert/replace picture (2)

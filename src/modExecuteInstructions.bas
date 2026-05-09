@@ -285,6 +285,70 @@ Private Function ValidateAction(act As Object) As String
                     End If
                 Next k
             End If
+        Case "snap_to_grid"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "grid_pt"))
+            If ValidateAction = "" Then
+                If Not IsNumeric(act("grid_pt")) Or CDbl(act("grid_pt")) <= 0 Then _
+                    ValidateAction = "grid_pt: must be > 0"
+            End If
+        Case "align_to_slide_center"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "axis"))
+            If ValidateAction = "" Then
+                Dim ac As String: ac = LCase(CStr(act("axis")))
+                If ac <> "h" And ac <> "v" And ac <> "both" Then _
+                    ValidateAction = "axis: must be h, v, or both"
+            End If
+        Case "nudge"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "direction", "amount_pt"))
+            If ValidateAction = "" Then
+                Dim dr As String: dr = LCase(CStr(act("direction")))
+                If dr <> "l" And dr <> "r" And dr <> "u" And dr <> "d" Then _
+                    ValidateAction = "direction: must be l, r, u, or d"
+                If ValidateAction = "" Then
+                    If Not IsNumeric(act("amount_pt")) Or CDbl(act("amount_pt")) < 0 Then _
+                        ValidateAction = "amount_pt: must be a number >= 0"
+                End If
+            End If
+        Case "fit_to_content"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "match_size"
+            ValidateAction = RequireFields(act, Array("slide", "ref_shape_id", "target_shape_ids"))
+        Case "uniform_size"
+            ValidateAction = RequireFields(act, Array("slide", "shape_ids", "width_pt", "height_pt"))
+            If ValidateAction = "" Then
+                If Not IsNumeric(act("width_pt")) Or CDbl(act("width_pt")) <= 0 _
+                    Or Not IsNumeric(act("height_pt")) Or CDbl(act("height_pt")) <= 0 Then _
+                    ValidateAction = "width_pt/height_pt: must be > 0"
+            End If
+        Case "smart_spacing"
+            ValidateAction = RequireFields(act, Array("slide", "shape_ids", "gap_pt", "axis"))
+            If ValidateAction = "" Then
+                Dim sx As String: sx = LCase(CStr(act("axis")))
+                If sx <> "h" And sx <> "v" Then ValidateAction = "axis: must be h or v"
+                If ValidateAction = "" Then
+                    If Not IsNumeric(act("gap_pt")) Or CDbl(act("gap_pt")) < 0 Then _
+                        ValidateAction = "gap_pt: must be a number >= 0"
+                End If
+            End If
+        Case "equalize_spacing"
+            ValidateAction = RequireFields(act, Array("slide", "shape_ids", "axis"))
+            If ValidateAction = "" Then
+                Dim ex As String: ex = LCase(CStr(act("axis")))
+                If ex <> "h" And ex <> "v" Then ValidateAction = "axis: must be h or v"
+            End If
+        Case "match_position"
+            ValidateAction = RequireFields(act, Array("slide", "ref_shape_id", "target_shape_id", "edge"))
+            If ValidateAction = "" Then
+                Dim eg As String: eg = LCase(CStr(act("edge")))
+                If eg <> "left" And eg <> "right" And eg <> "top" And eg <> "bottom" _
+                    And eg <> "hcenter" And eg <> "vcenter" Then _
+                    ValidateAction = "edge: must be left/right/top/bottom/hcenter/vcenter"
+            End If
+        Case "swap_positions"
+            ValidateAction = RequireFields(act, Array("slide", "shape_a_id", "shape_b_id"))
+        Case "group_by_overlap"
+            ValidateAction = RequireFields(act, Array("slide", "shape_ids"))
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -547,6 +611,37 @@ Private Sub DispatchAction(act As Object)
             modActionsText.Do_set_text_margin CLng(act("slide")), CLng(act("shape_id")), _
                                               CDbl(act("left")), CDbl(act("right")), _
                                               CDbl(act("top")), CDbl(act("bottom"))
+        Case "snap_to_grid"
+            modActionsLayout.Do_snap_to_grid CLng(act("slide")), CLng(act("shape_id")), _
+                                             CDbl(act("grid_pt"))
+        Case "align_to_slide_center"
+            modActionsLayout.Do_align_to_slide_center CLng(act("slide")), CLng(act("shape_id")), _
+                                                      CStr(act("axis"))
+        Case "nudge"
+            modActionsLayout.Do_nudge CLng(act("slide")), CLng(act("shape_id")), _
+                                      CStr(act("direction")), CDbl(act("amount_pt"))
+        Case "fit_to_content"
+            modActionsLayout.Do_fit_to_content CLng(act("slide")), CLng(act("shape_id"))
+        Case "match_size"
+            modActionsLayout.Do_match_size CLng(act("slide")), CLng(act("ref_shape_id")), _
+                                           act("target_shape_ids")
+        Case "uniform_size"
+            modActionsLayout.Do_uniform_size CLng(act("slide")), act("shape_ids"), _
+                                             CDbl(act("width_pt")), CDbl(act("height_pt"))
+        Case "smart_spacing"
+            modActionsLayout.Do_smart_spacing CLng(act("slide")), act("shape_ids"), _
+                                              CDbl(act("gap_pt")), CStr(act("axis"))
+        Case "equalize_spacing"
+            modActionsLayout.Do_equalize_spacing CLng(act("slide")), act("shape_ids"), _
+                                                 CStr(act("axis"))
+        Case "match_position"
+            modActionsLayout.Do_match_position CLng(act("slide")), CLng(act("ref_shape_id")), _
+                                               CLng(act("target_shape_id")), CStr(act("edge"))
+        Case "swap_positions"
+            modActionsLayout.Do_swap_positions CLng(act("slide")), CLng(act("shape_a_id")), _
+                                               CLng(act("shape_b_id"))
+        Case "group_by_overlap"
+            modActionsLayout.Do_group_by_overlap CLng(act("slide")), act("shape_ids")
     End Select
 End Sub
 
