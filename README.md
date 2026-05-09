@@ -37,7 +37,7 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 
 ## Action types
 
-106 actions total across 12 modules.
+108 actions total across 12 modules.
 
 ### Core shape + slide (`modActions.bas`, 17)
 
@@ -61,7 +61,7 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 | `set_speaker_notes` | Replace speaker notes on a slide. |
 | `append_speaker_notes` | Append text to existing speaker notes. |
 
-### Granular text (`modActionsText.bas`, 12)
+### Granular text (`modActionsText.bas`, 14)
 
 | Action | Effect |
 |---|---|
@@ -77,6 +77,8 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 | `set_paragraph_line_spacing` | Line spacing as multiple (1.0, 1.5, 2.0...). |
 | `set_text_vertical_align` | Whole-shape vertical anchor (top / middle / bottom). |
 | `set_text_margin` | Whole-shape internal margins (left / right / top / bottom in pt). |
+| `set_text_autofit` | Per-shape autofit mode (none / shrink / resize). |
+| `enable_text_shrink_for_overflow` | Sweep deck/slide; turn on shrink-on-overflow for every text frame (skips titles). |
 
 ### Run-level formatting (`modActionsRun.bas`, 10)
 
