@@ -349,6 +349,63 @@ Private Function ValidateAction(act As Object) As String
             ValidateAction = RequireFields(act, Array("slide", "shape_a_id", "shape_b_id"))
         Case "group_by_overlap"
             ValidateAction = RequireFields(act, Array("slide", "shape_ids"))
+        Case "find_replace_regex"
+            ValidateAction = RequireFields(act, Array("scope", "pattern", "replacement"))
+            If ValidateAction = "" Then
+                If Len(CStr(act("pattern"))) = 0 Then ValidateAction = "pattern: empty"
+            End If
+        Case "swap_font_deck_wide"
+            ValidateAction = RequireFields(act, Array("from_name", "to_name"))
+            If ValidateAction = "" Then
+                If Len(Trim(CStr(act("from_name")))) = 0 Or Len(Trim(CStr(act("to_name")))) = 0 Then _
+                    ValidateAction = "from_name/to_name: empty"
+            End If
+        Case "recolor_palette_deck_wide"
+            ValidateAction = RequireFields(act, Array("from_hex", "to_hex", "target"))
+            If ValidateAction = "" Then
+                Dim tg As String: tg = LCase(CStr(act("target")))
+                If tg <> "fill" And tg <> "font" And tg <> "both" Then _
+                    ValidateAction = "target: must be fill/font/both"
+            End If
+        Case "apply_theme"
+            ValidateAction = RequireFields(act, Array("theme_path"))
+            If ValidateAction = "" Then
+                If Len(CStr(act("theme_path"))) = 0 Then ValidateAction = "theme_path: empty"
+            End If
+        Case "set_slide_size"
+            ' Either (width_pt + height_pt) OR (preset) — not both
+            Dim hasDims As Boolean: hasDims = act.Exists("width_pt") And act.Exists("height_pt")
+            Dim hasPreset As Boolean: hasPreset = act.Exists("preset")
+            If hasDims And hasPreset Then
+                ValidateAction = "specify dims OR preset, not both"
+            ElseIf Not hasDims And Not hasPreset Then
+                ValidateAction = "missing_field: width_pt+height_pt or preset"
+            ElseIf hasDims Then
+                If Not IsNumeric(act("width_pt")) Or CDbl(act("width_pt")) <= 0 _
+                    Or Not IsNumeric(act("height_pt")) Or CDbl(act("height_pt")) <= 0 Then _
+                    ValidateAction = "width_pt/height_pt: must be > 0"
+            Else
+                Dim ps As String: ps = LCase(CStr(act("preset")))
+                If ps <> "16:9" And ps <> "4:3" Then ValidateAction = "preset: must be 16:9 or 4:3"
+            End If
+        Case "set_theme_font"
+            ' At least one of major/minor must be present and non-empty
+            Dim hasMajor As Boolean: hasMajor = act.Exists("major") And Len(CStr(act("major"))) > 0
+            Dim hasMinor As Boolean: hasMinor = act.Exists("minor") And Len(CStr(act("minor"))) > 0
+            If Not hasMajor And Not hasMinor Then ValidateAction = "set_theme_font: need major or minor"
+        Case "bulk_insert_image"
+            ValidateAction = RequireFields(act, Array("slide_indices", "picture_path", "left", "top", "width", "height"))
+            If ValidateAction = "" Then
+                If Len(CStr(act("picture_path"))) = 0 Then ValidateAction = "picture_path: empty"
+            End If
+        Case "bulk_insert_text_box"
+            ValidateAction = RequireFields(act, Array("slide_indices", "text", "left", "top", "width", "height"))
+        Case "apply_layout_to_slides"
+            ValidateAction = RequireFields(act, Array("slide_indices", "layout_index"))
+            If ValidateAction = "" Then
+                If Not IsNumeric(act("layout_index")) Or CLng(act("layout_index")) < 0 Then _
+                    ValidateAction = "layout_index: must be >= 0"
+            End If
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -642,6 +699,36 @@ Private Sub DispatchAction(act As Object)
                                                CLng(act("shape_b_id"))
         Case "group_by_overlap"
             modActionsLayout.Do_group_by_overlap CLng(act("slide")), act("shape_ids")
+        Case "find_replace_regex"
+            modActionsDeck.Do_find_replace_regex CStr(act("scope")), CStr(act("pattern")), CStr(act("replacement"))
+        Case "swap_font_deck_wide"
+            modActionsDeck.Do_swap_font_deck_wide CStr(act("from_name")), CStr(act("to_name"))
+        Case "recolor_palette_deck_wide"
+            modActionsDeck.Do_recolor_palette_deck_wide CStr(act("from_hex")), CStr(act("to_hex")), CStr(act("target"))
+        Case "apply_theme"
+            modActionsDeck.Do_apply_theme CStr(act("theme_path"))
+        Case "set_slide_size"
+            If act.Exists("preset") Then
+                modActionsDeck.Do_set_slide_size_preset CStr(act("preset"))
+            Else
+                modActionsDeck.Do_set_slide_size_dims CDbl(act("width_pt")), CDbl(act("height_pt"))
+            End If
+        Case "set_theme_font"
+            Dim mj As String: mj = ""
+            Dim mn As String: mn = ""
+            If act.Exists("major") Then mj = CStr(act("major"))
+            If act.Exists("minor") Then mn = CStr(act("minor"))
+            modActionsDeck.Do_set_theme_font mj, mn
+        Case "bulk_insert_image"
+            modActionsDeck.Do_bulk_insert_image act("slide_indices"), CStr(act("picture_path")), _
+                                                CDbl(act("left")), CDbl(act("top")), _
+                                                CDbl(act("width")), CDbl(act("height"))
+        Case "bulk_insert_text_box"
+            modActionsDeck.Do_bulk_insert_text_box act("slide_indices"), CStr(act("text")), _
+                                                   CDbl(act("left")), CDbl(act("top")), _
+                                                   CDbl(act("width")), CDbl(act("height"))
+        Case "apply_layout_to_slides"
+            modActionsDeck.Do_apply_layout_to_slides act("slide_indices"), CLng(act("layout_index"))
     End Select
 End Sub
 

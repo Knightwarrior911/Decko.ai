@@ -37,7 +37,7 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 
 ## Action types
 
-81 actions total across 10 modules.
+90 actions total across 11 modules.
 
 ### Core shape + slide (`modActions.bas`, 17)
 
@@ -157,6 +157,20 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 | `group_shapes` | Group shapes into one. |
 | `ungroup` | Ungroup a group shape. |
 
+### Deck-wide ops (`modActionsDeck.bas`, 9)
+
+| Action | Effect |
+|---|---|
+| `find_replace_regex` | Regex find/replace across `deck` or `slide:N` scope. |
+| `swap_font_deck_wide` | Replace one font name with another across all text. |
+| `recolor_palette_deck_wide` | Replace one color with another (target = fill / font / both). |
+| `apply_theme` | Apply a `.thmx` or `.potx` theme via `ApplyTemplate`. |
+| `set_slide_size` | Set slide dims (`width_pt`+`height_pt`) or preset (`16:9` / `4:3`). |
+| `set_theme_font` | Set major (heading) and/or minor (body) theme fonts. |
+| `bulk_insert_image` | Insert same image at same position across listed slides. |
+| `bulk_insert_text_box` | Insert same text box across listed slides. |
+| `apply_layout_to_slides` | Force layout index N on listed slides. |
+
 ### Slide structure (`modActionsSlide.bas`, 3)
 
 | Action | Effect |
@@ -224,6 +238,7 @@ src/
   modActionsConnector.bas         ← connector (1)
   modActionsGroup.bas             ← group/ungroup (2)
   modActionsSlide.bas             ← move/extract/import slides (3)
+  modActionsDeck.bas              ← deck-wide ops (regex/font swap/recolor/theme/size/bulk) (9)
   frmExport.frm/.frx              ← snapshot UserForm
   frmExecute.frm/.frx             ← instructions UserForm
   frmImportSlides.frm/.frx        ← import UserForm
