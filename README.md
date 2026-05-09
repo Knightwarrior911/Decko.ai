@@ -37,7 +37,7 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 
 ## Action types
 
-90 actions total across 11 modules.
+106 actions total across 12 modules.
 
 ### Core shape + slide (`modActions.bas`, 17)
 
@@ -157,6 +157,27 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 | `group_shapes` | Group shapes into one. |
 | `ungroup` | Ungroup a group shape. |
 
+### Visual polish + effects (`modActionsEffects.bas`, 16)
+
+| Action | Effect |
+|---|---|
+| `rotate_shape` | Set rotation in degrees. |
+| `flip_shape` | Flip horizontal (`h`) or vertical (`v`). |
+| `set_line_color` | Outline color `#RRGGBB`. |
+| `set_line_weight` | Outline weight in pt. |
+| `set_line_style` | Outline style: `solid`/`dash`/`dot`/`dashdot`. |
+| `set_shadow` | Shadow with offsetX/Y, blur, color, transparency. |
+| `set_glow` | Outer glow with color, radius, transparency. |
+| `set_reflection` | Reflection size, transparency, distance. |
+| `set_transparency` | Fill transparency `0.0..1.0`. |
+| `set_gradient_fill` | Two-color horizontal gradient with angle. |
+| `set_3d_bevel` | 3D bevel: `circle`/`slope`/`cross`/`angle`/`softround` + depth. |
+| `apply_preset_effect` | Office preset texture index `1..24`. |
+| `crop_picture` | Crop edges (left/right/top/bottom in pt). |
+| `recolor_picture` | `grayscale`/`sepia`/`washout`/`bw`/`auto`. |
+| `set_brightness` | Picture brightness `-1.0..1.0`. |
+| `set_contrast` | Picture contrast `-1.0..1.0`. |
+
 ### Deck-wide ops (`modActionsDeck.bas`, 9)
 
 | Action | Effect |
@@ -239,6 +260,7 @@ src/
   modActionsGroup.bas             ← group/ungroup (2)
   modActionsSlide.bas             ← move/extract/import slides (3)
   modActionsDeck.bas              ← deck-wide ops (regex/font swap/recolor/theme/size/bulk) (9)
+  modActionsEffects.bas           ← visual polish + picture effects (16)
   frmExport.frm/.frx              ← snapshot UserForm
   frmExecute.frm/.frx             ← instructions UserForm
   frmImportSlides.frm/.frx        ← import UserForm

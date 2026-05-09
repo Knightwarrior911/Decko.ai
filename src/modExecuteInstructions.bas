@@ -406,6 +406,71 @@ Private Function ValidateAction(act As Object) As String
                 If Not IsNumeric(act("layout_index")) Or CLng(act("layout_index")) < 0 Then _
                     ValidateAction = "layout_index: must be >= 0"
             End If
+        Case "rotate_shape"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "degrees"))
+        Case "flip_shape"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "axis"))
+            If ValidateAction = "" Then
+                Dim fa As String: fa = LCase(CStr(act("axis")))
+                If fa <> "h" And fa <> "v" Then ValidateAction = "axis: must be h or v"
+            End If
+        Case "set_line_color"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+        Case "set_line_weight"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "weight_pt"))
+            If ValidateAction = "" Then
+                If Not IsNumeric(act("weight_pt")) Or CDbl(act("weight_pt")) <= 0 Then _
+                    ValidateAction = "weight_pt: must be > 0"
+            End If
+        Case "set_line_style"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "style"))
+            If ValidateAction = "" Then
+                Dim ls As String: ls = LCase(CStr(act("style")))
+                If ls <> "solid" And ls <> "dash" And ls <> "dot" And ls <> "dashdot" Then _
+                    ValidateAction = "style: must be solid/dash/dot/dashdot"
+            End If
+        Case "set_shadow"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "offset_x", "offset_y", "blur", "color", "transparency"))
+        Case "set_glow"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "color", "radius", "transparency"))
+        Case "set_reflection"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "size", "transparency", "distance"))
+        Case "set_transparency"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If ValidateAction = "" Then
+                If Not IsNumeric(act("value")) Or CDbl(act("value")) < 0 Or CDbl(act("value")) > 1 Then _
+                    ValidateAction = "value: must be 0..1"
+            End If
+        Case "set_gradient_fill"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "color1", "color2", "angle"))
+        Case "set_3d_bevel"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "type", "depth_pt"))
+            If ValidateAction = "" Then
+                Dim bv As String: bv = LCase(CStr(act("type")))
+                If bv <> "circle" And bv <> "slope" And bv <> "cross" And bv <> "angle" And bv <> "softround" Then _
+                    ValidateAction = "type: must be circle/slope/cross/angle/softround"
+            End If
+        Case "apply_preset_effect"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "preset_index"))
+            If ValidateAction = "" Then
+                Dim pi As Long: pi = CLng(act("preset_index"))
+                If pi < 1 Or pi > 24 Then ValidateAction = "preset_index: must be 1..24"
+            End If
+        Case "crop_picture"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "left", "right", "top", "bottom"))
+        Case "recolor_picture"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "color_type"))
+            If ValidateAction = "" Then
+                Dim ct As String: ct = LCase(CStr(act("color_type")))
+                If ct <> "grayscale" And ct <> "sepia" And ct <> "washout" And ct <> "bw" And ct <> "auto" Then _
+                    ValidateAction = "color_type: must be grayscale/sepia/washout/bw/auto"
+            End If
+        Case "set_brightness", "set_contrast"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If ValidateAction = "" Then
+                If Not IsNumeric(act("value")) Or CDbl(act("value")) < -1 Or CDbl(act("value")) > 1 Then _
+                    ValidateAction = "value: must be -1..1"
+            End If
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -729,6 +794,45 @@ Private Sub DispatchAction(act As Object)
                                                    CDbl(act("width")), CDbl(act("height"))
         Case "apply_layout_to_slides"
             modActionsDeck.Do_apply_layout_to_slides act("slide_indices"), CLng(act("layout_index"))
+        Case "rotate_shape"
+            modActionsEffects.Do_rotate_shape CLng(act("slide")), CLng(act("shape_id")), CDbl(act("degrees"))
+        Case "flip_shape"
+            modActionsEffects.Do_flip_shape CLng(act("slide")), CLng(act("shape_id")), CStr(act("axis"))
+        Case "set_line_color"
+            modActionsEffects.Do_set_line_color CLng(act("slide")), CLng(act("shape_id")), CStr(act("value"))
+        Case "set_line_weight"
+            modActionsEffects.Do_set_line_weight CLng(act("slide")), CLng(act("shape_id")), CDbl(act("weight_pt"))
+        Case "set_line_style"
+            modActionsEffects.Do_set_line_style CLng(act("slide")), CLng(act("shape_id")), CStr(act("style"))
+        Case "set_shadow"
+            modActionsEffects.Do_set_shadow CLng(act("slide")), CLng(act("shape_id")), _
+                CDbl(act("offset_x")), CDbl(act("offset_y")), CDbl(act("blur")), _
+                CStr(act("color")), CDbl(act("transparency"))
+        Case "set_glow"
+            modActionsEffects.Do_set_glow CLng(act("slide")), CLng(act("shape_id")), _
+                CStr(act("color")), CDbl(act("radius")), CDbl(act("transparency"))
+        Case "set_reflection"
+            modActionsEffects.Do_set_reflection CLng(act("slide")), CLng(act("shape_id")), _
+                CDbl(act("size")), CDbl(act("transparency")), CDbl(act("distance"))
+        Case "set_transparency"
+            modActionsEffects.Do_set_transparency CLng(act("slide")), CLng(act("shape_id")), CDbl(act("value"))
+        Case "set_gradient_fill"
+            modActionsEffects.Do_set_gradient_fill CLng(act("slide")), CLng(act("shape_id")), _
+                CStr(act("color1")), CStr(act("color2")), CDbl(act("angle"))
+        Case "set_3d_bevel"
+            modActionsEffects.Do_set_3d_bevel CLng(act("slide")), CLng(act("shape_id")), _
+                CStr(act("type")), CDbl(act("depth_pt"))
+        Case "apply_preset_effect"
+            modActionsEffects.Do_apply_preset_effect CLng(act("slide")), CLng(act("shape_id")), CLng(act("preset_index"))
+        Case "crop_picture"
+            modActionsEffects.Do_crop_picture CLng(act("slide")), CLng(act("shape_id")), _
+                CDbl(act("left")), CDbl(act("right")), CDbl(act("top")), CDbl(act("bottom"))
+        Case "recolor_picture"
+            modActionsEffects.Do_recolor_picture CLng(act("slide")), CLng(act("shape_id")), CStr(act("color_type"))
+        Case "set_brightness"
+            modActionsEffects.Do_set_brightness CLng(act("slide")), CLng(act("shape_id")), CDbl(act("value"))
+        Case "set_contrast"
+            modActionsEffects.Do_set_contrast CLng(act("slide")), CLng(act("shape_id")), CDbl(act("value"))
     End Select
 End Sub
 
