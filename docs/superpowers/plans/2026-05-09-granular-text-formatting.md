@@ -1,5 +1,7 @@
 # Granular Text Formatting Implementation Plan
 
+> **STATUS: COMPLETE (2026-05-09).** All tasks shipped. Action count 56 → 70 (strikethrough dropped — legacy PowerPoint Font lacks the property; Font2 deferred). Smoke harness: 16 new text-action tests all green via `python tests/run_smoke_text.py`. Reverse-order dispatch validated by cross-action test.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add 15 actions and a Snapshot v3 schema so the LLM can read and modify per-run formatting (bold one word, set a hyperlink on a substring, mix sizes/colors/fonts within a paragraph) and per-paragraph/frame layout (alignment, line spacing, vertical anchor, margins). Carrier action count grows 56 → 71.
