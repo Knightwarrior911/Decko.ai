@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmExecute 
-   Caption         =   "PPT AI Editor — Execute Instructions"
+   Caption         =   "Decko.ai • Execute Instructions"
    ClientHeight    =   9600
    ClientLeft      =   91
    ClientTop       =   406
@@ -18,9 +18,12 @@ Option Explicit
 Private mParsed As Object
 Private mValid() As Boolean
 
+Private Sub UserForm_Initialize()
+    lblStatus.Caption = ""
+End Sub
+
 Private Sub btnParse_Click()
     lblStatus.Caption = ""
-    btnApply.Enabled = False
     lstActions.Clear
 
     On Error Resume Next
@@ -60,18 +63,19 @@ Private Sub btnParse_Click()
         lstActions.AddItem row
     Next i
 
-    btnApply.Enabled = anyValid
     lblStatus.Caption = actions.Count & " actions parsed. " & _
                         IIf(anyValid, "Click Apply to run valid actions.", _
                                       "No valid actions; nothing to apply.")
 End Sub
 
 Private Sub btnApply_Click()
-    If mParsed Is Nothing Then Exit Sub
+    If mParsed Is Nothing Then
+        lblStatus.Caption = "Click Parse first."
+        Exit Sub
+    End If
     Dim summary As String
     summary = modExecuteInstructions.ExecuteFromString(txtInstructions.Text)
     lblStatus.Caption = summary
-    btnApply.Enabled = False
 End Sub
 
 Private Sub btnCancel_Click()

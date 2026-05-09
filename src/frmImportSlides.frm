@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmImportSlides 
-   Caption         =   "PPT AI Editor — Import Slides"
+   Caption         =   "Decko.ai • Import Slides"
    ClientHeight    =   6400
    ClientLeft      =   91
    ClientTop       =   406
@@ -19,7 +19,6 @@ Private Sub UserForm_Initialize()
     txtPath.Text = ""
     txtRange.Text = ""
     txtPosition.Text = "1"
-    btnImport.enabled = False
     lblStatus.Caption = ""
 End Sub
 
@@ -43,23 +42,14 @@ Private Sub btnBrowse_Click()
 
     If Len(picked) > 0 Then
         txtPath.Text = picked
-        UpdateImportButton
     End If
 End Sub
 
-Private Sub txtRange_Change()
-    UpdateImportButton
-End Sub
-
-Private Sub txtPosition_Change()
-    UpdateImportButton
-End Sub
-
-Private Sub UpdateImportButton()
-    btnImport.enabled = (Len(txtPath.Text) > 0 And Len(txtRange.Text) > 0 And Len(txtPosition.Text) > 0)
-End Sub
-
 Private Sub btnImport_Click()
+    If Len(txtPath.Text) = 0 Or Len(txtRange.Text) = 0 Or Len(txtPosition.Text) = 0 Then
+        lblStatus.Caption = "Fill in source deck, slide range, and position first."
+        Exit Sub
+    End If
     On Error GoTo Failure
     Dim ids As Variant
     ids = ParseRange(txtRange.Text)

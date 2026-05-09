@@ -16,3 +16,7 @@ __pycache__/
 # OS
 Thumbs.db
 .DS_Store
+
+# Form-build debug artifacts
+tools/_screens/
+tools/_temp_form_stage.pptm

@@ -24,6 +24,125 @@ CMDBTN   = "Forms.CommandButton.1"
 LABEL    = "Forms.Label.1"
 LISTBOX  = "Forms.ListBox.1"
 
+# Green palette (VBA Long via RGB(r,g,b) = r + g*256 + b*65536)
+# #DAF1DE light mint   -> form bg
+# #8EB69B sage         -> secondary button bg
+# #235347 forest       -> primary button bg + body text
+GREEN_LIGHT = 218 + 241 * 256 + 222 * 65536   # 14610906
+GREEN_MID   = 142 + 182 * 256 + 155 * 65536   # 10204814
+GREEN_DARK  =  35 +  83 * 256 +  71 * 65536   # 4674339
+WHITE       = 16777215
+
+# Font: Cascadia Code (ships with Win11). Falls back to Consolas if missing.
+FONT_NAME = "Cascadia Code"
+FONT_SIZE_BODY = 10
+FONT_SIZE_BTN  = 10
+
+
+def style_input(ctrl):
+    """White input bg, dark forest text, Cascadia Code, sunken edge."""
+    try:
+        ctrl.BackColor = WHITE
+        ctrl.ForeColor = GREEN_DARK
+        ctrl.SpecialEffect = 2  # fmSpecialEffectSunken
+        ctrl.Font.Name = FONT_NAME
+        ctrl.Font.Size = FONT_SIZE_BODY
+    except Exception as e:
+        print(f"    [warn] style_input: {e}")
+
+
+def style_label(ctrl):
+    """Transparent (matches form bg) with dark forest text."""
+    try:
+        ctrl.BackColor = GREEN_LIGHT
+        ctrl.ForeColor = GREEN_DARK
+        # Force Font via assignment of a fresh font object to bypass
+        # Forms.Label edge case where Font.Size doesn't take effect when
+        # the label was imported with a previously-saved font height.
+        ctrl.Font.Name = FONT_NAME
+        ctrl.Font.Size = FONT_SIZE_BODY
+        # Also nuke FontHeight (twips) which can override Font.Size on Labels
+        try:
+            ctrl.FontHeight = FONT_SIZE_BODY * 20
+        except Exception:
+            pass
+        try:
+            ctrl.AutoSize = False
+            ctrl.WordWrap = False
+        except Exception:
+            pass
+    except Exception as e:
+        print(f"    [warn] style_label: {e}")
+
+
+def style_button_primary(ctrl):
+    """Forest fill, light mint caption, bold."""
+    try:
+        ctrl.BackColor = GREEN_DARK
+        ctrl.ForeColor = GREEN_LIGHT
+        ctrl.Font.Name = FONT_NAME
+        ctrl.Font.Size = FONT_SIZE_BTN
+        ctrl.Font.Bold = True
+    except Exception as e:
+        print(f"    [warn] style_button_primary: {e}")
+
+
+def style_button_secondary(ctrl):
+    """Sage fill, forest caption, bold (good contrast at bold weight)."""
+    try:
+        ctrl.BackColor = GREEN_MID
+        ctrl.ForeColor = GREEN_DARK
+        ctrl.Font.Name = FONT_NAME
+        ctrl.Font.Size = FONT_SIZE_BTN
+        ctrl.Font.Bold = True
+    except Exception as e:
+        print(f"    [warn] style_button_secondary: {e}")
+
+
+def style_listbox(ctrl):
+    """Same look as input."""
+    try:
+        ctrl.BackColor = WHITE
+        ctrl.ForeColor = GREEN_DARK
+        ctrl.SpecialEffect = 2
+        ctrl.Font.Name = FONT_NAME
+        ctrl.Font.Size = FONT_SIZE_BODY
+    except Exception as e:
+        print(f"    [warn] style_listbox: {e}")
+
+
+def style_form(designer):
+    """Mint background + form-default font on the form itself.
+
+    Setting designer.Font is critical: Forms 2.0 controls (especially Labels)
+    can render at the form's *default* font size when a hidden FontEffects
+    "use default font" bit is set in the .frx blob. Setting the form's Font
+    fixes those controls without us touching the bit directly.
+    """
+    try:
+        designer.BackColor = GREEN_LIGHT
+    except Exception as e:
+        print(f"  [warn] style_form bg: {e}")
+    try:
+        designer.Font.Name = FONT_NAME
+        designer.Font.Size = FONT_SIZE_BODY
+    except Exception as e:
+        print(f"  [warn] style_form font: {e}")
+
+
+def size_form(comp, outer_width: int, outer_height: int):
+    """Force the form's outer dimensions via comp.Properties("Width"/"Height").
+
+    Designer.Width is read-only via setattr but the VBComponent.Properties
+    collection accepts the write. This is the only reliable way to enlarge
+    the form's design canvas (InsideWidth/InsideHeight) past its 215pt default.
+    """
+    try:
+        comp.Properties("Width").Value = outer_width
+        comp.Properties("Height").Value = outer_height
+    except Exception as e:
+        print(f"  [warn] size_form: {e}")
+
 
 # ---------------------------------------------------------------------------
 # VBA code strings
@@ -196,7 +315,6 @@ Private Sub UserForm_Initialize()
     txtPath.Text = ""
     txtRange.Text = ""
     txtPosition.Text = "1"
-    btnImport.Enabled = False
     lblStatus.Caption = ""
 End Sub
 
@@ -220,23 +338,14 @@ Private Sub btnBrowse_Click()
 
     If Len(picked) > 0 Then
         txtPath.Text = picked
-        UpdateImportButton
     End If
 End Sub
 
-Private Sub txtRange_Change()
-    UpdateImportButton
-End Sub
-
-Private Sub txtPosition_Change()
-    UpdateImportButton
-End Sub
-
-Private Sub UpdateImportButton()
-    btnImport.Enabled = (Len(txtPath.Text) > 0 And Len(txtRange.Text) > 0 And Len(txtPosition.Text) > 0)
-End Sub
-
 Private Sub btnImport_Click()
+    If Len(txtPath.Text) = 0 Or Len(txtRange.Text) = 0 Or Len(txtPosition.Text) = 0 Then
+        lblStatus.Caption = "Fill in source deck, slide range, and position first."
+        Exit Sub
+    End If
     On Error GoTo Failure
     Dim ids As Variant
     ids = ParseRange(txtRange.Text)
@@ -290,9 +399,12 @@ Option Explicit
 Private mParsed As Object
 Private mValid() As Boolean
 
+Private Sub UserForm_Initialize()
+    lblStatus.Caption = ""
+End Sub
+
 Private Sub btnParse_Click()
     lblStatus.Caption = ""
-    btnApply.Enabled = False
     lstActions.Clear
 
     On Error Resume Next
@@ -332,18 +444,19 @@ Private Sub btnParse_Click()
         lstActions.AddItem row
     Next i
 
-    btnApply.Enabled = anyValid
     lblStatus.Caption = actions.Count & " actions parsed. " & _
                         IIf(anyValid, "Click Apply to run valid actions.", _
                                       "No valid actions; nothing to apply.")
 End Sub
 
 Private Sub btnApply_Click()
-    If mParsed Is Nothing Then Exit Sub
+    If mParsed Is Nothing Then
+        lblStatus.Caption = "Click Parse first."
+        Exit Sub
+    End If
     Dim summary As String
     summary = modExecuteInstructions.ExecuteFromString(txtInstructions.Text)
     lblStatus.Caption = summary
-    btnApply.Enabled = False
 End Sub
 
 Private Sub btnCancel_Click()
@@ -373,6 +486,28 @@ def remove_component(components, name: str) -> None:
     if to_remove is not None:
         print(f"  [remove] {name}")
         components.Remove(to_remove)
+        time.sleep(0.3)
+
+
+def clear_controls(designer) -> None:
+    """Remove all controls from a UserForm designer."""
+    names = [c.Name for c in designer.Controls]
+    for n in names:
+        try:
+            designer.Controls.Remove(n)
+        except Exception as e:
+            print(f"    [warn] Could not remove control {n!r}: {e}")
+
+
+def get_or_add(designer, progid: str, name: str):
+    """Return an existing control with `name`, or Add a new one of `progid`."""
+    for c in designer.Controls:
+        try:
+            if c.Name == name:
+                return c
+        except Exception:
+            pass
+    return designer.Controls.Add(progid, name, True)
 
 
 def set_control_props(ctrl, **kwargs) -> None:
@@ -385,61 +520,67 @@ def set_control_props(ctrl, **kwargs) -> None:
 
 
 def build_frm_export(components, designer_mode: bool = True):
-    """Add frmExport to the VBProject."""
+    """Add frmExport to the VBProject.
+
+    Strategy: Import the existing .frm (bypasses VBA name-reservation bug
+    triggered by setting comp.Name on a freshly-Add'd component while the
+    name is still referenced by modUI), then clear controls and rebuild.
+    """
     name = "frmExport"
     remove_component(components, name)
 
-    print(f"  [add] {name}")
-    comp = components.Add(VB_FORM)
-    comp.Name = name
+    frm_path = SRC / "frmExport.frm"
+    print(f"  [import] {name} from {frm_path.name}")
+    comp = components.Import(str(frm_path))
 
-    # Form-level properties via Designer
     designer = comp.Designer
     try:
-        designer.Caption = "PPT AI Editor — Export Snapshot"
-        designer.Width = 540
-        designer.Height = 360
+        designer.Caption = "Decko.ai \U0001F916  Export Snapshot"
     except Exception as e:
-        print(f"  [warn] Could not set form designer props: {e}")
-        # Fallback: try Properties collection
-        try:
-            comp.Properties("Caption").Value = "PPT AI Editor — Export Snapshot"
-            comp.Properties("Width").Value = 540
-            comp.Properties("Height").Value = 360
-        except Exception as e2:
-            print(f"  [warn] Properties fallback also failed: {e2}")
+        print(f"  [warn] Caption: {e}")
 
+    style_form(designer)
+    clear_controls(designer)
+    size_form(comp, outer_width=540, outer_height=360)
     controls = designer.Controls
 
     # txtSnapshot
     txt = controls.Add(TEXTBOX, "txtSnapshot", True)
     set_control_props(txt, Top=12, Left=12, Width=510, Height=240,
                       MultiLine=True, ScrollBars=3, Locked=True)
+    style_input(txt)
 
-    # btnCopySnapshot
+    # Layout: 12pt left margin, 12pt gaps, 12pt right margin (form W=540).
+    # Available content width = 540 - 12 - 12 = 516pt.
+    # btnCopySnapshot (primary)
     btn1 = controls.Add(CMDBTN, "btnCopySnapshot", True)
     set_control_props(btn1, Caption="Copy snapshot only",
-                      Top=264, Left=12, Width=150, Height=24)
+                      Top=264, Left=12, Width=140, Height=24)
+    style_button_primary(btn1)
 
-    # btnCopyWithTemplate
+    # btnCopyWithTemplate (primary)
     btn2 = controls.Add(CMDBTN, "btnCopyWithTemplate", True)
     set_control_props(btn2, Caption="Copy snapshot + prompt template",
-                      Top=264, Left=174, Width=230, Height=24)
+                      Top=264, Left=160, Width=215, Height=24)
+    style_button_primary(btn2)
 
-    # btnSaveTxt
+    # btnSaveTxt (secondary)
     btn3 = controls.Add(CMDBTN, "btnSaveTxt", True)
-    set_control_props(btn3, Caption="Save .txt next to deck",
-                      Top=264, Left=414, Width=108, Height=24)
+    set_control_props(btn3, Caption="Save to .txt",
+                      Top=264, Left=383, Width=110, Height=24)
+    style_button_secondary(btn3)
 
-    # btnClose
+    # btnClose (secondary)
     btn4 = controls.Add(CMDBTN, "btnClose", True)
     set_control_props(btn4, Caption="Close",
-                      Top=300, Left=414, Width=108, Height=24)
+                      Top=300, Left=383, Width=110, Height=24)
+    style_button_secondary(btn4)
 
     # lblStatus
     lbl = controls.Add(LABEL, "lblStatus", True)
     set_control_props(lbl, Caption="",
-                      Top=300, Left=12, Width=390, Height=24)
+                      Top=300, Left=12, Width=363, Height=24)
+    style_label(lbl)
 
     # Set VBA code
     module = comp.CodeModule
@@ -452,59 +593,60 @@ def build_frm_export(components, designer_mode: bool = True):
 
 
 def build_frm_execute(components):
-    """Add frmExecute to the VBProject."""
+    """Add frmExecute via Import + clear_controls (bypasses name-reservation bug)."""
     name = "frmExecute"
     remove_component(components, name)
 
-    print(f"  [add] {name}")
-    comp = components.Add(VB_FORM)
-    comp.Name = name
+    frm_path = SRC / "frmExecute.frm"
+    print(f"  [import] {name} from {frm_path.name}")
+    comp = components.Import(str(frm_path))
 
-    # Form-level properties via Designer
     designer = comp.Designer
     try:
-        designer.Caption = "PPT AI Editor — Execute Instructions"
-        designer.Width = 600
-        designer.Height = 480
+        designer.Caption = "Decko.ai \U0001F916  Execute Instructions"
     except Exception as e:
-        print(f"  [warn] Could not set form designer props: {e}")
-        try:
-            comp.Properties("Caption").Value = "PPT AI Editor — Execute Instructions"
-            comp.Properties("Width").Value = 600
-            comp.Properties("Height").Value = 480
-        except Exception as e2:
-            print(f"  [warn] Properties fallback also failed: {e2}")
+        print(f"  [warn] Caption: {e}")
 
+    style_form(designer)
+    clear_controls(designer)
+    size_form(comp, outer_width=600, outer_height=480)
     controls = designer.Controls
 
     # txtInstructions
     txt = controls.Add(TEXTBOX, "txtInstructions", True)
     set_control_props(txt, Top=12, Left=12, Width=570, Height=120,
                       MultiLine=True, ScrollBars=3)
+    style_input(txt)
 
-    # btnParse
+    # btnParse (primary)
     btn_parse = controls.Add(CMDBTN, "btnParse", True)
     set_control_props(btn_parse, Caption="Parse",
                       Top=144, Left=12, Width=80, Height=24)
+    style_button_primary(btn_parse)
 
     # lstActions
     lst = controls.Add(LISTBOX, "lstActions", True)
     set_control_props(lst, Top=180, Left=12, Width=570, Height=180)
+    style_listbox(lst)
 
-    # btnApply
+    # btnApply (primary). Enabled=True at design-time so the screenshot is
+    # crisp; UserForm_Initialize disables it at runtime until Parse succeeds.
     btn_apply = controls.Add(CMDBTN, "btnApply", True)
-    set_control_props(btn_apply, Caption="Apply", Enabled=False,
+    set_control_props(btn_apply, Caption="Apply",
                       Top=372, Left=12, Width=80, Height=24)
+    style_button_primary(btn_apply)
 
-    # btnCancel
+    # btnCancel (secondary)
     btn_cancel = controls.Add(CMDBTN, "btnCancel", True)
     set_control_props(btn_cancel, Caption="Cancel",
                       Top=372, Left=102, Width=80, Height=24)
+    style_button_secondary(btn_cancel)
 
     # lblStatus
     lbl = controls.Add(LABEL, "lblStatus", True)
     set_control_props(lbl, Caption="",
                       Top=408, Left=12, Width=570, Height=36)
+    style_label(lbl)
 
     # Set VBA code
     module = comp.CodeModule
@@ -517,78 +659,84 @@ def build_frm_execute(components):
 
 
 def build_frm_import_slides(components):
-    """Add frmImportSlides to the VBProject."""
+    """Add frmImportSlides via Import + clear_controls (bypasses name-reservation bug)."""
     name = "frmImportSlides"
     remove_component(components, name)
 
-    print(f"  [add] {name}")
-    comp = components.Add(VB_FORM)
-    comp.Name = name
+    frm_path = SRC / "frmImportSlides.frm"
+    print(f"  [import] {name} from {frm_path.name}")
+    comp = components.Import(str(frm_path))
 
-    # Form-level properties via Designer
     designer = comp.Designer
     try:
-        designer.Caption = "PPT AI Editor — Import Slides"
-        designer.Width = 480
-        designer.Height = 320
+        designer.Caption = "Decko.ai \U0001F916  Import Slides"
     except Exception as e:
-        print(f"  [warn] Could not set form designer props: {e}")
-        try:
-            comp.Properties("Caption").Value = "PPT AI Editor — Import Slides"
-            comp.Properties("Width").Value = 480
-            comp.Properties("Height").Value = 320
-        except Exception as e2:
-            print(f"  [warn] Properties fallback also failed: {e2}")
+        print(f"  [warn] Caption: {e}")
+
+    style_form(designer)
+    clear_controls(designer)
+    size_form(comp, outer_width=480, outer_height=320)
 
     controls = designer.Controls
 
     # lblPath
-    lbl_path = controls.Add(LABEL, "lblPath", True)
+    lbl_path = get_or_add(designer, LABEL, "lblPath")
     set_control_props(lbl_path, Caption="Source deck",
                       Top=12, Left=12, Width=100, Height=20)
+    style_label(lbl_path)
 
     # txtPath
-    txt_path = controls.Add(TEXTBOX, "txtPath", True)
+    txt_path = get_or_add(designer, TEXTBOX, "txtPath")
     set_control_props(txt_path, Top=12, Left=120, Width=280, Height=22,
                       Locked=True)
+    style_input(txt_path)
 
-    # btnBrowse
-    btn_browse = controls.Add(CMDBTN, "btnBrowse", True)
+    # btnBrowse (secondary)
+    btn_browse = get_or_add(designer, CMDBTN, "btnBrowse")
     set_control_props(btn_browse, Caption="Browse...",
                       Top=12, Left=408, Width=60, Height=22)
+    style_button_secondary(btn_browse)
 
     # lblRange
-    lbl_range = controls.Add(LABEL, "lblRange", True)
+    lbl_range = get_or_add(designer, LABEL, "lblRange")
     set_control_props(lbl_range, Caption="Slide range (e.g. 1-3,5,7-9)",
                       Top=50, Left=12, Width=240, Height=20)
+    style_label(lbl_range)
 
     # txtRange
-    txt_range = controls.Add(TEXTBOX, "txtRange", True)
+    txt_range = get_or_add(designer, TEXTBOX, "txtRange")
     set_control_props(txt_range, Top=50, Left=256, Width=212, Height=22)
+    style_input(txt_range)
 
     # lblPosition
-    lbl_pos = controls.Add(LABEL, "lblPosition", True)
+    lbl_pos = get_or_add(designer, LABEL, "lblPosition")
     set_control_props(lbl_pos, Caption="Insert at position",
                       Top=90, Left=12, Width=240, Height=20)
+    style_label(lbl_pos)
 
     # txtPosition
-    txt_pos = controls.Add(TEXTBOX, "txtPosition", True)
+    txt_pos = get_or_add(designer, TEXTBOX, "txtPosition")
     set_control_props(txt_pos, Top=90, Left=256, Width=60, Height=22)
+    style_input(txt_pos)
 
-    # btnImport
-    btn_import = controls.Add(CMDBTN, "btnImport", True)
-    set_control_props(btn_import, Caption="Import", Enabled=False,
+    # btnImport (primary). Enabled=True at design-time so the screenshot is
+    # crisp; UserForm_Initialize disables it at runtime until inputs filled.
+    btn_import = get_or_add(designer, CMDBTN, "btnImport")
+    set_control_props(btn_import, Caption="Import",
                       Top=250, Left=12, Width=80, Height=28)
+    style_button_primary(btn_import)
 
-    # btnCancel
-    btn_cancel = controls.Add(CMDBTN, "btnCancel", True)
+    # btnCancel (secondary)
+    btn_cancel = get_or_add(designer, CMDBTN, "btnCancel")
     set_control_props(btn_cancel, Caption="Cancel",
                       Top=250, Left=100, Width=80, Height=28)
+    style_button_secondary(btn_cancel)
 
     # lblStatus
-    lbl_status = controls.Add(LABEL, "lblStatus", True)
+    lbl_status = get_or_add(designer, LABEL, "lblStatus")
     set_control_props(lbl_status, Caption="",
                       Top=130, Left=12, Width=456, Height=100)
+    style_label(lbl_status)
 
     # Set VBA code
     module = comp.CodeModule
@@ -648,6 +796,12 @@ def _fix_frm_caption(frm_path: Path, caption: str) -> None:
 # Main
 # ---------------------------------------------------------------------------
 
+def _remove_old_forms(components) -> None:
+    """Pass 1: remove existing UserForms so name reservations clear on save."""
+    for name in ("frmExport", "frmExecute", "frmImportSlides"):
+        remove_component(components, name)
+
+
 def main() -> int:
     if not CARRIER.exists():
         print(f"ERROR: {CARRIER} not found. Run tools/build_carrier.py first.")
@@ -660,7 +814,23 @@ def main() -> int:
     app.Visible = True
 
     try:
+        # ---- Pass 1: open, remove existing forms, save, close ----
+        # PPT reserves form names persistently while the file is open. Removing
+        # then re-adding in the same session triggers error -2146828213. Solve
+        # by saving + closing between remove and add.
+        print("[pass 1] Removing existing UserForms")
         pres = app.Presentations.Open(str(CARRIER), WithWindow=True)
+        try:
+            _remove_old_forms(pres.VBProject.VBComponents)
+            pres.Save()
+        finally:
+            pres.Close()
+        time.sleep(2.0)  # let Office release name reservations
+
+        # ---- Pass 2: reopen and build fresh forms ----
+        print("[pass 2] Building fresh UserForms")
+        pres = app.Presentations.Open(str(CARRIER), WithWindow=True)
+        time.sleep(2.0)  # let VBProject settle
         try:
             project = pres.VBProject
             components = project.VBComponents
@@ -705,9 +875,12 @@ def main() -> int:
     _fix_frm_dimensions(SRC / "frmImportSlides.frm",
                         client_width=9600,    # 480pt * 20
                         client_height=6400)   # 320pt * 20
-    # Caption fix: COM Designer.Caption is not set when Width/Height setattr fails
-    _fix_frm_caption(SRC / "frmImportSlides.frm",
-                     "PPT AI Editor — Import Slides")
+    # Caption fix: COM Designer.Caption silently fails on Imported forms,
+    # leaving the imported .frm caption (e.g. old "PPT AI Editor"). We rewrite
+    # the Caption line in the .frm text directly. Limited to cp1252 chars.
+    _fix_frm_caption(SRC / "frmExport.frm",       "Decko.ai • Export Snapshot")
+    _fix_frm_caption(SRC / "frmExecute.frm",      "Decko.ai • Execute Instructions")
+    _fix_frm_caption(SRC / "frmImportSlides.frm", "Decko.ai • Import Slides")
 
     # Verify files exist
     ok = True
