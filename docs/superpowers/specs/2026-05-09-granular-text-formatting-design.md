@@ -37,14 +37,16 @@ Out (deferred):
 
 ## Snapshot v3 schema
 
-Per text shape:
+V3 is strictly additive over v2. Existing fields keep their current names — `bullet_style`, `indent_level`, nested `runs[].font{}`. New fields are added alongside.
+
+Per text shape (additions in **bold**):
 
 ```json
 {
   "shape_id": 5,
   "kind": "text",
   "pos": {"left": 0, "top": 0, "width": 0, "height": 0},
-  "text_frame": {
+  "text_frame": {                                  // ← NEW (shape-level)
     "vertical_align": "middle",
     "word_wrap": true,
     "auto_size": "none",
@@ -52,17 +54,40 @@ Per text shape:
   },
   "paragraphs": [
     {
-      "text": "Revenue grew 23% in Q3",
-      "bullet": "none",
-      "indent": 0,
-      "alignment": "left",
-      "line_spacing": 1.0,
-      "space_before": 0,
-      "space_after": 0,
+      "index": 0,                                  // existing
+      "text": "Revenue grew 23% in Q3",            // existing (kept for v2 parsers)
+      "bullet_style": "none",                      // existing
+      "indent_level": 0,                           // existing
+      "alignment": "left",                         // ← NEW
+      "line_spacing": 1.0,                         // ← NEW
+      "space_before": 0,                           // ← NEW
+      "space_after": 0,                            // ← NEW
       "runs": [
-        {"text": "Revenue ", "bold": false, "italic": false, "underline": false, "strike": false, "subscript": false, "superscript": false, "size": 18, "font": "Calibri", "color": "#000000", "hyperlink": null},
-        {"text": "grew 23%", "bold": true,  "italic": false, "underline": false, "strike": false, "subscript": false, "superscript": false, "size": 18, "font": "Calibri", "color": "#000000", "hyperlink": null},
-        {"text": " in Q3",   "bold": false, "italic": false, "underline": false, "strike": false, "subscript": false, "superscript": false, "size": 18, "font": "Calibri", "color": "#000000", "hyperlink": null}
+        {
+          "text": "Revenue ",                      // existing
+          "font": {                                // existing
+            "name": "Calibri",                     // existing
+            "size": 18,                            // existing
+            "bold": false,                         // existing
+            "italic": false,                       // existing
+            "color": "#000000",                    // existing
+            "underline": false,                    // ← NEW (under font)
+            "strike": false,                       // ← NEW
+            "subscript": false,                    // ← NEW
+            "superscript": false                   // ← NEW
+          },
+          "hyperlink": null                        // ← NEW (run-level, sibling of font)
+        },
+        {
+          "text": "grew 23%",
+          "font": {"name": "Calibri", "size": 18, "bold": true, "italic": false, "color": "#000000", "underline": false, "strike": false, "subscript": false, "superscript": false},
+          "hyperlink": null
+        },
+        {
+          "text": " in Q3",
+          "font": {"name": "Calibri", "size": 18, "bold": false, "italic": false, "color": "#000000", "underline": false, "strike": false, "subscript": false, "superscript": false},
+          "hyperlink": null
+        }
       ]
     }
   ]
@@ -71,13 +96,14 @@ Per text shape:
 
 Rules:
 
-- `paragraphs[].text` = concatenation of all `runs[].text` for that paragraph (kept for v2 parsers).
+- All v2 fields keep their existing names. New fields are additive only — no renames, no removals.
+- `paragraphs[].text` = concatenation of all `runs[].text` for that paragraph (existing v2 behavior, retained).
 - `runs[]` is in display order, 0-indexed. The index is the `run_index` argument used by all run actions.
-- `hyperlink` is `null` when no link, otherwise the URL string.
+- `hyperlink` lives at the run level (sibling of `font`), `null` when no link, otherwise the URL string.
 - `line_spacing` always emitted as a multiple. Single-line = `1.0`, 1.5 line = `1.5`. When PowerPoint stores spacing in points (LineRuleWithin = msoFalse), the snapshot converts to a multiple by dividing by the paragraph's first-run font size; a mixed-size paragraph therefore reports a slight approximation. The action `set_paragraph_line_spacing` always writes back as a multiple (LineRuleWithin = msoTrue).
 - `margin.*` in points.
 - Empty paragraphs serialize as `"runs": []` with `"text": ""`.
-- Builder: extend `BuildShapeDict` in `modExportSnapshot.bas`. The `text_frame` block is only emitted when the shape has a `TextFrame`.
+- Builders touched: `BuildShapeDict` (adds `text_frame`), `BuildParagraphDict` (adds 4 new layout fields), `BuildFontDict` (adds 4 new run formatting fields), `BuildRunsCollection` (adds `hyperlink` to each run dict).
 
 ## Action surface (15 new)
 
