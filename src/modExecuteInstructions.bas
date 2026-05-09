@@ -4,9 +4,12 @@ Option Explicit
 ' Parse instructions JSON, validate each action, dispatch valid actions,
 ' log per-action result. Returns a summary string. NO auto-backup, NO save.
 Public Function ExecuteFromString(jsonText As String) As String
+    ' LLMs frequently disobey "no prose" instructions and prepend/append text.
+    ' Sanitize before parsing so the user does not have to clean the output by hand.
+    Dim cleaned As String: cleaned = SanitizeJsonInput(jsonText)
     Dim parsed As Object
     On Error Resume Next
-    Set parsed = modJSON.ParseJson(jsonText)
+    Set parsed = modJSON.ParseJson(cleaned)
     If Err.Number <> 0 Then
         ExecuteFromString = "ERROR: invalid JSON: " & Err.Description
         Err.Clear
@@ -835,6 +838,124 @@ Private Sub DispatchAction(act As Object)
             modActionsEffects.Do_set_contrast CLng(act("slide")), CLng(act("shape_id")), CDbl(act("value"))
     End Select
 End Sub
+
+' Strip common LLM noise that surrounds JSON output:
+' 1. Markdown code fences ``` ```json ... ``` ```
+' 2. Prose BEFORE the first { or [
+' 3. Prose AFTER the last matching } or ]
+' 4. JavaScript-style comments (// line and /* block */) inside the JSON body
+' Returns the cleaned JSON string. If no { or [ is found, returns the original
+' input so the existing error path still surfaces a useful message.
+Public Function SanitizeJsonInput(raw As String) As String
+    Dim s As String: s = raw
+
+    ' Strip Markdown code fences (e.g. ```json ... ``` or ``` ... ```).
+    ' Replace the fence markers with empty strings; keep inner content.
+    s = ReplaceCaseInsensitive(s, "```json", "")
+    s = Replace(s, "```", "")
+
+    ' Find first { or [ - that's where JSON starts.
+    Dim openPos As Long
+    Dim posBrace As Long: posBrace = InStr(s, "{")
+    Dim posBracket As Long: posBracket = InStr(s, "[")
+    If posBrace = 0 And posBracket = 0 Then
+        SanitizeJsonInput = raw
+        Exit Function
+    End If
+    If posBrace = 0 Then
+        openPos = posBracket
+    ElseIf posBracket = 0 Then
+        openPos = posBrace
+    Else
+        openPos = IIf(posBrace < posBracket, posBrace, posBracket)
+    End If
+    s = Mid(s, openPos)
+
+    ' Find last } or ] - that's where JSON ends.
+    Dim closePos As Long
+    Dim lastBrace As Long: lastBrace = InStrRev(s, "}")
+    Dim lastBracket As Long: lastBracket = InStrRev(s, "]")
+    closePos = IIf(lastBrace > lastBracket, lastBrace, lastBracket)
+    If closePos > 0 Then s = Left(s, closePos)
+
+    ' Strip JS-style comments. Preserve // and /* sequences when they appear
+    ' inside string literals; only strip outside strings.
+    s = StripJsonComments(s)
+
+    SanitizeJsonInput = s
+End Function
+
+Private Function ReplaceCaseInsensitive(haystack As String, needle As String, repl As String) As String
+    Dim out As String: out = haystack
+    Dim pos As Long: pos = InStr(1, out, needle, vbTextCompare)
+    Do While pos > 0
+        out = Left(out, pos - 1) & repl & Mid(out, pos + Len(needle))
+        pos = InStr(pos + Len(repl), out, needle, vbTextCompare)
+    Loop
+    ReplaceCaseInsensitive = out
+End Function
+
+' Walk the string char by char, tracking string state, and skip JS comments
+' that appear OUTSIDE string literals. JSON strings are double-quoted with
+' backslash escapes.
+Private Function StripJsonComments(s As String) As String
+    Dim n As Long: n = Len(s)
+    Dim out As String
+    Dim i As Long: i = 1
+    Dim inString As Boolean: inString = False
+    Dim ch As String, ch2 As String
+    Do While i <= n
+        ch = Mid(s, i, 1)
+        If inString Then
+            If ch = "\" And i < n Then
+                out = out & ch & Mid(s, i + 1, 1)
+                i = i + 2
+            ElseIf ch = """" Then
+                inString = False
+                out = out & ch
+                i = i + 1
+            Else
+                out = out & ch
+                i = i + 1
+            End If
+        Else
+            If ch = """" Then
+                inString = True
+                out = out & ch
+                i = i + 1
+            ElseIf ch = "/" And i < n Then
+                ch2 = Mid(s, i + 1, 1)
+                If ch2 = "/" Then
+                    ' Line comment: skip until newline (keep newline)
+                    Dim j As Long: j = i + 2
+                    Do While j <= n
+                        If Mid(s, j, 1) = vbLf Or Mid(s, j, 1) = vbCr Then Exit Do
+                        j = j + 1
+                    Loop
+                    i = j
+                ElseIf ch2 = "*" Then
+                    ' Block comment: skip until */
+                    Dim k As Long: k = i + 2
+                    Do While k < n
+                        If Mid(s, k, 1) = "*" And Mid(s, k + 1, 1) = "/" Then
+                            k = k + 2
+                            Exit Do
+                        End If
+                        k = k + 1
+                    Loop
+                    i = k
+                Else
+                    out = out & ch
+                    i = i + 1
+                End If
+            Else
+                out = out & ch
+                i = i + 1
+            End If
+        End If
+    Loop
+    StripJsonComments = out
+End Function
 
 Private Function GetStr(d As Object, key As String) As String
     If d.Exists(key) Then GetStr = CStr(d(key))
