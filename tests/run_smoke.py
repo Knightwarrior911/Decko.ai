@@ -939,6 +939,41 @@ def test_action_chart_legend_and_series():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_snapshot_v3_runs():
+    """Paragraph 0 of slide 1 has 3 runs; middle run is bold; new font/run fields exist."""
+    print("test_snapshot_v3_runs")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "text_v3.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        para = snap["slides"][0]["shapes"][1]["paragraphs"][0]
+        assert "runs" in para and len(para["runs"]) >= 2, para.get("runs")
+        # at least one bold run
+        assert any(r["font"]["bold"] for r in para["runs"]), para["runs"]
+        print(f"  ok  [bold span] {len(para['runs'])} runs")
+        for f in ("underline", "strike", "subscript", "superscript"):
+            assert f in para["runs"][0]["font"], f
+        print("  ok  [extended font fields present]")
+        assert "hyperlink" in para["runs"][0]
+        assert para["runs"][0]["hyperlink"] is None
+        print("  ok  [hyperlink null on plain run]")
+
+        # hyperlink on slide 2 second-bullet
+        s2_p2 = snap["slides"][1]["shapes"][1]["paragraphs"][1]
+        link_run = next((r for r in s2_p2["runs"] if r.get("hyperlink")), None)
+        assert link_run is not None and "decko.ai" in link_run["hyperlink"], s2_p2
+        print(f"  ok  [hyperlink found] {link_run['hyperlink']}")
+
+        # subscript on slide 3 paragraph 0; superscript on paragraph 1
+        p_sub = snap["slides"][2]["shapes"][1]["paragraphs"][0]
+        assert any(r["font"]["subscript"] for r in p_sub["runs"]), p_sub
+        p_super = snap["slides"][2]["shapes"][1]["paragraphs"][1]
+        assert any(r["font"]["superscript"] for r in p_super["runs"]), p_super
+        print("  ok  [sub/superscript detected]")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def test_snapshot_v3_paragraph_layout():
     """Each paragraph carries alignment, line_spacing, space_before, space_after."""
     print("test_snapshot_v3_paragraph_layout")
@@ -1017,6 +1052,7 @@ def main() -> int:
     test_action_chart_legend_and_series()
     test_snapshot_v3_text_frame()
     test_snapshot_v3_paragraph_layout()
+    test_snapshot_v3_runs()
     print("\nall tests passed")
     return 0
 

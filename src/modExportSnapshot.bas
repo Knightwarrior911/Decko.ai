@@ -150,6 +150,10 @@ Private Function BuildFontDict(fnt As Font) As Object
     d.Add "bold", (fnt.Bold = msoTrue)
     d.Add "italic", (fnt.Italic = msoTrue)
     d.Add "color", RgbToHex(fnt.Color.RGB)
+    d.Add "underline", (fnt.Underline = msoTrue)
+    d.Add "strike", (fnt.Strikethrough = msoTrue)
+    d.Add "subscript", (fnt.BaselineOffset < -0.001)
+    d.Add "superscript", (fnt.BaselineOffset > 0.001)
     Set BuildFontDict = d
 End Function
 
@@ -353,6 +357,7 @@ Private Function BuildRunsCollection(para As TextRange) As Collection
         Set d = CreateObject("Scripting.Dictionary")
         d.Add "text", run.Text
         d.Add "font", BuildFontDict(run.Font)
+        d.Add "hyperlink", RunHyperlink(run)
         col.Add d
     Next i
     Set BuildRunsCollection = col
@@ -556,6 +561,18 @@ Private Function VerticalAnchorName(v As Long) As String
         Case 5: VerticalAnchorName = "bottom"        ' msoAnchorBottomBaseline
         Case Else: VerticalAnchorName = "top"
     End Select
+End Function
+
+Private Function RunHyperlink(r As TextRange) As Variant
+    Dim addr As String
+    On Error Resume Next
+    addr = r.ActionSettings(ppMouseClick).Hyperlink.Address
+    On Error GoTo 0
+    If Len(addr) = 0 Then
+        RunHyperlink = Null
+    Else
+        RunHyperlink = addr
+    End If
 End Function
 
 Private Function AlignmentName(v As Long) As String
