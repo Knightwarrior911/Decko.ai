@@ -143,7 +143,54 @@ Private Function PromptTemplate() As String
     s = s & "- If you are editing a single specific slide, use ``""scope"":""slide:N""`` with" & vbCrLf
     s = s & "  N being that slide's 1-based index in the snapshot." & vbCrLf
     s = s & "- If you want a sweep across the whole presentation, use ``""scope"":""deck""``." & vbCrLf
-    s = s & "- Never assume slide:1 unless slide 1 is genuinely the target." & vbCrLf
+    s = s & "- Never assume slide:1 unless slide 1 is genuinely the target." & vbCrLf & vbCrLf
+
+    s = s & "AUTONOMOUS EDIT POLICY - do not require the user to spell out details:" & vbCrLf
+    s = s & "The user's request will often be a high-level instruction such as ""rebuild" & vbCrLf
+    s = s & "this slide for Eli Lilly"" or ""swap the company to Pfizer"". You are expected" & vbCrLf
+    s = s & "to read the snapshot, understand the slide's purpose, and produce all the" & vbCrLf
+    s = s & "actions needed. Apply these rules without being told:" & vbCrLf & vbCrLf
+
+    s = s & "1. Pictures cannot be modified from this tool. Any shape with" & vbCrLf
+    s = s & "   ``""type"":""picture""`` MUST be skipped - do NOT emit any action that" & vbCrLf
+    s = s & "   targets a picture shape's id. The user will replace logos manually." & vbCrLf
+    s = s & "2. Skip slide-template chrome unless the user explicitly asks otherwise:" & vbCrLf
+    s = s & "   slide-number placeholders (shape_name like ""Slide Number Placeholder"")," & vbCrLf
+    s = s & "   ALL-CAPS section header banners, dated footnotes (""(1) Financial data" & vbCrLf
+    s = s & "   as of ..."")  and any shape whose ``type`` is ``other`` containing only" & vbCrLf
+    s = s & "   a page number." & vbCrLf
+    s = s & "3. Action priority - prefer surgical over destructive:" & vbCrLf
+    s = s & "     a. find_replace_text  (preserves all formatting; safe for unique" & vbCrLf
+    s = s & "        substrings)" & vbCrLf
+    s = s & "     b. set_run_text       (when a paragraph has multiple runs and you" & vbCrLf
+    s = s & "        only need to change one run; preserves bold/color/size of that" & vbCrLf
+    s = s & "        run AND its neighbours)" & vbCrLf
+    s = s & "     c. set_paragraph_text (whole-paragraph swap; collapses run-level" & vbCrLf
+    s = s & "        formatting INSIDE that paragraph - acceptable for paragraphs" & vbCrLf
+    s = s & "        that already have a single run)" & vbCrLf
+    s = s & "     d. set_text           (LAST RESORT - destroys all formatting on the" & vbCrLf
+    s = s & "        whole shape; use only for plain-text shapes with single-style" & vbCrLf
+    s = s & "        content or when the user explicitly says ""replace everything"")" & vbCrLf
+    s = s & "4. Run-aware editing for mixed-format paragraphs:" & vbCrLf
+    s = s & "   When a paragraph in the snapshot shows multiple ``runs`` with" & vbCrLf
+    s = s & "   different formatting (e.g. one bold drug name + one plain description)," & vbCrLf
+    s = s & "   emit set_run_text per run rather than set_paragraph_text. The" & vbCrLf
+    s = s & "   ``run_index`` is the 0-based position of the run in the" & vbCrLf
+    s = s & "   ``paragraphs[i].runs[]`` array." & vbCrLf
+    s = s & "5. Multi-slide: if the user says ""this slide"" but the snapshot has only" & vbCrLf
+    s = s & "   one slide, use slide 1. Otherwise infer from context (the slide whose" & vbCrLf
+    s = s & "   content matches the user's intent)." & vbCrLf
+    s = s & "6. Tab-aligned label/value rows (e.g. ``""Headquarters:\tCalifornia""``)" & vbCrLf
+    s = s & "   are TWO logical fields separated by a tab. When updating just the" & vbCrLf
+    s = s & "   value, use find_replace_text on the value substring (e.g. find" & vbCrLf
+    s = s & "   ``""California""``, replace ``""Indianapolis""``) - do not rewrite the" & vbCrLf
+    s = s & "   whole paragraph." & vbCrLf
+    s = s & "7. If a fact is unknown to you (a specific market cap, headcount, or" & vbCrLf
+    s = s & "   acquisition date), OMIT the corresponding action rather than" & vbCrLf
+    s = s & "   inventing data." & vbCrLf
+    s = s & "8. Order matters: when emitting multiple find_replace_text actions whose" & vbCrLf
+    s = s & "   ``find`` strings overlap (e.g. ""Amgen Inc."" and ""Amgen""), put the" & vbCrLf
+    s = s & "   LONGER substring FIRST so it matches before the shorter one consumes it." & vbCrLf
 
     PromptTemplate = s
 End Function
