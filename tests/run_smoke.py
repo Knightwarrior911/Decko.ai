@@ -939,6 +939,23 @@ def test_action_chart_legend_and_series():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_snapshot_v3_text_frame():
+    """text_frame block on text shapes captures vertical_align + margins."""
+    print("test_snapshot_v3_text_frame")
+    app = open_app()
+    deck, carrier, tmpdir = open_pair(app, "text_v3.pptx")
+    try:
+        snap = json.loads(app.Run("PPT_AI_Editor!BuildSnapshotJson"))
+        shape4 = snap["slides"][3]["shapes"][1]  # slide 4, body shape
+        tf = shape4["text_frame"]
+        assert_eq(tf["vertical_align"], "middle", "vertical_align")
+        assert abs(tf["margin"]["left"] - 18.0) < 0.5, f"margin {tf['margin']}"
+        print(f"  ok  [margin] {tf['margin']}")
+        assert_eq(tf["word_wrap"], True, "word_wrap")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def main() -> int:
     test_snapshot_smoke_3slide()
     test_snapshot_full_visual()
@@ -979,6 +996,7 @@ def main() -> int:
     test_action_set_chart_type()
     test_action_chart_titles()
     test_action_chart_legend_and_series()
+    test_snapshot_v3_text_frame()
     print("\nall tests passed")
     return 0
 

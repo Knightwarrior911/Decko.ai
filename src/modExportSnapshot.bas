@@ -69,6 +69,17 @@ Private Function BuildShapeDict(sh As Shape) As Object
             d.Add "font", BuildFontDict(sh.TextFrame.TextRange.Font)
             d.Add "paragraphs", BuildParagraphsCollection(sh.TextFrame.TextRange)
         End If
+        Dim tfDict As Object: Set tfDict = CreateObject("Scripting.Dictionary")
+        tfDict.Add "vertical_align", VerticalAnchorName(sh.TextFrame.VerticalAnchor)
+        tfDict.Add "word_wrap", CBool(sh.TextFrame.WordWrap = msoTrue)
+        tfDict.Add "auto_size", AutoSizeName(sh.TextFrame.AutoSize)
+        Dim mDict As Object: Set mDict = CreateObject("Scripting.Dictionary")
+        mDict.Add "left", CDbl(sh.TextFrame.MarginLeft)
+        mDict.Add "right", CDbl(sh.TextFrame.MarginRight)
+        mDict.Add "top", CDbl(sh.TextFrame.MarginTop)
+        mDict.Add "bottom", CDbl(sh.TextFrame.MarginBottom)
+        tfDict.Add "margin", mDict
+        d.Add "text_frame", tfDict
     End If
 
     d.Add "fill", BuildFillHex(sh)
@@ -514,4 +525,24 @@ Private Function BuildTableExtra(tbl As Table) As Object
 
     d.Add "merged_cells", merges
     Set BuildTableExtra = d
+End Function
+
+Private Function VerticalAnchorName(v As Long) As String
+    Select Case v
+        Case 1: VerticalAnchorName = "top"           ' msoAnchorTop
+        Case 2: VerticalAnchorName = "top"           ' msoAnchorTopBaseline
+        Case 3: VerticalAnchorName = "middle"        ' msoAnchorMiddle
+        Case 4: VerticalAnchorName = "bottom"        ' msoAnchorBottom
+        Case 5: VerticalAnchorName = "bottom"        ' msoAnchorBottomBaseline
+        Case Else: VerticalAnchorName = "top"
+    End Select
+End Function
+
+Private Function AutoSizeName(v As Long) As String
+    Select Case v
+        Case 0: AutoSizeName = "none"           ' ppAutoSizeNone
+        Case 1: AutoSizeName = "shape_to_text"  ' ppAutoSizeShapeToFitText
+        Case 2: AutoSizeName = "text_to_shape"  ' ppAutoSizeTextToFitShape
+        Case Else: AutoSizeName = "none"
+    End Select
 End Function
