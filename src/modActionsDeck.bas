@@ -29,12 +29,15 @@ Private Sub ApplyRegexToShape(sh As Shape, re As Object, replacement As String)
     On Error Resume Next
     If sh.HasTextFrame Then
         If sh.TextFrame.HasText Then
-            Dim oldText As String, newText As String
-            oldText = sh.TextFrame.TextRange.Text
-            newText = re.Replace(oldText, replacement)
-            If newText <> oldText Then
-                sh.TextFrame.TextRange.Text = newText
-            End If
+            ' Per-paragraph regex match: process matches in REVERSE order so
+            ' length-changing replacements don't shift earlier offsets. Each
+            ' replacement is written via tr.Characters(start, len).Text =
+            ' replacement, which preserves the formatting of the matched
+            ' span's first character and leaves surrounding runs intact.
+            Dim p As Long
+            For p = 1 To sh.TextFrame.TextRange.Paragraphs.Count
+                ReplaceRegexInParagraph sh.TextFrame.TextRange.Paragraphs(p), re, replacement
+            Next p
         End If
     End If
     If sh.Type = msoGroup Then
@@ -43,6 +46,31 @@ Private Sub ApplyRegexToShape(sh As Shape, re As Object, replacement As String)
             ApplyRegexToShape child, re, replacement
         Next child
     End If
+    On Error GoTo 0
+End Sub
+
+Private Sub ReplaceRegexInParagraph(para As TextRange, re As Object, replacement As String)
+    On Error Resume Next
+    Dim text As String: text = para.Text
+    ' Strip trailing paragraph mark for matching but track its absence so
+    ' we don't accidentally extend match into it.
+    Dim hasCR As Boolean: hasCR = (Len(text) > 0 And Right(text, 1) = Chr(13))
+    Dim matchSrc As String: matchSrc = text
+    If hasCR Then matchSrc = Left(text, Len(text) - 1)
+    Dim matches As Object: Set matches = re.Execute(matchSrc)
+    If matches Is Nothing Then Exit Sub
+    If matches.Count = 0 Then Exit Sub
+    ' Walk matches in reverse to keep earlier offsets stable.
+    Dim i As Long
+    For i = matches.Count - 1 To 0 Step -1
+        Dim m As Object: Set m = matches(i)
+        Dim startOneBased As Long: startOneBased = m.FirstIndex + 1
+        Dim matchLen As Long: matchLen = m.Length
+        ' Compute substituted replacement (handle $1 etc).
+        Dim repl As String
+        repl = re.Replace(m.Value, replacement)
+        para.Characters(startOneBased, matchLen).Text = repl
+    Next i
     On Error GoTo 0
 End Sub
 

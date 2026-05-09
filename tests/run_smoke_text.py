@@ -347,6 +347,33 @@ def test_reverse_order_run_text():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+def test_find_replace_preserves_formatting():
+    """find_replace_text MUST keep mid-paragraph bold + other paragraphs intact."""
+    print("test_find_replace_preserves_formatting")
+    app = open_app()
+    deck, carrier, tmpdir = fresh_deck(app)
+    try:
+        # text_v3 slide 1 paragraph 0: "Revenue grew 23% in Q3" with "grew 23%" bold (run index 1)
+        before = snap(app)
+        bold_run_text_before = before["slides"][0]["shapes"][1]["paragraphs"][0]["runs"][1]["text"]
+        # Replace something OUTSIDE the bold span: "Revenue " -> "Sales "
+        instr = json.dumps({"actions": [
+            {"type": "find_replace_text", "scope": "slide:1", "find": "Revenue", "replace": "Sales"}
+        ]})
+        result = app.Run("PPT_AI_Editor!ExecuteFromString", instr)
+        assert "1 applied, 0 skipped" in result, result
+        after = snap(app)
+        para = after["slides"][0]["shapes"][1]["paragraphs"][0]
+        # Look for bold run with the original bold text intact
+        bold_runs = [r for r in para["runs"] if r["font"]["bold"] and "grew" in r["text"]]
+        assert len(bold_runs) >= 1, f"bold span lost; runs: {para['runs']}"
+        # And replacement applied
+        assert any("Sales" in r["text"] for r in para["runs"]), f"replacement missing; runs: {para['runs']}"
+        print(f"  ok  [formatting preserved] bold_text={bold_runs[0]['text']!r}")
+    finally:
+        teardown(app, deck, carrier, tmpdir=tmpdir)
+
+
 def test_run_bold_idempotent():
     """Bold -> unbold -> bold again is idempotent."""
     print("test_run_bold_idempotent")
@@ -379,6 +406,7 @@ def main() -> int:
     test_set_text_vertical_align()
     test_set_text_margin()
     test_reverse_order_run_text()
+    test_find_replace_preserves_formatting()
     test_run_bold_idempotent()
     shutdown_app()
     print("\nall text smoke tests passed")

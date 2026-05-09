@@ -146,10 +146,10 @@ Private Sub ReplaceInShape(sh As Shape, findText As String, replaceText As Strin
     On Error Resume Next
     If sh.HasTextFrame Then
         If sh.TextFrame.HasText Then
-            Dim t As String: t = sh.TextFrame.TextRange.Text
-            If InStr(t, findText) > 0 Then
-                sh.TextFrame.TextRange.Text = Replace(t, findText, replaceText)
-            End If
+            ' Use TextRange.Find loop to preserve run/paragraph formatting:
+            ' mutating a Find-returned range's .Text changes only the matched
+            ' chars, keeping surrounding runs intact.
+            ReplaceInTextRange sh.TextFrame.TextRange, findText, replaceText
         End If
     End If
     If sh.HasTable Then
@@ -159,10 +159,7 @@ Private Sub ReplaceInShape(sh As Shape, findText As String, replaceText As Strin
                 Dim cellSh As Shape: Set cellSh = sh.Table.Cell(r, c).Shape
                 If cellSh.HasTextFrame Then
                     If cellSh.TextFrame.HasText Then
-                        Dim ct As String: ct = cellSh.TextFrame.TextRange.Text
-                        If InStr(ct, findText) > 0 Then
-                            cellSh.TextFrame.TextRange.Text = Replace(ct, findText, replaceText)
-                        End If
+                        ReplaceInTextRange cellSh.TextFrame.TextRange, findText, replaceText
                     End If
                 End If
             Next c
@@ -174,6 +171,29 @@ Private Sub ReplaceInShape(sh As Shape, findText As String, replaceText As Strin
             ReplaceInShape child, findText, replaceText
         Next child
     End If
+End Sub
+
+' Format-preserving literal replace inside a TextRange. Uses TextRange.Find
+' which returns a TextRange of the match; assigning .Text on that returned
+' range mutates only the matched chars and inherits formatting from the
+' first matched char, leaving surrounding runs untouched.
+Public Sub ReplaceInTextRange(tr As TextRange, findText As String, replaceText As String)
+    If Len(findText) = 0 Then Exit Sub
+    Dim guard As Long: guard = 0
+    Dim found As TextRange
+    Dim startPos As Long: startPos = 1
+    Do
+        Set found = Nothing
+        On Error Resume Next
+        Set found = tr.Find(FindWhat:=findText, After:=startPos - 1)
+        On Error GoTo 0
+        If found Is Nothing Then Exit Do
+        Dim matchStart As Long: matchStart = found.Start
+        found.Text = replaceText
+        startPos = matchStart + Len(replaceText)
+        guard = guard + 1
+        If guard > 10000 Then Exit Do  ' safety
+    Loop
 End Sub
 
 Public Sub Do_set_paragraph_alignment(slideNum As Long, shapeId As Long, _
