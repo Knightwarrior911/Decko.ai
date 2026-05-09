@@ -20,6 +20,19 @@ Public Function FindShape(slideNum As Long, shapeId As Long) As Shape
     Next sh
 End Function
 
+Public Function FindShapeByName(slideNum As Long, refName As String) As Shape
+    Set FindShapeByName = Nothing
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then Exit Function
+    Dim sh As Shape
+    For Each sh In pres.Slides(slideNum).Shapes
+        If sh.Name = refName Then
+            Set FindShapeByName = sh
+            Exit Function
+        End If
+    Next sh
+End Function
+
 ' --- Text/format actions ---------------------------------------------------
 
 Public Sub Do_set_text(slideNum As Long, shapeId As Long, value As String)

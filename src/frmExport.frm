@@ -87,7 +87,7 @@ Private Function PromptTemplate() As String
     s = s & "  {""type"":""extract_slides"",""slide_indices"":[1,3,5],""output_path"":""C:\\path\\out.pptx""}" & vbCrLf
     s = s & "  {""type"":""import_slides_from_deck"",""source_path"":""C:\\path\\other.pptx"",""slide_indices"":[1,2],""target_position"":3}" & vbCrLf & vbCrLf
 
-    s = s & "TABLES:" & vbCrLf
+    s = s & "TABLES (existing):" & vbCrLf
     s = s & "  {""type"":""add_table_row"",""slide"":1,""shape_id"":5,""after_row"":2}" & vbCrLf
     s = s & "  {""type"":""delete_table_row"",""slide"":1,""shape_id"":5,""row"":3}" & vbCrLf
     s = s & "  {""type"":""add_table_col"",""slide"":1,""shape_id"":5,""after_col"":2}" & vbCrLf
@@ -98,15 +98,75 @@ Private Function PromptTemplate() As String
     s = s & "  {""type"":""group_shapes"",""slide"":1,""shape_ids"":[3,4,5]}" & vbCrLf
     s = s & "  {""type"":""ungroup"",""slide"":1,""shape_id"":12}" & vbCrLf & vbCrLf
 
-    s = s & "CONNECTORS:" & vbCrLf
-    s = s & "  {""type"":""add_connector"",""slide"":1,""from_shape_id"":3,""to_shape_id"":7,""kind"":""elbow"",""arrow_end"":""filled"",""color"":""#000000"",""weight_pt"":1.5}" & vbCrLf & vbCrLf
+    s = s & "CREATION FROM SCRATCH (use ref_name to chain styling):" & vbCrLf
+    s = s & "  Use 'ref_name' to label a newly created shape, then reference it in" & vbCrLf
+    s = s & "  follow-up actions via 'shape_name' (alternative to 'shape_id')." & vbCrLf
+    s = s & "  This unlocks: create rect -> add text -> color -> reposition -> z-order." & vbCrLf & vbCrLf
+    s = s & "  {""type"":""add_text_box"",""slide"":1,""text"":""Hello"",""ref_name"":""tb1""," & _
+            """pos"":{""left"":50,""top"":50,""width"":200,""height"":40},""font_color"":""#FF0000"",""font_size"":14,""font_bold"":true}" & vbCrLf
+    s = s & "  {""type"":""add_shape"",""slide"":1,""kind"":""circle"",""ref_name"":""badge_B""," & _
+            """pos"":{""left"":30,""top"":100,""width"":30,""height"":30},""fill"":""#1F4E79"",""stroke"":null," & _
+            """text"":""B"",""font_color"":""#FFFFFF"",""font_size"":11,""font_bold"":true}" & vbCrLf
+    s = s & "  {""type"":""z_order"",""slide"":1,""shape_name"":""badge_B"",""order"":""front""}" & vbCrLf
+    s = s & "  {""type"":""duplicate_shape"",""slide"":1,""shape_id"":5,""left"":300,""top"":100,""ref_name"":""dup1""}" & vbCrLf
+    s = s & "  {""type"":""copy_formatting"",""slide"":1,""source_shape_id"":5,""target_shape_id"":7}" & vbCrLf & vbCrLf
+
+    s = s & "EXPANDED SHAPE KINDS for add_shape (kind field):" & vbCrLf
+    s = s & "  Basic: rect, rrect, oval/circle, diamond, triangle, right_triangle," & vbCrLf
+    s = s & "    parallelogram, trapezoid, hexagon, octagon, pentagon, cross/plus, capsule" & vbCrLf
+    s = s & "  Arrows: arrow/right_arrow, left_arrow, up_arrow, down_arrow," & vbCrLf
+    s = s & "    double_arrow/left_right_arrow, up_down_arrow, quad_arrow," & vbCrLf
+    s = s & "    curved_right_arrow, curved_left_arrow, striped_arrow, notched_arrow" & vbCrLf
+    s = s & "  Process: chevron, chevron_pentagon" & vbCrLf
+    s = s & "  Callouts: callout_rect, callout_rrect, callout_oval, callout_cloud," & vbCrLf
+    s = s & "    callout_line1, callout_line2" & vbCrLf
+    s = s & "  Stars: star4/5/6/8/16, ribbon_up, ribbon_down" & vbCrLf
+    s = s & "  Misc: donut, block_arc, brace_left/right, bracket_left/right, plaque, cloud" & vbCrLf
+    s = s & "  Numeric escape: ""kind"":""mso_52"" or ""kind"":""52"" passes raw msoAutoShapeType" & vbCrLf & vbCrLf
+
+    s = s & "CONNECTORS (org chart / process flow):" & vbCrLf
+    s = s & "  {""type"":""add_connector"",""slide"":1,""from_shape_id"":3,""to_shape_id"":7," & _
+            """kind"":""elbow"",""arrow_end"":""filled"",""arrow_start"":""none""," & _
+            """from_point"":""bottom"",""to_point"":""top""," & _
+            """color"":""#000000"",""weight_pt"":1.5,""arrow_size"":""medium"",""dash_style"":""solid""}" & vbCrLf
+    s = s & "  - kind: straight | elbow | curved" & vbCrLf
+    s = s & "  - arrow_end / arrow_start: filled | open | diamond | oval | none" & vbCrLf
+    s = s & "  - from_point / to_point: top | right | bottom | left | auto (or 1-8 numeric)" & vbCrLf
+    s = s & "  - arrow_size: small | medium | large" & vbCrLf
+    s = s & "  - dash_style: solid | dash | dot | round_dot | dash_dot | long_dash | long_dash_dot" & vbCrLf & vbCrLf
+
+    s = s & "TABLE CREATION + STYLING:" & vbCrLf
+    s = s & "  {""type"":""add_table"",""slide"":1,""rows"":4,""cols"":3,""ref_name"":""t1""," & _
+            """pos"":{""left"":50,""top"":100,""width"":600,""height"":200}}" & vbCrLf
+    s = s & "  {""type"":""set_table_col_width"",""slide"":1,""shape_id"":5,""col"":1,""width_pt"":250}" & vbCrLf
+    s = s & "  {""type"":""set_table_row_height"",""slide"":1,""shape_id"":5,""row"":1,""height_pt"":40}" & vbCrLf
+    s = s & "  {""type"":""set_cell_border"",""slide"":1,""shape_id"":5,""row"":1,""col"":1,""side"":""all""," & _
+            """color"":""#000000"",""weight_pt"":1.0,""visible"":true}" & vbCrLf
+    s = s & "    - side: top | left | bottom | right | diag_down | diag_up | all" & vbCrLf
+    s = s & "  {""type"":""set_cell_text_align"",""slide"":1,""shape_id"":5,""row"":1,""col"":1," & _
+            """h_align"":""center"",""v_align"":""middle""}" & vbCrLf
+    s = s & "    - h_align: left | center | right; v_align: top | middle | bottom" & vbCrLf
+    s = s & "  {""type"":""set_cell_fill"",""slide"":1,""shape_id"":5,""row"":1,""col"":1,""color"":""#1F4E79""}" & vbCrLf
+    s = s & "  {""type"":""apply_table_style"",""slide"":1,""shape_id"":5,""style_id"":""medium_style_2_accent1""}" & vbCrLf
+    s = s & "    - style_id: named (no_style_no_grid, no_style_with_grid, themed_style_1[_accent1..2]," & vbCrLf
+    s = s & "      themed_style_2[_accent1], medium_style_2[_accent1..2], dark_style_2[_accent1]," & vbCrLf
+    s = s & "      light_style_1[_accent1], light_style_2[_accent1]) or {GUID} pass-through" & vbCrLf & vbCrLf
 
     s = s & "NATIVE CHARTS (Shape.HasChart=True only; pasted images skipped):" & vbCrLf
     s = s & "  {""type"":""set_chart_type"",""slide"":1,""shape_id"":4,""value"":""barClustered""}" & vbCrLf
     s = s & "  {""type"":""set_chart_title"",""slide"":1,""shape_id"":4,""value"":""Q3 Revenue"",""enabled"":true}" & vbCrLf
     s = s & "  {""type"":""set_chart_axis_title"",""slide"":1,""shape_id"":4,""axis"":""x"",""value"":""Quarter""}" & vbCrLf
     s = s & "  {""type"":""set_chart_legend_position"",""slide"":1,""shape_id"":4,""value"":""bottom""}" & vbCrLf
-    s = s & "  {""type"":""set_series_color"",""slide"":1,""shape_id"":4,""series_index"":1,""value"":""#1F4E79""}" & vbCrLf & vbCrLf
+    s = s & "  {""type"":""set_series_color"",""slide"":1,""shape_id"":4,""series_index"":1,""value"":""#1F4E79""}" & vbCrLf
+    s = s & "  {""type"":""set_series_values"",""slide"":1,""shape_id"":4,""series_index"":1,""values"":[10.5,12.1,15.3,18.7]}" & vbCrLf
+    s = s & "  {""type"":""set_chart_categories"",""slide"":1,""shape_id"":4,""categories"":[""Q1"",""Q2"",""Q3"",""Q4""]}" & vbCrLf
+    s = s & "  {""type"":""set_series_name"",""slide"":1,""shape_id"":4,""series_index"":1,""value"":""Revenue""}" & vbCrLf & vbCrLf
+
+    s = s & "SLIDE-LEVEL + POLISH:" & vbCrLf
+    s = s & "  {""type"":""set_slide_background_color"",""slide"":1,""color"":""#1F4E79""}" & vbCrLf
+    s = s & "  {""type"":""insert_slide_number"",""slide"":1,""ref_name"":""pn""," & _
+            """pos"":{""left"":600,""top"":500,""width"":80,""height"":25},""font_color"":""#888888"",""font_size"":10}" & vbCrLf
+    s = s & "  {""type"":""set_run_strikethrough"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":0,""value"":true}" & vbCrLf & vbCrLf
 
     s = s & "RULES:" & vbCrLf
     s = s & "- Use only shape_ids that exist in the snapshot. Do not invent ids." & vbCrLf
@@ -214,6 +274,23 @@ Private Function PromptTemplate() As String
     s = s & "    If the count differs, first emit delete_paragraph from highest index" & vbCrLf
     s = s & "    DOWN to lowest, then add_paragraph in order. Never just append new" & vbCrLf
     s = s & "    paragraphs without removing the old - that produces a doubled list." & vbCrLf
+    s = s & "12. Creation pattern - when adding NEW shapes/text boxes/tables that need" & vbCrLf
+    s = s & "    follow-up styling, ALWAYS assign a unique ""ref_name"" on the create" & vbCrLf
+    s = s & "    action, then reference it via ""shape_name"" in subsequent actions in" & vbCrLf
+    s = s & "    the same batch. Example: badge pattern (rect + circle overlay):" & vbCrLf
+    s = s & "        {""type"":""add_shape"",""slide"":1,""kind"":""rect"",""ref_name"":""r1"",...}" & vbCrLf
+    s = s & "        {""type"":""add_shape"",""slide"":1,""kind"":""circle"",""ref_name"":""c1"",...}" & vbCrLf
+    s = s & "        {""type"":""z_order"",""slide"":1,""shape_name"":""c1"",""order"":""front""}" & vbCrLf
+    s = s & "    Inline text+font params on add_shape/add_text_box are preferred over" & vbCrLf
+    s = s & "    chained set_text/set_font_color follow-ups (fewer round trips)." & vbCrLf
+    s = s & "13. Org chart pattern - to wire connectors between shapes you just created," & vbCrLf
+    s = s & "    use add_connector with ""from_point""/""to_point"" for clean routing:" & vbCrLf
+    s = s & "    boxes stacked vertically -> from_point=""bottom"", to_point=""top""." & vbCrLf
+    s = s & "    Connectors require shape_id (not shape_name) for from/to. Plan order:" & vbCrLf
+    s = s & "    add_shape...ref_name=""parent"" -> add_shape...ref_name=""child1"" ->" & vbCrLf
+    s = s & "    THEN look up ids from snapshot or use shape_name on add_connector if" & vbCrLf
+    s = s & "    you need to forward-reference (currently from/to require ids; emit a" & vbCrLf
+    s = s & "    second pass after creation if needed)." & vbCrLf
     s = s & "11. Overflow guard - new content is often longer than what it replaces" & vbCrLf
     s = s & "    (e.g. ""Chairman & CEO"" -> ""Chair, President & CEO""). Always APPEND" & vbCrLf
     s = s & "    one or two enable_text_shrink_for_overflow actions at the END of" & vbCrLf

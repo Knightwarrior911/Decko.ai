@@ -171,7 +171,13 @@ Public Sub Do_add_shape(slideNum As Long, kind As String, _
                         leftPt As Single, topPt As Single, _
                         widthPt As Single, heightPt As Single, _
                         fillHex As String, strokeHex As String, _
-                        strokeWeight As Single)
+                        strokeWeight As Single, _
+                        Optional refName As String = "", _
+                        Optional textVal As String = "", _
+                        Optional fontColor As String = "", _
+                        Optional fontSize As Long = 0, _
+                        Optional fontBold As Boolean = False, _
+                        Optional hAlign As String = "center")
     Dim pres As Presentation: Set pres = ActivePresentation
     If slideNum < 1 Or slideNum > pres.Slides.Count Then
         Err.Raise vbObjectError + 4005, "Do_add_shape", "slide_out_of_range"
@@ -179,6 +185,7 @@ Public Sub Do_add_shape(slideNum As Long, kind As String, _
     Dim msoKind As Long: msoKind = ResolveAutoShapeKind(kind)
     Dim sh As Shape
     Set sh = pres.Slides(slideNum).Shapes.AddShape(msoKind, leftPt, topPt, widthPt, heightPt)
+    If Len(refName) > 0 Then sh.Name = refName
     If Len(fillHex) > 0 Then
         sh.Fill.Visible = msoTrue
         sh.Fill.Solid
@@ -193,19 +200,207 @@ Public Sub Do_add_shape(slideNum As Long, kind As String, _
     Else
         sh.Line.Visible = msoFalse
     End If
+    If Len(textVal) > 0 And sh.HasTextFrame Then
+        With sh.TextFrame.TextRange
+            .Text = textVal
+            If Len(fontColor) > 0 Then .Font.Color.RGB = modActions.HexToRgb(fontColor)
+            If fontSize > 0 Then .Font.Size = fontSize
+            If fontBold Then .Font.Bold = msoTrue
+            Select Case LCase(hAlign)
+                Case "left":   .ParagraphFormat.Alignment = ppAlignLeft
+                Case "right":  .ParagraphFormat.Alignment = ppAlignRight
+                Case "center": .ParagraphFormat.Alignment = ppAlignCenter
+            End Select
+        End With
+        sh.TextFrame.VerticalAnchor = msoAnchorMiddle
+    End If
+End Sub
+
+Public Sub Do_add_text_box(slideNum As Long, textVal As String, _
+                            leftPt As Single, topPt As Single, _
+                            widthPt As Single, heightPt As Single, _
+                            Optional refName As String = "", _
+                            Optional fontColor As String = "", _
+                            Optional fontSize As Long = 0, _
+                            Optional fontBold As Boolean = False, _
+                            Optional fontItalic As Boolean = False, _
+                            Optional hAlign As String = "", _
+                            Optional fillHex As String = "", _
+                            Optional strokeHex As String = "", _
+                            Optional strokeWeight As Single = 1.0)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 4005, "Do_add_text_box", "slide_out_of_range"
+    End If
+    Dim sh As Shape
+    Set sh = pres.Slides(slideNum).Shapes.AddTextbox( _
+        msoTextOrientationHorizontal, leftPt, topPt, widthPt, heightPt)
+    If Len(refName) > 0 Then sh.Name = refName
+    If Len(fillHex) > 0 Then
+        sh.Fill.Visible = msoTrue: sh.Fill.Solid
+        sh.Fill.ForeColor.RGB = modActions.HexToRgb(fillHex)
+    Else
+        sh.Fill.Visible = msoFalse
+    End If
+    If Len(strokeHex) > 0 Then
+        sh.Line.Visible = msoTrue
+        sh.Line.ForeColor.RGB = modActions.HexToRgb(strokeHex)
+        sh.Line.Weight = strokeWeight
+    Else
+        sh.Line.Visible = msoFalse
+    End If
+    With sh.TextFrame.TextRange
+        .Text = textVal
+        If Len(fontColor) > 0 Then .Font.Color.RGB = modActions.HexToRgb(fontColor)
+        If fontSize > 0 Then .Font.Size = fontSize
+        If fontBold Then .Font.Bold = msoTrue
+        If fontItalic Then .Font.Italic = msoTrue
+        Select Case LCase(hAlign)
+            Case "left":   .ParagraphFormat.Alignment = ppAlignLeft
+            Case "right":  .ParagraphFormat.Alignment = ppAlignRight
+            Case "center": .ParagraphFormat.Alignment = ppAlignCenter
+        End Select
+    End With
+End Sub
+
+Public Sub Do_z_order(slideNum As Long, shapeId As Long, order As String)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 4001, "Do_z_order", "shape not found"
+    Select Case LCase(Trim(order))
+        Case "front":    sh.ZOrder msoBringToFront
+        Case "back":     sh.ZOrder msoSendToBack
+        Case "forward":  sh.ZOrder msoBringForward
+        Case "backward": sh.ZOrder msoSendBackward
+        Case Else: Err.Raise vbObjectError + 4008, "Do_z_order", "order must be front/back/forward/backward"
+    End Select
+End Sub
+
+Public Sub Do_duplicate_shape(slideNum As Long, shapeId As Long, _
+                               leftPt As Single, topPt As Single, _
+                               Optional refName As String = "")
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 4001, "Do_duplicate_shape", "shape not found"
+    Dim sr As ShapeRange: Set sr = sh.Duplicate
+    Dim dup As Shape: Set dup = sr.Item(1)
+    dup.Left = leftPt
+    dup.Top = topPt
+    If Len(refName) > 0 Then dup.Name = refName
+End Sub
+
+Public Sub Do_copy_formatting(slideNum As Long, sourceShapeId As Long, targetShapeId As Long)
+    Dim src As Shape: Set src = modActions.FindShape(slideNum, sourceShapeId)
+    Dim tgt As Shape: Set tgt = modActions.FindShape(slideNum, targetShapeId)
+    If src Is Nothing Then Err.Raise vbObjectError + 4101, "Do_copy_formatting", "source not found"
+    If tgt Is Nothing Then Err.Raise vbObjectError + 4101, "Do_copy_formatting", "target not found"
+
+    On Error Resume Next
+    ' Fill
+    If src.Fill.Visible = msoTrue Then
+        tgt.Fill.Visible = msoTrue
+        tgt.Fill.Solid
+        tgt.Fill.ForeColor.RGB = src.Fill.ForeColor.RGB
+    Else
+        tgt.Fill.Visible = msoFalse
+    End If
+    ' Line / stroke
+    If src.Line.Visible = msoTrue Then
+        tgt.Line.Visible = msoTrue
+        tgt.Line.ForeColor.RGB = src.Line.ForeColor.RGB
+        tgt.Line.Weight = src.Line.Weight
+        tgt.Line.DashStyle = src.Line.DashStyle
+    Else
+        tgt.Line.Visible = msoFalse
+    End If
+    ' Text font properties (color/size/bold/italic/name) — first run
+    If src.HasTextFrame And tgt.HasTextFrame Then
+        If src.TextFrame.HasText Then
+            With src.TextFrame.TextRange.Font
+                Dim fc As Long, fs As Single, fb As Long, fi As Long, fn As String
+                fc = .Color.RGB: fs = .Size: fb = .Bold: fi = .Italic: fn = .Name
+            End With
+            With tgt.TextFrame.TextRange.Font
+                .Color.RGB = fc
+                If fs > 0 Then .Size = fs
+                .Bold = fb
+                .Italic = fi
+                If Len(fn) > 0 Then .Name = fn
+            End With
+        End If
+    End If
+    On Error GoTo 0
 End Sub
 
 Public Function ResolveAutoShapeKind(kind As String) As Long
-    Select Case LCase(kind)
-        Case "rect", "rectangle":   ResolveAutoShapeKind = 1
-        Case "rrect", "round_rect": ResolveAutoShapeKind = 5
-        Case "oval", "ellipse":     ResolveAutoShapeKind = 9
-        Case "circle":              ResolveAutoShapeKind = 9
-        Case "capsule":             ResolveAutoShapeKind = 73
-        Case "arrow", "right_arrow": ResolveAutoShapeKind = 13
-        Case "diamond":             ResolveAutoShapeKind = 4
-        Case "triangle":            ResolveAutoShapeKind = 7
-        Case Else: Err.Raise vbObjectError + 4006, "ResolveAutoShapeKind", "unknown kind: " & kind
+    Dim k As String: k = LCase(Trim(kind))
+    ' Numeric passthrough: "mso_N" or bare integer string
+    If Left(k, 4) = "mso_" Then
+        ResolveAutoShapeKind = CLng(Mid(k, 5))
+        Exit Function
+    End If
+    If IsNumeric(k) Then
+        ResolveAutoShapeKind = CLng(k)
+        Exit Function
+    End If
+    Select Case k
+        ' --- Basic shapes ---
+        Case "rect", "rectangle":           ResolveAutoShapeKind = 1
+        Case "parallelogram":               ResolveAutoShapeKind = 2
+        Case "trapezoid":                   ResolveAutoShapeKind = 3
+        Case "diamond":                     ResolveAutoShapeKind = 4
+        Case "rrect", "round_rect":         ResolveAutoShapeKind = 5
+        Case "octagon":                     ResolveAutoShapeKind = 6
+        Case "triangle", "isosceles":       ResolveAutoShapeKind = 7
+        Case "right_triangle":              ResolveAutoShapeKind = 8
+        Case "oval", "ellipse", "circle":   ResolveAutoShapeKind = 9
+        Case "hexagon":                     ResolveAutoShapeKind = 10
+        Case "cross", "plus":               ResolveAutoShapeKind = 11
+        Case "pentagon", "regular_pentagon": ResolveAutoShapeKind = 12
+        Case "capsule":                     ResolveAutoShapeKind = 73
+        ' --- Arrows ---
+        Case "arrow", "right_arrow":        ResolveAutoShapeKind = 13
+        Case "left_arrow":                  ResolveAutoShapeKind = 34
+        Case "up_arrow":                    ResolveAutoShapeKind = 35
+        Case "down_arrow":                  ResolveAutoShapeKind = 36
+        Case "double_arrow", "left_right_arrow": ResolveAutoShapeKind = 37
+        Case "up_down_arrow":               ResolveAutoShapeKind = 38
+        Case "quad_arrow":                  ResolveAutoShapeKind = 39
+        Case "curved_right_arrow":          ResolveAutoShapeKind = 45
+        Case "curved_left_arrow":           ResolveAutoShapeKind = 46
+        Case "curved_up_arrow":             ResolveAutoShapeKind = 47
+        Case "curved_down_arrow":           ResolveAutoShapeKind = 48
+        Case "striped_arrow":               ResolveAutoShapeKind = 49
+        Case "notched_arrow":               ResolveAutoShapeKind = 50
+        Case "bent_arrow":                  ResolveAutoShapeKind = 41
+        Case "u_turn_arrow":                ResolveAutoShapeKind = 42
+        ' --- Process/flow shapes ---
+        Case "chevron":                     ResolveAutoShapeKind = 52
+        Case "chevron_pentagon":            ResolveAutoShapeKind = 51
+        ' --- Callouts ---
+        Case "callout_rect", "rectangular_callout": ResolveAutoShapeKind = 61
+        Case "callout_rrect", "rounded_callout":    ResolveAutoShapeKind = 84
+        Case "callout_oval":                ResolveAutoShapeKind = 83
+        Case "callout_cloud":               ResolveAutoShapeKind = 108
+        Case "callout_line1":               ResolveAutoShapeKind = 109
+        Case "callout_line2":               ResolveAutoShapeKind = 107
+        ' --- Stars/banners ---
+        Case "star4", "star_4":             ResolveAutoShapeKind = 94
+        Case "star5", "star_5", "star":     ResolveAutoShapeKind = 92
+        Case "star6", "star_6":             ResolveAutoShapeKind = 97
+        Case "star8", "star_8":             ResolveAutoShapeKind = 95
+        Case "star16", "star_16":           ResolveAutoShapeKind = 94
+        Case "ribbon_up":                   ResolveAutoShapeKind = 100
+        Case "ribbon_down":                 ResolveAutoShapeKind = 101
+        ' --- Misc business shapes ---
+        Case "donut", "ring":               ResolveAutoShapeKind = 18
+        Case "block_arc":                   ResolveAutoShapeKind = 20
+        Case "brace_left":                  ResolveAutoShapeKind = 31
+        Case "brace_right":                 ResolveAutoShapeKind = 32
+        Case "bracket_left":                ResolveAutoShapeKind = 29
+        Case "bracket_right":               ResolveAutoShapeKind = 30
+        Case "plaque":                      ResolveAutoShapeKind = 28
+        Case "no_symbol":                   ResolveAutoShapeKind = 19
+        Case "cloud":                       ResolveAutoShapeKind = 179
+        Case Else: Err.Raise vbObjectError + 4006, "ResolveAutoShapeKind", "unknown kind: " & kind & " (use mso_N for numeric)"
     End Select
 End Function
 

@@ -1,6 +1,39 @@
 Attribute VB_Name = "modActionsSlide"
 Option Explicit
 
+Public Sub Do_set_slide_background_color(slideNum As Long, hexColor As String)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 7050, "Do_set_slide_background_color", "slide_out_of_range"
+    End If
+    Dim sl As Slide: Set sl = pres.Slides(slideNum)
+    sl.FollowMasterBackground = msoFalse
+    sl.Background.Fill.Visible = msoTrue
+    sl.Background.Fill.Solid
+    sl.Background.Fill.ForeColor.RGB = modActions.HexToRgb(hexColor)
+End Sub
+
+Public Sub Do_insert_slide_number(slideNum As Long, _
+                                   leftPt As Single, topPt As Single, _
+                                   widthPt As Single, heightPt As Single, _
+                                   Optional refName As String = "", _
+                                   Optional fontColor As String = "", _
+                                   Optional fontSize As Long = 0)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 7051, "Do_insert_slide_number", "slide_out_of_range"
+    End If
+    Dim sh As Shape
+    Set sh = pres.Slides(slideNum).Shapes.AddTextbox( _
+        msoTextOrientationHorizontal, leftPt, topPt, widthPt, heightPt)
+    If Len(refName) > 0 Then sh.Name = refName
+    sh.TextFrame.TextRange.InsertSlideNumber
+    With sh.TextFrame.TextRange.Font
+        If Len(fontColor) > 0 Then .Color.RGB = modActions.HexToRgb(fontColor)
+        If fontSize > 0 Then .Size = fontSize
+    End With
+End Sub
+
 Public Sub Do_move_slide(fromIdx As Long, toIdx As Long)
     Dim pres As Presentation: Set pres = ActivePresentation
     If fromIdx < 1 Or fromIdx > pres.Slides.Count Then
