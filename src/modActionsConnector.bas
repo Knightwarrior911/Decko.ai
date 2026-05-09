@@ -80,13 +80,15 @@ Public Sub Do_add_connector(slideNum As Long, fromId As Long, toId As Long, _
 End Sub
 
 Private Function ResolveArrowStyle(s As String) As Long
+    ' msoArrowheadStyle: None=1, Triangle=2, Open=3, Stealth=4, Diamond=5, Oval=6
     Select Case LCase(Trim(s))
-        Case "filled":   ResolveArrowStyle = 5
-        Case "open":     ResolveArrowStyle = 2
-        Case "diamond":  ResolveArrowStyle = 4
-        Case "oval":     ResolveArrowStyle = 6
-        Case "none":     ResolveArrowStyle = 1
-        Case Else:       ResolveArrowStyle = 1
+        Case "filled", "triangle": ResolveArrowStyle = 2
+        Case "open":               ResolveArrowStyle = 3
+        Case "stealth":            ResolveArrowStyle = 4
+        Case "diamond":            ResolveArrowStyle = 5
+        Case "oval":               ResolveArrowStyle = 6
+        Case "none", "":           ResolveArrowStyle = 1
+        Case Else:                 ResolveArrowStyle = 1
     End Select
 End Function
 

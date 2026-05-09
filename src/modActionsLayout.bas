@@ -177,7 +177,8 @@ Public Sub Do_add_shape(slideNum As Long, kind As String, _
                         Optional fontColor As String = "", _
                         Optional fontSize As Long = 0, _
                         Optional fontBold As Boolean = False, _
-                        Optional hAlign As String = "center")
+                        Optional hAlign As String = "center", _
+                        Optional vAlign As String = "middle")
     Dim pres As Presentation: Set pres = ActivePresentation
     If slideNum < 1 Or slideNum > pres.Slides.Count Then
         Err.Raise vbObjectError + 4005, "Do_add_shape", "slide_out_of_range"
@@ -212,7 +213,11 @@ Public Sub Do_add_shape(slideNum As Long, kind As String, _
                 Case "center": .ParagraphFormat.Alignment = ppAlignCenter
             End Select
         End With
-        sh.TextFrame.VerticalAnchor = msoAnchorMiddle
+        Select Case LCase(vAlign)
+            Case "top":    sh.TextFrame.VerticalAnchor = msoAnchorTop
+            Case "bottom": sh.TextFrame.VerticalAnchor = msoAnchorBottom
+            Case Else:     sh.TextFrame.VerticalAnchor = msoAnchorMiddle
+        End Select
     End If
 End Sub
 
@@ -235,6 +240,12 @@ Public Sub Do_add_text_box(slideNum As Long, textVal As String, _
     Dim sh As Shape
     Set sh = pres.Slides(slideNum).Shapes.AddTextbox( _
         msoTextOrientationHorizontal, leftPt, topPt, widthPt, heightPt)
+    ' AddTextbox defaults to ppAutoSizeShapeToFitText which ignores user-specified
+    ' width/height; force fixed-size so the box honors the requested dimensions.
+    sh.TextFrame.AutoSize = ppAutoSizeNone
+    sh.TextFrame.WordWrap = msoTrue
+    sh.Width = widthPt
+    sh.Height = heightPt
     If Len(refName) > 0 Then sh.Name = refName
     If Len(fillHex) > 0 Then
         sh.Fill.Visible = msoTrue: sh.Fill.Solid
@@ -382,12 +393,15 @@ Public Function ResolveAutoShapeKind(kind As String) As Long
         Case "callout_cloud":               ResolveAutoShapeKind = 108
         Case "callout_line1":               ResolveAutoShapeKind = 109
         Case "callout_line2":               ResolveAutoShapeKind = 107
-        ' --- Stars/banners ---
-        Case "star4", "star_4":             ResolveAutoShapeKind = 94
+        ' --- Stars/banners (msoShape{N}pointStar enum) ---
+        Case "star4", "star_4":             ResolveAutoShapeKind = 91
         Case "star5", "star_5", "star":     ResolveAutoShapeKind = 92
-        Case "star6", "star_6":             ResolveAutoShapeKind = 97
-        Case "star8", "star_8":             ResolveAutoShapeKind = 95
+        Case "star8", "star_8":             ResolveAutoShapeKind = 96
+        Case "star10", "star_10":           ResolveAutoShapeKind = 149
+        Case "star12", "star_12":           ResolveAutoShapeKind = 150
         Case "star16", "star_16":           ResolveAutoShapeKind = 94
+        Case "star24", "star_24":           ResolveAutoShapeKind = 95
+        Case "star32", "star_32":           ResolveAutoShapeKind = 187
         Case "ribbon_up":                   ResolveAutoShapeKind = 100
         Case "ribbon_down":                 ResolveAutoShapeKind = 101
         ' --- Misc business shapes ---

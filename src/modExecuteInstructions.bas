@@ -684,6 +684,7 @@ Private Sub DispatchAction(act As Object)
             Dim asFs As Long: asFs = 0
             Dim asBold As Boolean: asBold = False
             Dim asAlign As String: asAlign = "center"
+            Dim asVAlign As String: asVAlign = "middle"
             If act.Exists("fill") Then If Not IsNull(act("fill")) Then fh = CStr(act("fill"))
             If act.Exists("stroke") Then If Not IsNull(act("stroke")) Then shex = CStr(act("stroke"))
             If act.Exists("stroke_weight_pt") Then swt = CSng(act("stroke_weight_pt"))
@@ -693,10 +694,11 @@ Private Sub DispatchAction(act As Object)
             If act.Exists("font_size") Then asFs = CLng(act("font_size"))
             If act.Exists("font_bold") Then asBold = CBool(act("font_bold"))
             If act.Exists("h_align") Then asAlign = CStr(act("h_align"))
+            If act.Exists("v_align") Then asVAlign = CStr(act("v_align"))
             modActionsLayout.Do_add_shape CLng(act("slide")), CStr(act("kind")), _
                                           CSng(posDict("left")), CSng(posDict("top")), _
                                           CSng(posDict("width")), CSng(posDict("height")), _
-                                          fh, shex, swt, asRef, asTxt, asFc, asFs, asBold, asAlign
+                                          fh, shex, swt, asRef, asTxt, asFc, asFs, asBold, asAlign, asVAlign
         Case "set_shape_kind"
             modActionsLayout.Do_set_shape_kind CLng(act("slide")), CLng(act("shape_id")), CStr(act("kind"))
         Case "clear_slide"
