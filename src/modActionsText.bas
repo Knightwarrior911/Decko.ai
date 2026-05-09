@@ -268,6 +268,78 @@ Public Sub Do_set_text_vertical_align(slideNum As Long, shapeId As Long, anchor 
     End Select
 End Sub
 
+' Set TextFrame auto-fit mode. Modes:
+'   "none"   - no auto-sizing; text overflows out of the shape (default)
+'   "shrink" - shrink text font to fit when overflow (banker-deck style)
+'   "resize" - resize the shape to fit the text
+' Uses TextFrame2 (Office 2007+) which exposes msoAutoSize enum:
+'   0 = msoAutoSizeNone, 1 = msoAutoSizeShapeToFitText, 2 = msoAutoSizeTextToFitShape
+Public Sub Do_set_text_autofit(slideNum As Long, shapeId As Long, mode As String)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 6005, "Do_set_text_autofit", "shape not found"
+    If Not sh.HasTextFrame Then Err.Raise vbObjectError + 6005, "Do_set_text_autofit", "no text frame"
+    Dim m As Long
+    Select Case LCase(mode)
+        Case "none":   m = 0
+        Case "shrink": m = 2
+        Case "resize": m = 1
+        Case Else: Err.Raise vbObjectError + 6005, "Do_set_text_autofit", "mode must be none/shrink/resize"
+    End Select
+    On Error Resume Next
+    sh.TextFrame2.AutoSize = m
+    On Error GoTo 0
+End Sub
+
+' Sweep all text shapes in scope and enable shrink-on-overflow. Call this
+' after a batch of text-mutating actions to ensure no shape's text spills
+' outside its frame. Skips title shapes by default (titles should not shrink).
+'   scope = "deck" or "slide:N"
+'   include_titles = "true" to include title shapes; default skips them
+Public Sub Do_enable_text_shrink_for_overflow(scope As String, includeTitles As String)
+    Dim startSlide As Long, endSlide As Long
+    If LCase(scope) = "deck" Then
+        startSlide = 1
+        endSlide = ActivePresentation.Slides.Count
+    ElseIf LCase(Left(scope, 6)) = "slide:" Then
+        startSlide = CLng(Mid(scope, 7))
+        endSlide = startSlide
+    Else
+        Err.Raise vbObjectError + 6006, "Do_enable_text_shrink_for_overflow", _
+            "scope must be 'deck' or 'slide:N'"
+    End If
+    Dim incl As Boolean: incl = (LCase(includeTitles) = "true")
+    Dim s As Long
+    For s = startSlide To endSlide
+        Dim sl As Slide: Set sl = ActivePresentation.Slides(s)
+        Dim sh As Shape
+        For Each sh In sl.Shapes
+            EnableShrinkOnShape sh, incl
+        Next sh
+    Next s
+End Sub
+
+Private Sub EnableShrinkOnShape(sh As Shape, includeTitles As Boolean)
+    On Error Resume Next
+    If Not includeTitles Then
+        If sh.Type = msoPlaceholder Then
+            If sh.PlaceholderFormat.Type = ppPlaceholderTitle Or _
+               sh.PlaceholderFormat.Type = ppPlaceholderCenterTitle Then
+                Exit Sub
+            End If
+        End If
+    End If
+    If sh.HasTextFrame Then
+        sh.TextFrame2.AutoSize = 2  ' msoAutoSizeTextToFitShape
+    End If
+    If sh.Type = msoGroup Then
+        Dim child As Shape
+        For Each child In sh.GroupItems
+            EnableShrinkOnShape child, includeTitles
+        Next child
+    End If
+    On Error GoTo 0
+End Sub
+
 Public Sub Do_set_text_margin(slideNum As Long, shapeId As Long, _
                               leftPt As Double, rightPt As Double, _
                               topPt As Double, bottomPt As Double)

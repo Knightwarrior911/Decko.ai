@@ -214,6 +214,20 @@ Private Function PromptTemplate() As String
     s = s & "    If the count differs, first emit delete_paragraph from highest index" & vbCrLf
     s = s & "    DOWN to lowest, then add_paragraph in order. Never just append new" & vbCrLf
     s = s & "    paragraphs without removing the old - that produces a doubled list." & vbCrLf
+    s = s & "11. Overflow guard - new content is often longer than what it replaces" & vbCrLf
+    s = s & "    (e.g. ""Chairman & CEO"" -> ""Chair, President & CEO""). Always APPEND" & vbCrLf
+    s = s & "    one or two enable_text_shrink_for_overflow actions at the END of" & vbCrLf
+    s = s & "    your action list so PowerPoint auto-shrinks any text that no longer" & vbCrLf
+    s = s & "    fits its frame. Title shapes are skipped by default. Schema:" & vbCrLf
+    s = s & "        {""type"":""enable_text_shrink_for_overflow"",""scope"":""slide:N""}" & vbCrLf
+    s = s & "    or {""type"":""enable_text_shrink_for_overflow"",""scope"":""deck""}" & vbCrLf
+    s = s & "    Use slide:N when you only edited one slide; deck for multi-slide" & vbCrLf
+    s = s & "    edits. This action MUST be last so it sees the final content." & vbCrLf
+
+    s = s & vbCrLf & "ADDITIONAL ACTIONS (use as needed):" & vbCrLf
+    s = s & "  {""type"":""set_text_autofit"",""slide"":1,""shape_id"":11,""mode"":""shrink""}" & vbCrLf
+    s = s & "  {""type"":""enable_text_shrink_for_overflow"",""scope"":""slide:1""}" & vbCrLf
+    s = s & "  {""type"":""enable_text_shrink_for_overflow"",""scope"":""deck"",""include_titles"":""false""}" & vbCrLf
 
     PromptTemplate = s
 End Function

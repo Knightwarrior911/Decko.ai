@@ -277,6 +277,15 @@ Private Function ValidateAction(act As Object) As String
                     ValidateAction = "value: must be one of top, middle, bottom"
                 End If
             End If
+        Case "set_text_autofit"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "mode"))
+            If ValidateAction = "" Then
+                Dim mf As String: mf = LCase(CStr(act("mode")))
+                If mf <> "none" And mf <> "shrink" And mf <> "resize" Then _
+                    ValidateAction = "mode: must be none/shrink/resize"
+            End If
+        Case "enable_text_shrink_for_overflow"
+            ValidateAction = RequireFields(act, Array("scope"))
         Case "set_text_margin"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "left", "right", "top", "bottom"))
             If ValidateAction = "" Then
@@ -732,6 +741,12 @@ Private Sub DispatchAction(act As Object)
         Case "set_text_vertical_align"
             modActionsText.Do_set_text_vertical_align CLng(act("slide")), CLng(act("shape_id")), _
                                                       CStr(act("value"))
+        Case "set_text_autofit"
+            modActionsText.Do_set_text_autofit CLng(act("slide")), CLng(act("shape_id")), CStr(act("mode"))
+        Case "enable_text_shrink_for_overflow"
+            Dim incTitlesArg As String: incTitlesArg = "false"
+            If act.Exists("include_titles") Then incTitlesArg = CStr(act("include_titles"))
+            modActionsText.Do_enable_text_shrink_for_overflow CStr(act("scope")), incTitlesArg
         Case "set_text_margin"
             modActionsText.Do_set_text_margin CLng(act("slide")), CLng(act("shape_id")), _
                                               CDbl(act("left")), CDbl(act("right")), _
