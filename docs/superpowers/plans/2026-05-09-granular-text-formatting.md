@@ -93,10 +93,10 @@ def make_text_v3(path):
         bullets.Text = ("First point about revenue\r"
                         "Second point with a link\r"
                         "Third item, deprecated")
-        # First bullet: size 24 on the word "revenue"
-        bullets.Paragraphs(1).Characters(20, 7).Font.Size = 24
-        # Second bullet: hyperlink on "link"
-        link_range = bullets.Paragraphs(2).Characters(22, 4)
+        # First bullet: size 24 on the word "revenue" (starts at char 19, 1-indexed)
+        bullets.Paragraphs(1).Characters(19, 7).Font.Size = 24
+        # Second bullet: hyperlink on "link" (starts at char 21, 1-indexed)
+        link_range = bullets.Paragraphs(2).Characters(21, 4)
         link_range.ActionSettings(1).Hyperlink.Address = "https://decko.ai/docs"
         # Third bullet: strikethrough on "deprecated"
         bullets.Paragraphs(3).Characters(13, 10).Font.Strikethrough = -1
@@ -167,7 +167,7 @@ try:
     print("slide1 OK")
 
     s2 = pres.Slides(2).Shapes(2).TextFrame.TextRange
-    link = s2.Paragraphs(2).Characters(22, 4).ActionSettings(1).Hyperlink.Address
+    link = s2.Paragraphs(2).Characters(21, 4).ActionSettings(1).Hyperlink.Address
     assert "decko.ai" in link, link
     strike = s2.Paragraphs(3).Characters(13, 10).Font.Strikethrough
     assert strike == -1, strike

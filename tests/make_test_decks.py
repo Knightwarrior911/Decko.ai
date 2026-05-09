@@ -184,10 +184,10 @@ def make_text_v3(path):
         bullets.Text = ("First point about revenue\r"
                         "Second point with a link\r"
                         "Third item, deprecated")
-        # First bullet: size 24 on the word "revenue"
-        bullets.Paragraphs(1).Characters(20, 7).Font.Size = 24
-        # Second bullet: hyperlink on "link"
-        link_range = bullets.Paragraphs(2).Characters(22, 4)
+        # First bullet: size 24 on the word "revenue" (starts at char 19, 1-indexed)
+        bullets.Paragraphs(1).Characters(19, 7).Font.Size = 24
+        # Second bullet: hyperlink on "link" (starts at char 21, 1-indexed)
+        link_range = bullets.Paragraphs(2).Characters(21, 4)
         link_range.ActionSettings(1).Hyperlink.Address = "https://decko.ai/docs"
         # Third bullet: strikethrough on "deprecated" — applied via XML patch after SaveAs
         # (PowerPoint COM typelib v2.12 does not expose Font.Strikethrough)
