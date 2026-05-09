@@ -156,12 +156,123 @@ def make_phase2(path: Path) -> None:
     pres.save(str(path))
 
 
+def make_text_v3(path):
+    """Fixture for granular text v3:
+    - Slide 1: heading + paragraph with mixed-format runs
+    - Slide 2: bullets w/ mixed sizes + one hyperlink + one strikethrough
+    - Slide 3: paragraphs with sub/superscript
+    - Slide 4: shape with non-default text frame (vertical-mid, margins, line-spacing 1.5)
+    """
+    import win32com.client
+    app = win32com.client.DispatchEx("PowerPoint.Application")
+    app.Visible = True
+    pres = app.Presentations.Add(WithWindow=True)
+    try:
+        # Slide 1: heading + mixed-format paragraph
+        s1 = pres.Slides.Add(1, 1)  # ppLayoutText
+        s1.Shapes.Title.TextFrame.TextRange.Text = "Earnings Q3"
+        body = s1.Shapes(2).TextFrame.TextRange
+        body.Text = "Revenue grew 23% in Q3"
+        # Bold "grew 23%"
+        bold_range = body.Characters(9, 8)  # "grew 23%"
+        bold_range.Font.Bold = -1
+
+        # Slide 2: bullets, mixed sizes, hyperlink, strikethrough
+        s2 = pres.Slides.Add(2, 2)  # ppLayoutBullet
+        s2.Shapes.Title.TextFrame.TextRange.Text = "Highlights"
+        bullets = s2.Shapes(2).TextFrame.TextRange
+        bullets.Text = ("First point about revenue\r"
+                        "Second point with a link\r"
+                        "Third item, deprecated")
+        # First bullet: size 24 on the word "revenue"
+        bullets.Paragraphs(1).Characters(20, 7).Font.Size = 24
+        # Second bullet: hyperlink on "link"
+        link_range = bullets.Paragraphs(2).Characters(22, 4)
+        link_range.ActionSettings(1).Hyperlink.Address = "https://decko.ai/docs"
+        # Third bullet: strikethrough on "deprecated" — applied via XML patch after SaveAs
+        # (PowerPoint COM typelib v2.12 does not expose Font.Strikethrough)
+
+        # Slide 3: sub/superscript
+        s3 = pres.Slides.Add(3, 1)
+        s3.Shapes.Title.TextFrame.TextRange.Text = "Chemistry"
+        body3 = s3.Shapes(2).TextFrame.TextRange
+        body3.Text = "H2O\rE=mc2"
+        body3.Paragraphs(1).Characters(2, 1).Font.BaselineOffset = -0.25  # sub on "2"
+        body3.Paragraphs(2).Characters(5, 1).Font.BaselineOffset = 0.30   # super on "2"
+
+        # Slide 4: text-frame anchored middle, margins, line-spacing 1.5
+        s4 = pres.Slides.Add(4, 1)
+        s4.Shapes.Title.TextFrame.TextRange.Text = "Layout"
+        sh4 = s4.Shapes(2)
+        tf4 = sh4.TextFrame
+        tf4.TextRange.Text = "Anchored middle\rWith line spacing"
+        tf4.VerticalAnchor = 3  # msoAnchorMiddle
+        tf4.MarginLeft   = 18.0
+        tf4.MarginRight  = 18.0
+        tf4.MarginTop    = 9.0
+        tf4.MarginBottom = 9.0
+        for i in range(1, 3):
+            p = tf4.TextRange.Paragraphs(i).ParagraphFormat
+            p.LineRuleWithin = -1   # msoTrue
+            p.SpaceWithin    = 1.5
+
+        pres.SaveAs(str(path), 24)  # ppSaveAsOpenXMLPresentation
+    finally:
+        pres.Close()
+        app.Quit()
+
+    # Post-process: patch strikethrough on "deprecated" via python-pptx XML
+    # COM typelib v2.12 does not expose Font.Strikethrough, so we apply it here.
+    from pptx import Presentation as _Pres
+    from pptx.oxml.ns import qn as _qn
+    from lxml import etree as _etree
+
+    _p = _Pres(str(path))
+    # Slide 2 (index 1), shape index 1 (body placeholder), paragraph index 2 (3rd bullet)
+    _tf = _p.slides[1].placeholders[1].text_frame
+    # The third paragraph text is "Third item, deprecated"
+    # chars 13..22 = "deprecated" (1-based in COM = 0-based index 12..21)
+    # We need to split the run to isolate "deprecated" and add strike
+    _para = _tf.paragraphs[2]
+    # Get the text of the paragraph to locate "deprecated"
+    _full_text = _para.text  # "Third item, deprecated"
+    _strike_start = _full_text.find("deprecated")
+    assert _strike_start >= 0, f"'deprecated' not found in: {_full_text!r}"
+    _strike_end = _strike_start + len("deprecated")
+    # Rebuild runs: before | "deprecated" (struck) | after
+    _before = _full_text[:_strike_start]   # "Third item, "
+    _struck = _full_text[_strike_start:_strike_end]  # "deprecated"
+    _after  = _full_text[_strike_end:]     # ""
+    _pXml = _para._p
+    # Remove all existing <a:r> children
+    for _r in _pXml.findall(_qn("a:r")):
+        _pXml.remove(_r)
+    # Add run for text before "deprecated"
+    if _before:
+        _r1 = _etree.SubElement(_pXml, _qn("a:r"))
+        _t1 = _etree.SubElement(_r1, _qn("a:t"))
+        _t1.text = _before
+    # Add struck run for "deprecated"
+    _r2 = _etree.SubElement(_pXml, _qn("a:r"))
+    _rpr2 = _etree.SubElement(_r2, _qn("a:rPr"), attrib={"lang": "en-US", "strike": "sngStrike", "dirty": "0"})
+    _t2 = _etree.SubElement(_r2, _qn("a:t"))
+    _t2.text = _struck
+    # Add run for text after
+    if _after:
+        _r3 = _etree.SubElement(_pXml, _qn("a:r"))
+        _t3 = _etree.SubElement(_r3, _qn("a:t"))
+        _t3.text = _after
+    _p.save(str(path))
+
+
 def main() -> int:
     DECKS_DIR.mkdir(parents=True, exist_ok=True)
     make_smoke_3slide(DECKS_DIR / "smoke_3slide.pptx")
     make_full_visual(DECKS_DIR / "full_visual.pptx")
     make_phase2(DECKS_DIR / "phase2.pptx")
-    print(f"[done] wrote 3 decks to {DECKS_DIR}")
+    make_text_v3(DECKS_DIR / "text_v3.pptx")
+    print("text_v3.pptx OK")
+    print(f"[done] wrote 4 decks to {DECKS_DIR}")
     return 0
 
 
