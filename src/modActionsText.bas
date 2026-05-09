@@ -329,7 +329,15 @@ Private Sub EnableShrinkOnShape(sh As Shape, includeTitles As Boolean)
         End If
     End If
     If sh.HasTextFrame Then
-        sh.TextFrame2.AutoSize = 2  ' msoAutoSizeTextToFitShape
+        ' Only shrink if text actually overflows — avoids crushing badge circles
+        ' that fit fine but get recalculated smaller by TextToFitShape AutoSize
+        If sh.TextFrame2.AutoSize = 0 Then
+            Dim bh As Single: bh = sh.TextFrame.TextRange.BoundHeight
+            Dim bw As Single: bw = sh.TextFrame.TextRange.BoundWidth
+            If bh > sh.Height + 2 Or bw > sh.Width + 2 Then
+                sh.TextFrame2.AutoSize = 2  ' msoAutoSizeTextToFitShape
+            End If
+        End If
     End If
     If sh.Type = msoGroup Then
         Dim child As Shape
