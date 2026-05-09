@@ -855,17 +855,31 @@ Private Sub DispatchAction(act As Object)
 End Sub
 
 ' Strip common LLM noise that surrounds JSON output:
-' 1. Markdown code fences ``` ```json ... ``` ```
-' 2. Prose BEFORE the first { or [
-' 3. Prose AFTER the last matching } or ]
-' 4. JavaScript-style comments (// line and /* block */) inside the JSON body
+' 1. Unicode BOM at the start
+' 2. Smart / curly quotes -> ASCII double quotes
+' 3. Markdown code fences ``` ```json ... ``` ```
+' 4. Prose BEFORE the first { or [
+' 5. Prose AFTER the last matching } or ]
+' 6. JavaScript-style comments (// line and /* block */) outside strings
+' 7. Trailing commas before } or ]
 ' Returns the cleaned JSON string. If no { or [ is found, returns the original
 ' input so the existing error path still surfaces a useful message.
 Public Function SanitizeJsonInput(raw As String) As String
     Dim s As String: s = raw
 
+    ' Strip UTF-8 BOM (EF BB BF) or UTF-16 BOM (FEFF).
+    If Len(s) >= 3 Then
+        If AscW(Mid(s, 1, 1)) = &HFEFF Then s = Mid(s, 2)
+    End If
+
+    ' Normalize smart quotes to ASCII. LLM autocorrectors sometimes inject these.
+    ' U+201C and U+201D are curly double quotes; U+2018 and U+2019 are curly singles.
+    s = Replace(s, ChrW(&H201C), """")  ' left double
+    s = Replace(s, ChrW(&H201D), """")  ' right double
+    s = Replace(s, ChrW(&H2018), "'")   ' left single
+    s = Replace(s, ChrW(&H2019), "'")   ' right single
+
     ' Strip Markdown code fences (e.g. ```json ... ``` or ``` ... ```).
-    ' Replace the fence markers with empty strings; keep inner content.
     s = ReplaceCaseInsensitive(s, "```json", "")
     s = Replace(s, "```", "")
 
@@ -897,7 +911,65 @@ Public Function SanitizeJsonInput(raw As String) As String
     ' inside string literals; only strip outside strings.
     s = StripJsonComments(s)
 
+    ' Strip trailing commas before } or ]. Walk char by char, string-aware.
+    s = StripTrailingCommas(s)
+
     SanitizeJsonInput = s
+End Function
+
+' Walk JSON string-aware, removing commas that appear immediately before
+' (ignoring whitespace) a closing } or ]. Trailing commas are valid in
+' JavaScript but NOT in strict JSON, and LLMs frequently emit them.
+Private Function StripTrailingCommas(s As String) As String
+    Dim n As Long: n = Len(s)
+    Dim out As String
+    Dim i As Long: i = 1
+    Dim inString As Boolean: inString = False
+    Dim ch As String
+    Do While i <= n
+        ch = Mid(s, i, 1)
+        If inString Then
+            If ch = "\" And i < n Then
+                out = out & ch & Mid(s, i + 1, 1)
+                i = i + 2
+            ElseIf ch = """" Then
+                inString = False
+                out = out & ch
+                i = i + 1
+            Else
+                out = out & ch
+                i = i + 1
+            End If
+        Else
+            If ch = """" Then
+                inString = True
+                out = out & ch
+                i = i + 1
+            ElseIf ch = "," Then
+                ' Look ahead past whitespace to see if next non-ws char is } or ].
+                Dim j As Long: j = i + 1
+                Do While j <= n
+                    Dim nx As String: nx = Mid(s, j, 1)
+                    If nx = " " Or nx = vbTab Or nx = vbCr Or nx = vbLf Then
+                        j = j + 1
+                    Else
+                        Exit Do
+                    End If
+                Loop
+                If j <= n And (Mid(s, j, 1) = "}" Or Mid(s, j, 1) = "]") Then
+                    ' Drop the comma; preserve the whitespace that followed.
+                    i = i + 1
+                Else
+                    out = out & ch
+                    i = i + 1
+                End If
+            Else
+                out = out & ch
+                i = i + 1
+            End If
+        End If
+    Loop
+    StripTrailingCommas = out
 End Function
 
 Private Function ReplaceCaseInsensitive(haystack As String, needle As String, repl As String) As String
