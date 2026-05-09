@@ -219,6 +219,71 @@ Private Function ValidateAction(act As Object) As String
         Case "set_series_color"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "series_index", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_run_bold", "set_run_italic", "set_run_underline", _
+             "set_run_strikethrough", "set_run_subscript", "set_run_superscript"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
+        Case "set_run_font_color"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
+        Case "set_run_font_size"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
+            If ValidateAction = "" Then
+                If Not IsNumeric(act("value")) Or CDbl(act("value")) <= 0 Then
+                    ValidateAction = "value: must be a positive number"
+                End If
+            End If
+        Case "set_run_font_name"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
+            If ValidateAction = "" Then
+                If Len(Trim(CStr(act("value")))) = 0 Then ValidateAction = "value: empty font name"
+            End If
+        Case "set_run_text"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
+        Case "set_run_hyperlink"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
+            If ValidateAction = "" Then
+                Dim u As String: u = CStr(act("value"))
+                If Len(u) > 0 _
+                    And Not (LCase(Left(u, 7)) = "http://") _
+                    And Not (LCase(Left(u, 8)) = "https://") _
+                    And Not (LCase(Left(u, 7)) = "mailto:") _
+                    And Not (Left(u, 7) = "#slide:") Then
+                    ValidateAction = "value: invalid hyperlink URL"
+                End If
+            End If
+        Case "set_paragraph_alignment"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
+            If ValidateAction = "" Then
+                Dim av As String: av = LCase(CStr(act("value")))
+                If av <> "left" And av <> "center" And av <> "right" And av <> "justify" Then
+                    ValidateAction = "value: must be one of left, center, right, justify"
+                End If
+            End If
+        Case "set_paragraph_line_spacing"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
+            If ValidateAction = "" Then
+                If Not IsNumeric(act("value")) Or CDbl(act("value")) <= 0 Then
+                    ValidateAction = "value: must be a positive number"
+                End If
+            End If
+        Case "set_text_vertical_align"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If ValidateAction = "" Then
+                Dim ax As String: ax = LCase(CStr(act("value")))
+                If ax <> "top" And ax <> "middle" And ax <> "bottom" Then
+                    ValidateAction = "value: must be one of top, middle, bottom"
+                End If
+            End If
+        Case "set_text_margin"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "left", "right", "top", "bottom"))
+            If ValidateAction = "" Then
+                Dim k As Variant
+                For Each k In Array("left", "right", "top", "bottom")
+                    If Not IsNumeric(act(k)) Or CDbl(act(k)) < 0 Then
+                        ValidateAction = CStr(k) & ": must be a number >= 0"
+                        Exit For
+                    End If
+                Next k
+            End If
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -428,6 +493,63 @@ Private Sub DispatchAction(act As Object)
         Case "set_series_color"
             modActionsChart.Do_set_series_color CLng(act("slide")), CLng(act("shape_id")), _
                                                 CLng(act("series_index")), CStr(act("value"))
+        Case "set_run_bold"
+            modActionsRun.Do_set_run_bold CLng(act("slide")), CLng(act("shape_id")), _
+                                          CLng(act("paragraph_index")), CLng(act("run_index")), _
+                                          CBool(act("value"))
+        Case "set_run_italic"
+            modActionsRun.Do_set_run_italic CLng(act("slide")), CLng(act("shape_id")), _
+                                            CLng(act("paragraph_index")), CLng(act("run_index")), _
+                                            CBool(act("value"))
+        Case "set_run_underline"
+            modActionsRun.Do_set_run_underline CLng(act("slide")), CLng(act("shape_id")), _
+                                               CLng(act("paragraph_index")), CLng(act("run_index")), _
+                                               CBool(act("value"))
+        Case "set_run_strikethrough"
+            modActionsRun.Do_set_run_strikethrough CLng(act("slide")), CLng(act("shape_id")), _
+                                                   CLng(act("paragraph_index")), CLng(act("run_index")), _
+                                                   CBool(act("value"))
+        Case "set_run_subscript"
+            modActionsRun.Do_set_run_subscript CLng(act("slide")), CLng(act("shape_id")), _
+                                               CLng(act("paragraph_index")), CLng(act("run_index")), _
+                                               CBool(act("value"))
+        Case "set_run_superscript"
+            modActionsRun.Do_set_run_superscript CLng(act("slide")), CLng(act("shape_id")), _
+                                                 CLng(act("paragraph_index")), CLng(act("run_index")), _
+                                                 CBool(act("value"))
+        Case "set_run_font_color"
+            modActionsRun.Do_set_run_font_color CLng(act("slide")), CLng(act("shape_id")), _
+                                                CLng(act("paragraph_index")), CLng(act("run_index")), _
+                                                CStr(act("value"))
+        Case "set_run_font_size"
+            modActionsRun.Do_set_run_font_size CLng(act("slide")), CLng(act("shape_id")), _
+                                               CLng(act("paragraph_index")), CLng(act("run_index")), _
+                                               CLng(act("value"))
+        Case "set_run_font_name"
+            modActionsRun.Do_set_run_font_name CLng(act("slide")), CLng(act("shape_id")), _
+                                               CLng(act("paragraph_index")), CLng(act("run_index")), _
+                                               CStr(act("value"))
+        Case "set_run_text"
+            modActionsRun.Do_set_run_text CLng(act("slide")), CLng(act("shape_id")), _
+                                          CLng(act("paragraph_index")), CLng(act("run_index")), _
+                                          CStr(act("value"))
+        Case "set_run_hyperlink"
+            modActionsRun.Do_set_run_hyperlink CLng(act("slide")), CLng(act("shape_id")), _
+                                               CLng(act("paragraph_index")), CLng(act("run_index")), _
+                                               CStr(act("value"))
+        Case "set_paragraph_alignment"
+            modActionsText.Do_set_paragraph_alignment CLng(act("slide")), CLng(act("shape_id")), _
+                                                      CLng(act("paragraph_index")), CStr(act("value"))
+        Case "set_paragraph_line_spacing"
+            modActionsText.Do_set_paragraph_line_spacing CLng(act("slide")), CLng(act("shape_id")), _
+                                                         CLng(act("paragraph_index")), CDbl(act("value"))
+        Case "set_text_vertical_align"
+            modActionsText.Do_set_text_vertical_align CLng(act("slide")), CLng(act("shape_id")), _
+                                                      CStr(act("value"))
+        Case "set_text_margin"
+            modActionsText.Do_set_text_margin CLng(act("slide")), CLng(act("shape_id")), _
+                                              CDbl(act("left")), CDbl(act("right")), _
+                                              CDbl(act("top")), CDbl(act("bottom"))
     End Select
 End Sub
 

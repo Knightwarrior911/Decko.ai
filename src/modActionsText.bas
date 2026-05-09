@@ -175,3 +175,51 @@ Private Sub ReplaceInShape(sh As Shape, findText As String, replaceText As Strin
         Next child
     End If
 End Sub
+
+Public Sub Do_set_paragraph_alignment(slideNum As Long, shapeId As Long, _
+                                      paragraphIndex As Long, align As String)
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 6001, "Do_set_paragraph_alignment", "paragraph not found"
+    Select Case LCase(align)
+        Case "left":    p.ParagraphFormat.Alignment = ppAlignLeft
+        Case "center":  p.ParagraphFormat.Alignment = ppAlignCenter
+        Case "right":   p.ParagraphFormat.Alignment = ppAlignRight
+        Case "justify": p.ParagraphFormat.Alignment = ppAlignJustify
+        Case Else: Err.Raise vbObjectError + 6001, "Do_set_paragraph_alignment", "bad align: " & align
+    End Select
+End Sub
+
+Public Sub Do_set_paragraph_line_spacing(slideNum As Long, shapeId As Long, _
+                                         paragraphIndex As Long, multiple As Double)
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 6002, "Do_set_paragraph_line_spacing", "paragraph not found"
+    If multiple <= 0 Then Err.Raise vbObjectError + 6002, "Do_set_paragraph_line_spacing", "multiple must be > 0"
+    p.ParagraphFormat.LineRuleWithin = msoTrue
+    p.ParagraphFormat.SpaceWithin = multiple
+End Sub
+
+Public Sub Do_set_text_vertical_align(slideNum As Long, shapeId As Long, anchor As String)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 6003, "Do_set_text_vertical_align", "shape not found"
+    If Not sh.HasTextFrame Then Err.Raise vbObjectError + 6003, "Do_set_text_vertical_align", "no text frame"
+    Select Case LCase(anchor)
+        Case "top":    sh.TextFrame.VerticalAnchor = msoAnchorTop
+        Case "middle": sh.TextFrame.VerticalAnchor = msoAnchorMiddle
+        Case "bottom": sh.TextFrame.VerticalAnchor = msoAnchorBottom
+        Case Else: Err.Raise vbObjectError + 6003, "Do_set_text_vertical_align", "bad anchor: " & anchor
+    End Select
+End Sub
+
+Public Sub Do_set_text_margin(slideNum As Long, shapeId As Long, _
+                              leftPt As Double, rightPt As Double, _
+                              topPt As Double, bottomPt As Double)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 6004, "Do_set_text_margin", "shape not found"
+    If Not sh.HasTextFrame Then Err.Raise vbObjectError + 6004, "Do_set_text_margin", "no text frame"
+    If leftPt < 0 Or rightPt < 0 Or topPt < 0 Or bottomPt < 0 Then _
+        Err.Raise vbObjectError + 6004, "Do_set_text_margin", "margin must be >= 0"
+    sh.TextFrame.MarginLeft   = leftPt
+    sh.TextFrame.MarginRight  = rightPt
+    sh.TextFrame.MarginTop    = topPt
+    sh.TextFrame.MarginBottom = bottomPt
+End Sub
