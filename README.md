@@ -1,4 +1,4 @@
-# PPT AI Editor
+# Decko.ai
 
 VBA-based PowerPoint editor driven by natural language via an external LLM.
 
