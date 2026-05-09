@@ -221,7 +221,7 @@ Private Function ValidateAction(act As Object) As String
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "series_index", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "set_run_bold", "set_run_italic", "set_run_underline", _
-             "set_run_strikethrough", "set_run_subscript", "set_run_superscript"
+             "set_run_subscript", "set_run_superscript"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
         Case "set_run_font_color"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
@@ -506,10 +506,6 @@ Private Sub DispatchAction(act As Object)
             modActionsRun.Do_set_run_underline CLng(act("slide")), CLng(act("shape_id")), _
                                                CLng(act("paragraph_index")), CLng(act("run_index")), _
                                                CBool(act("value"))
-        Case "set_run_strikethrough"
-            modActionsRun.Do_set_run_strikethrough CLng(act("slide")), CLng(act("shape_id")), _
-                                                   CLng(act("paragraph_index")), CLng(act("run_index")), _
-                                                   CBool(act("value"))
         Case "set_run_subscript"
             modActionsRun.Do_set_run_subscript CLng(act("slide")), CLng(act("shape_id")), _
                                                CLng(act("paragraph_index")), CLng(act("run_index")), _
@@ -615,7 +611,7 @@ End Function
 Private Function IsRunAction(t As String) As Boolean
     Select Case t
         Case "set_run_bold", "set_run_italic", "set_run_underline", _
-             "set_run_strikethrough", "set_run_subscript", "set_run_superscript", _
+             "set_run_subscript", "set_run_superscript", _
              "set_run_font_color", "set_run_font_size", "set_run_font_name", _
              "set_run_text", "set_run_hyperlink"
             IsRunAction = True

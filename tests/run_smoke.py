@@ -951,7 +951,7 @@ def test_snapshot_v3_runs():
         # at least one bold run
         assert any(r["font"]["bold"] for r in para["runs"]), para["runs"]
         print(f"  ok  [bold span] {len(para['runs'])} runs")
-        for f in ("underline", "strike", "subscript", "superscript"):
+        for f in ("underline", "subscript", "superscript"):
             assert f in para["runs"][0]["font"], f
         print("  ok  [extended font fields present]")
         assert "hyperlink" in para["runs"][0]

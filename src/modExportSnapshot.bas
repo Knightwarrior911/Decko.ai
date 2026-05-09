@@ -151,7 +151,6 @@ Private Function BuildFontDict(fnt As Font) As Object
     d.Add "italic", (fnt.Italic = msoTrue)
     d.Add "color", RgbToHex(fnt.Color.RGB)
     d.Add "underline", (fnt.Underline = msoTrue)
-    d.Add "strike", (fnt.Strikethrough = msoTrue)
     d.Add "subscript", (fnt.BaselineOffset < -0.001)
     d.Add "superscript", (fnt.BaselineOffset > 0.001)
     Set BuildFontDict = d
@@ -565,10 +564,14 @@ End Function
 
 Private Function RunHyperlink(r As TextRange) As Variant
     Dim addr As String
+    Dim act As Long
+    act = 0
     On Error Resume Next
-    addr = r.ActionSettings(ppMouseClick).Hyperlink.Address
+    act = r.ActionSettings(1).Action  ' 1 = ppMouseClick
+    addr = r.ActionSettings(1).Hyperlink.Address
     On Error GoTo 0
-    If Len(addr) = 0 Then
+    ' Treat as "no link" when Action is ppActionNone (0) or address is empty.
+    If act = 0 Or Len(addr) = 0 Then
         RunHyperlink = Null
     Else
         RunHyperlink = addr

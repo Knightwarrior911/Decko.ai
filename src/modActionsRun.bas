@@ -37,13 +37,6 @@ Public Sub Do_set_run_underline(slideNum As Long, shapeId As Long, _
     r.Font.Underline = IIf(value, msoTrue, msoFalse)
 End Sub
 
-Public Sub Do_set_run_strikethrough(slideNum As Long, shapeId As Long, _
-                                    paragraphIndex As Long, runIndex As Long, value As Boolean)
-    Dim r As TextRange: Set r = FindRun(slideNum, shapeId, paragraphIndex, runIndex)
-    If r Is Nothing Then Err.Raise vbObjectError + 5004, "Do_set_run_strikethrough", "run not found"
-    r.Font.Strikethrough = IIf(value, msoTrue, msoFalse)
-End Sub
-
 Public Sub Do_set_run_subscript(slideNum As Long, shapeId As Long, _
                                 paragraphIndex As Long, runIndex As Long, value As Boolean)
     Dim r As TextRange: Set r = FindRun(slideNum, shapeId, paragraphIndex, runIndex)
@@ -100,6 +93,14 @@ Public Sub Do_set_run_hyperlink(slideNum As Long, shapeId As Long, _
                                 paragraphIndex As Long, runIndex As Long, url As String)
     Dim r As TextRange: Set r = FindRun(slideNum, shapeId, paragraphIndex, runIndex)
     If r Is Nothing Then Err.Raise vbObjectError + 5011, "Do_set_run_hyperlink", "run not found"
-    Dim hl As Hyperlink: Set hl = r.ActionSettings(ppMouseClick).Hyperlink
-    hl.Address = url
+    ' 1 = ppMouseClick. To CLEAR a hyperlink, setting Address = "" is unreliable;
+    ' the canonical way is to set Action = ppActionNone (0) which removes the
+    ' attached action entirely. To SET a hyperlink, set Address (Action implicitly
+    ' becomes ppActionHyperlink).
+    If Len(url) = 0 Then
+        r.ActionSettings(1).Action = 0   ' ppActionNone
+        r.ActionSettings(1).Hyperlink.Address = ""
+    Else
+        r.ActionSettings(1).Hyperlink.Address = url
+    End If
 End Sub

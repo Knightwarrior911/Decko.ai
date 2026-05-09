@@ -37,7 +37,7 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 
 ## Action types
 
-71 actions total across 10 modules.
+70 actions total across 10 modules.
 
 ### Core shape + slide (`modActions.bas`, 17)
 
@@ -78,14 +78,13 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 | `set_text_vertical_align` | Whole-shape vertical anchor (top / middle / bottom). |
 | `set_text_margin` | Whole-shape internal margins (left / right / top / bottom in pt). |
 
-### Run-level formatting (`modActionsRun.bas`, 11)
+### Run-level formatting (`modActionsRun.bas`, 10)
 
 | Action | Effect |
 |---|---|
 | `set_run_bold` | Toggle bold on a single run. |
 | `set_run_italic` | Toggle italic. |
 | `set_run_underline` | Toggle underline. |
-| `set_run_strikethrough` | Toggle strikethrough. |
 | `set_run_subscript` | Subscript on/off (clears superscript). |
 | `set_run_superscript` | Superscript on/off (clears subscript). |
 | `set_run_font_color` | `#RRGGBB` on a single run. |
@@ -206,7 +205,7 @@ src/
   modJSON.bas                     ← JSON parser/encoder
   modActions.bas                  ← core 17 actions (text/font/shape/slide/notes)
   modActionsText.bas              ← granular text actions (12)
-  modActionsRun.bas               ← run-level formatting + hyperlink (11)
+  modActionsRun.bas               ← run-level formatting + hyperlink (10)
   modActionsLayout.bas            ← layout/align/distribute/recolor (13)
   modActionsTable.bas             ← table row/col/merge (5)
   modActionsChart.bas             ← chart type/title/axis/legend/series (5)
