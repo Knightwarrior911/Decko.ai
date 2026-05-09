@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmExport 
-   Caption         =   "Decko.ai • Export Snapshot"
+   Caption         =   "Decko.ai ï¿½ Export Snapshot"
    ClientHeight    =   7200
    ClientLeft      =   91
    ClientTop       =   406
@@ -121,7 +121,29 @@ Private Function PromptTemplate() As String
     s = s & "- For 'rebuild this slide': use clear_slide first, then a sequence of" & vbCrLf
     s = s & "  add_shape / set_text / move_shape actions to populate." & vbCrLf
     s = s & "- File paths must be absolute and use double backslashes in JSON strings." & vbCrLf
-    s = s & "- One field name per action - never substitute aliases."
+    s = s & "- One field name per action - never substitute aliases." & vbCrLf & vbCrLf
+
+    s = s & "STRICT JSON OUTPUT RULES (parser is intolerant - violations cause errors):" & vbCrLf
+    s = s & "- Output ONLY ONE JSON object. The first character of your reply MUST be" & vbCrLf
+    s = s & "  ``{`` and the last character MUST be ``}``." & vbCrLf
+    s = s & "- NO prose, NO explanation, NO markdown code fences (no ```json or ```)" & vbCrLf
+    s = s & "  before, after, or inside the JSON." & vbCrLf
+    s = s & "- NO JavaScript-style comments inside the JSON. Forbidden: ``// ...`` and" & vbCrLf
+    s = s & "  ``/* ... */``. Strict JSON does not allow comments." & vbCrLf
+    s = s & "- NEVER emit the JSON twice or include both a ``with-comments`` draft and a" & vbCrLf
+    s = s & "  ``cleaned`` version. One JSON, once, alone." & vbCrLf
+    s = s & "- Use straight ASCII double-quotes (`""`) - never smart quotes." & vbCrLf
+    s = s & "- Escape backslashes as `\\` and double-quotes as `\""` inside string values." & vbCrLf
+    s = s & "- Trailing commas are forbidden (e.g. `[1, 2, 3,]` is invalid)." & vbCrLf & vbCrLf
+
+    s = s & "SCOPE GUIDANCE - get the slide number RIGHT:" & vbCrLf
+    s = s & "- For find_replace_text and find_replace_regex, ``scope`` must reference the" & vbCrLf
+    s = s & "  slide where the text actually lives. Read the snapshot to find the correct" & vbCrLf
+    s = s & "  slide_number BEFORE writing the action." & vbCrLf
+    s = s & "- If you are editing a single specific slide, use ``""scope"":""slide:N""`` with" & vbCrLf
+    s = s & "  N being that slide's 1-based index in the snapshot." & vbCrLf
+    s = s & "- If you want a sweep across the whole presentation, use ``""scope"":""deck""``." & vbCrLf
+    s = s & "- Never assume slide:1 unless slide 1 is genuinely the target." & vbCrLf
 
     PromptTemplate = s
 End Function
