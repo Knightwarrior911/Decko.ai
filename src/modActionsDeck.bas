@@ -52,8 +52,7 @@ End Sub
 Private Sub ReplaceRegexInParagraph(para As TextRange, re As Object, replacement As String)
     On Error Resume Next
     Dim text As String: text = para.Text
-    ' Strip trailing paragraph mark for matching but track its absence so
-    ' we don't accidentally extend match into it.
+    ' Strip trailing paragraph mark for matching.
     Dim hasCR As Boolean: hasCR = (Len(text) > 0 And Right(text, 1) = Chr(13))
     Dim matchSrc As String: matchSrc = text
     If hasCR Then matchSrc = Left(text, Len(text) - 1)
@@ -66,9 +65,11 @@ Private Sub ReplaceRegexInParagraph(para As TextRange, re As Object, replacement
         Dim m As Object: Set m = matches(i)
         Dim startOneBased As Long: startOneBased = m.FirstIndex + 1
         Dim matchLen As Long: matchLen = m.Length
-        ' Compute substituted replacement (handle $1 etc).
         Dim repl As String
         repl = re.Replace(m.Value, replacement)
+        ' Strip trailing paragraph terminators from replacement - they would
+        ' insert spurious paragraph breaks inside this paragraph.
+        repl = modActionsText.StripTrailingPara(repl)
         para.Characters(startOneBased, matchLen).Text = repl
     Next i
     On Error GoTo 0

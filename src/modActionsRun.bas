@@ -86,7 +86,9 @@ Public Sub Do_set_run_text(slideNum As Long, shapeId As Long, _
                            paragraphIndex As Long, runIndex As Long, value As String)
     Dim r As TextRange: Set r = FindRun(slideNum, shapeId, paragraphIndex, runIndex)
     If r Is Nothing Then Err.Raise vbObjectError + 5010, "Do_set_run_text", "run not found"
-    r.Text = value
+    ' Strip trailing paragraph terminators - a run lives inside one paragraph,
+    ' so a trailing \r in the value would insert a new paragraph break.
+    r.Text = modActionsText.StripTrailingPara(value)
 End Sub
 
 Public Sub Do_set_run_hyperlink(slideNum As Long, shapeId As Long, _

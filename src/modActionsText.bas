@@ -16,8 +16,29 @@ Public Sub Do_set_paragraph_text(slideNum As Long, shapeId As Long, _
                                  paragraphIndex As Long, value As String)
     Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
     If p Is Nothing Then Err.Raise vbObjectError + 3001, "Do_set_paragraph_text", "paragraph not found"
-    p.Text = value
+    ' Strip trailing paragraph terminator(s) from incoming value. The terminator
+    ' is implicit in the paragraph-level TextRange; including a trailing \r
+    ' causes PowerPoint to insert a NEW paragraph after this one, effectively
+    ' duplicating the list. LLM-generated values frequently include trailing
+    ' \r because the snapshot shows it, but it should NOT be in the value.
+    p.Text = StripTrailingPara(value)
 End Sub
+
+' Strip trailing paragraph-terminator characters (Chr(13) and Chr(10)) from
+' a value that is meant to live INSIDE one paragraph. Repeated stripping in
+' case the LLM emits "\r\r" or "\r\n".
+Public Function StripTrailingPara(s As String) As String
+    Dim out As String: out = s
+    Do While Len(out) > 0
+        Dim last As String: last = Right(out, 1)
+        If last = Chr(13) Or last = Chr(10) Then
+            out = Left(out, Len(out) - 1)
+        Else
+            Exit Do
+        End If
+    Loop
+    StripTrailingPara = out
+End Function
 
 Public Sub Do_add_paragraph(slideNum As Long, shapeId As Long, _
                             afterParagraphIndex As Long, value As String)
@@ -177,20 +198,37 @@ End Sub
 ' which returns a TextRange of the match; assigning .Text on that returned
 ' range mutates only the matched chars and inherits formatting from the
 ' first matched char, leaving surrounding runs untouched.
+'
+' Paragraph-terminator hygiene: if BOTH find and replace end in \r (or \n),
+' strip those trailing terminators from BOTH before searching. PowerPoint's
+' Find returns a span that does not reliably include the terminator, and
+' assigning a replacement string that includes \r causes a new paragraph
+' break to be inserted on top of the existing terminator. Net symptom:
+' "Name\r" -> "Other\r" produces "Name" + blank paragraph + "Other".
+' Stripping eliminates the duplicate \r without changing the visible result.
 Public Sub ReplaceInTextRange(tr As TextRange, findText As String, replaceText As String)
     If Len(findText) = 0 Then Exit Sub
+    Dim f As String: f = findText
+    Dim r As String: r = replaceText
+    Do While Len(f) > 0 And Len(r) > 0 _
+        And (Right(f, 1) = Chr(13) Or Right(f, 1) = Chr(10)) _
+        And (Right(r, 1) = Chr(13) Or Right(r, 1) = Chr(10))
+        f = Left(f, Len(f) - 1)
+        r = Left(r, Len(r) - 1)
+    Loop
+    If Len(f) = 0 Then Exit Sub
     Dim guard As Long: guard = 0
     Dim found As TextRange
     Dim startPos As Long: startPos = 1
     Do
         Set found = Nothing
         On Error Resume Next
-        Set found = tr.Find(FindWhat:=findText, After:=startPos - 1)
+        Set found = tr.Find(FindWhat:=f, After:=startPos - 1)
         On Error GoTo 0
         If found Is Nothing Then Exit Do
         Dim matchStart As Long: matchStart = found.Start
-        found.Text = replaceText
-        startPos = matchStart + Len(replaceText)
+        found.Text = r
+        startPos = matchStart + Len(r)
         guard = guard + 1
         If guard > 10000 Then Exit Do  ' safety
     Loop
