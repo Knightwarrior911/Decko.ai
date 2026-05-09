@@ -1,5 +1,7 @@
 # PPT AI Editor Implementation Plan
 
+> **STATUS: COMPLETE.** Phase 1 shipped (15 actions). Phase 2 also shipped — see `2026-05-08-ppt-ai-editor-phase2.md`. Total = 56 actions in production carrier.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a VBA-driven PowerPoint editor that exports a full-fidelity snapshot JSON, accepts an LLM-generated instructions JSON via UserForm, and applies 15 action types with backup + dry-run preview + JSONL action log.
@@ -64,7 +66,7 @@ Documents/PPT_AI_Editor/
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\requirements.txt`
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\README.md`
 
-- [ ] **Step 1: Create `.gitignore`**
+- [x] **Step 1: Create `.gitignore`**
 
 ```
 # PowerPoint backups created at runtime
@@ -87,14 +89,14 @@ Thumbs.db
 .DS_Store
 ```
 
-- [ ] **Step 2: Create `requirements.txt`**
+- [x] **Step 2: Create `requirements.txt`**
 
 ```
 pywin32>=305
 python-pptx>=0.6.21
 ```
 
-- [ ] **Step 3: Create stub `README.md`**
+- [x] **Step 3: Create stub `README.md`**
 
 ```markdown
 # PPT AI Editor
@@ -119,7 +121,7 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` for design.
 5. Alt+F8 → `ExecuteInstructions` → paste, click **Parse**, review, click **Apply**.
 ```
 
-- [ ] **Step 4: Initialize git**
+- [x] **Step 4: Initialize git**
 
 Run from `C:\Users\vinit\Documents\PPT_AI_Editor`:
 ```bash
@@ -137,7 +139,7 @@ Expected: clean commit, working tree clean.
 **Files:**
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\tools\build_carrier.py`
 
-- [ ] **Step 1: Write `build_carrier.py`**
+- [x] **Step 1: Write `build_carrier.py`**
 
 ```python
 """One-time bootstrap: create an empty PPT_AI_Editor.pptm file.
@@ -180,7 +182,7 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 ```bash
 python tools/build_carrier.py
@@ -188,11 +190,11 @@ python tools/build_carrier.py
 
 Expected output: `[build] Creating .../PPT_AI_Editor.pptm` followed by `[done]`. File `PPT_AI_Editor.pptm` now exists.
 
-- [ ] **Step 3: Verify carrier opens cleanly**
+- [x] **Step 3: Verify carrier opens cleanly**
 
 Open `PPT_AI_Editor.pptm` in PowerPoint manually. Confirm: opens without errors, has one blank slide, Alt+F11 shows an empty VBProject.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tools/build_carrier.py
@@ -208,7 +210,7 @@ Note: `PPT_AI_Editor.pptm` is committed only when stable. For now, leave it untr
 **Files:**
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\src\modJSON.bas`
 
-- [ ] **Step 1: Download VBA-JSON v2.3.1**
+- [x] **Step 1: Download VBA-JSON v2.3.1**
 
 Download from https://github.com/VBA-tools/VBA-JSON/releases/tag/v2.3.1 → `JsonConverter.bas`.
 
@@ -216,7 +218,7 @@ Save to `src/modJSON.bas`. Open the file and change the very first line from `At
 
 Verify the MIT license/copyright header at the top of the file is intact.
 
-- [ ] **Step 2: Sanity-check the file**
+- [x] **Step 2: Sanity-check the file**
 
 The file should:
 - Start with `Attribute VB_Name = "modJSON"`.
@@ -224,7 +226,7 @@ The file should:
 - Contain `Public Function ConvertToJson(ByVal JsonValue As Variant, Optional ByVal Whitespace As Variant, ...) As String`.
 - Be roughly 700–800 lines.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/modJSON.bas
@@ -238,7 +240,7 @@ git commit -m "vendor: add VBA-JSON v2.3.1 as modJSON.bas (MIT)"
 **Files:**
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\update_macros.py`
 
-- [ ] **Step 1: Write `update_macros.py`**
+- [x] **Step 1: Write `update_macros.py`**
 
 ```python
 """Sync src/*.bas and src/*.frm files into PPT_AI_Editor.pptm.
@@ -312,17 +314,17 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 2: Add a smoke test of the sync (no modules yet)**
+- [x] **Step 2: Add a smoke test of the sync (no modules yet)**
 
 Run: `python update_macros.py`
 
 Expected: `ERROR: no .bas / .frm files in .../src` — because `src/` only has `modJSON.bas`. Wait, it has one file. So expected: `[import] modJSON.bas` then `[done]`.
 
-- [ ] **Step 3: Verify in PowerPoint**
+- [x] **Step 3: Verify in PowerPoint**
 
 Open `PPT_AI_Editor.pptm` → Alt+F11 → confirm `modJSON` is present as a Standard Module.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add update_macros.py
@@ -338,7 +340,7 @@ git commit -m "feat: update_macros.py to sync src/ into carrier .pptm"
 **Files:**
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\tests\make_test_decks.py`
 
-- [ ] **Step 1: Write `make_test_decks.py`**
+- [x] **Step 1: Write `make_test_decks.py`**
 
 ```python
 """Regenerate test_decks/ from scratch.
@@ -432,7 +434,7 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 ```bash
 python tests/make_test_decks.py
@@ -440,13 +442,13 @@ python tests/make_test_decks.py
 
 Expected: `[done] wrote 2 decks to .../test_decks`. Files exist: `smoke_3slide.pptx`, `full_visual.pptx`.
 
-- [ ] **Step 3: Open both manually in PowerPoint**
+- [x] **Step 3: Open both manually in PowerPoint**
 
 Confirm:
 - `smoke_3slide.pptx` has 3 slides, each with a title + body.
 - `full_visual.pptx` has 1 slide with a title textbox, a 3×3 table, and a blue rectangle labeled "Box".
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/make_test_decks.py test_decks/smoke_3slide.pptx test_decks/full_visual.pptx
@@ -464,7 +466,7 @@ We test the snapshot exporter via `tests/run_smoke.py` — a Python script that 
 **Files:**
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\tests\run_smoke.py`
 
-- [ ] **Step 1: Write the harness shell**
+- [x] **Step 1: Write the harness shell**
 
 ```python
 """End-to-end smoke tests driven via PowerPoint COM.
@@ -556,7 +558,7 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 2: Run it; expect failure**
+- [x] **Step 2: Run it; expect failure**
 
 ```bash
 python tests/run_smoke.py
@@ -564,7 +566,7 @@ python tests/run_smoke.py
 
 Expected: COM error or `Macro 'BuildSnapshotJson' could not be found` because we have not written `modExportSnapshot` yet. This proves the test fails for the right reason.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/run_smoke.py
@@ -578,7 +580,7 @@ git commit -m "test: smoke harness shell with first snapshot assertion"
 **Files:**
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\src\modExportSnapshot.bas`
 
-- [ ] **Step 1: Write minimal `modExportSnapshot.bas`**
+- [x] **Step 1: Write minimal `modExportSnapshot.bas`**
 
 ```vb
 Attribute VB_Name = "modExportSnapshot"
@@ -675,7 +677,7 @@ Private Function ClassifyShapeType(sh As Shape) As String
 End Function
 ```
 
-- [ ] **Step 2: Sync into carrier**
+- [x] **Step 2: Sync into carrier**
 
 ```bash
 python update_macros.py
@@ -683,7 +685,7 @@ python update_macros.py
 
 Expected: `[import] modExportSnapshot.bas` `[import] modJSON.bas` `[done]`.
 
-- [ ] **Step 3: Run smoke test; expect pass**
+- [x] **Step 3: Run smoke test; expect pass**
 
 ```bash
 python tests/run_smoke.py
@@ -691,7 +693,7 @@ python tests/run_smoke.py
 
 Expected: `ok [slide count]`, `ok [slide 1 number]`, `ok [title text present]`, `all tests passed`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/modExportSnapshot.bas
@@ -706,7 +708,7 @@ git commit -m "feat: minimal modExportSnapshot — text shapes + slides + deck d
 - Modify: `C:\Users\vinit\Documents\PPT_AI_Editor\tests\run_smoke.py` (add assertion)
 - Modify: `C:\Users\vinit\Documents\PPT_AI_Editor\src\modExportSnapshot.bas` (add pos)
 
-- [ ] **Step 1: Add failing assertion to `run_smoke.py`**
+- [x] **Step 1: Add failing assertion to `run_smoke.py`**
 
 In `test_snapshot_smoke_3slide`, after the existing asserts:
 
@@ -722,7 +724,7 @@ In `test_snapshot_smoke_3slide`, after the existing asserts:
         print("  ok  [pos present on all shapes]")
 ```
 
-- [ ] **Step 2: Sync (no VBA change yet) and run smoke**
+- [x] **Step 2: Sync (no VBA change yet) and run smoke**
 
 ```bash
 python update_macros.py && python tests/run_smoke.py
@@ -730,7 +732,7 @@ python update_macros.py && python tests/run_smoke.py
 
 Expected: `AssertionError: shape <id> missing pos`.
 
-- [ ] **Step 3: Add `pos` to `BuildShapeDict` in `modExportSnapshot.bas`**
+- [x] **Step 3: Add `pos` to `BuildShapeDict` in `modExportSnapshot.bas`**
 
 Insert after the `type` line in `BuildShapeDict`:
 
@@ -752,7 +754,7 @@ Private Function BuildPosDict(sh As Shape) As Object
 End Function
 ```
 
-- [ ] **Step 4: Sync + run smoke; expect pass**
+- [x] **Step 4: Sync + run smoke; expect pass**
 
 ```bash
 python update_macros.py && python tests/run_smoke.py
@@ -760,7 +762,7 @@ python update_macros.py && python tests/run_smoke.py
 
 Expected: all asserts pass including new `[pos present on all shapes]`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/run_smoke.py src/modExportSnapshot.bas
@@ -775,7 +777,7 @@ git commit -m "feat: snapshot includes pos {left,top,width,height} in pt"
 - Modify: `tests/run_smoke.py`
 - Modify: `src/modExportSnapshot.bas`
 
-- [ ] **Step 1: Add failing assertion**
+- [x] **Step 1: Add failing assertion**
 
 Add a new test function in `run_smoke.py`:
 
@@ -803,7 +805,7 @@ Call it from `main()`:
     test_snapshot_full_visual_font()
 ```
 
-- [ ] **Step 2: Sync + run; expect failure**
+- [x] **Step 2: Sync + run; expect failure**
 
 ```bash
 python update_macros.py && python tests/run_smoke.py
@@ -811,7 +813,7 @@ python update_macros.py && python tests/run_smoke.py
 
 Expected: KeyError or assert failure on `title_box["font"]` — font key doesn't exist yet.
 
-- [ ] **Step 3: Add `font` to `BuildShapeDict`**
+- [x] **Step 3: Add `font` to `BuildShapeDict`**
 
 In `modExportSnapshot.bas`, modify the text-handling block in `BuildShapeDict`:
 
@@ -852,7 +854,7 @@ Public Function RgbToHex(ByVal rgbVal As Long) As String
 End Function
 ```
 
-- [ ] **Step 4: Sync + run; expect pass**
+- [x] **Step 4: Sync + run; expect pass**
 
 ```bash
 python update_macros.py && python tests/run_smoke.py
@@ -860,7 +862,7 @@ python update_macros.py && python tests/run_smoke.py
 
 Expected: all asserts pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/run_smoke.py src/modExportSnapshot.bas
@@ -875,7 +877,7 @@ git commit -m "feat: snapshot includes font {name,size,bold,italic,color}"
 - Modify: `tests/run_smoke.py`
 - Modify: `src/modExportSnapshot.bas`
 
-- [ ] **Step 1: Add failing assertions**
+- [x] **Step 1: Add failing assertions**
 
 Extend `test_snapshot_full_visual_font` (rename to `test_snapshot_full_visual` since it grows):
 
@@ -911,11 +913,11 @@ def test_snapshot_full_visual():
 
 Update `main()` to call `test_snapshot_full_visual` (replacing the old one).
 
-- [ ] **Step 2: Sync + run; expect failure**
+- [x] **Step 2: Sync + run; expect failure**
 
 Expected: `KeyError: 'fill'` or `'table'`.
 
-- [ ] **Step 3: Add `fill` and `table` to `BuildShapeDict`**
+- [x] **Step 3: Add `fill` and `table` to `BuildShapeDict`**
 
 In `modExportSnapshot.bas`:
 
@@ -1011,7 +1013,7 @@ Private Function BuildPictureDict(sh As Shape) As Object
 End Function
 ```
 
-- [ ] **Step 4: Sync + run; expect pass**
+- [x] **Step 4: Sync + run; expect pass**
 
 ```bash
 python update_macros.py && python tests/run_smoke.py
@@ -1019,7 +1021,7 @@ python update_macros.py && python tests/run_smoke.py
 
 Expected: all asserts pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/run_smoke.py src/modExportSnapshot.bas
@@ -1034,7 +1036,7 @@ git commit -m "feat: snapshot includes fill, table cells, picture filename"
 - Modify: `tests/run_smoke.py`
 - Modify: `src/modExportSnapshot.bas`
 
-- [ ] **Step 1: Add failing assertion**
+- [x] **Step 1: Add failing assertion**
 
 In `test_snapshot_full_visual`, after existing asserts:
 
@@ -1046,11 +1048,11 @@ In `test_snapshot_full_visual`, after existing asserts:
         print("  ok  [theme palette present]")
 ```
 
-- [ ] **Step 2: Sync + run; expect failure**
+- [x] **Step 2: Sync + run; expect failure**
 
 Expected: `AssertionError: theme missing accent1`.
 
-- [ ] **Step 3: Add theme to `BuildDeckDict`**
+- [x] **Step 3: Add theme to `BuildDeckDict`**
 
 ```vb
 Private Function BuildDeckDict(pres As Presentation) As Object
@@ -1086,13 +1088,13 @@ Private Function BuildThemeDict(pres As Presentation) As Object
 End Function
 ```
 
-- [ ] **Step 4: Sync + run; expect pass**
+- [x] **Step 4: Sync + run; expect pass**
 
 ```bash
 python update_macros.py && python tests/run_smoke.py
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/run_smoke.py src/modExportSnapshot.bas
@@ -1109,7 +1111,7 @@ git commit -m "feat: snapshot includes theme palette (12 slots)"
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\src\modBackup.bas`
 - Modify: `tests/run_smoke.py` (add backup smoke)
 
-- [ ] **Step 1: Write `modBackup.bas`**
+- [x] **Step 1: Write `modBackup.bas`**
 
 ```vb
 Attribute VB_Name = "modBackup"
@@ -1203,7 +1205,7 @@ Public Function EscapeJsonString(s As String) As String
 End Function
 ```
 
-- [ ] **Step 2: Add smoke for backup**
+- [x] **Step 2: Add smoke for backup**
 
 In `run_smoke.py`, add:
 
@@ -1222,13 +1224,13 @@ def test_backup_creates_file():
 
 Add to `main()`.
 
-- [ ] **Step 3: Sync + run; expect pass**
+- [x] **Step 3: Sync + run; expect pass**
 
 ```bash
 python update_macros.py && python tests/run_smoke.py
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/modBackup.bas tests/run_smoke.py
@@ -1247,7 +1249,7 @@ For each task in this phase: add a smoke test that runs the action and re-snapsh
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\src\modActions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Add failing smoke**
+- [x] **Step 1: Add failing smoke**
 
 ```python
 def test_action_set_text():
@@ -1270,7 +1272,7 @@ def test_action_set_text():
 
 Add to `main()`.
 
-- [ ] **Step 2: Sync + run; expect fail**
+- [x] **Step 2: Sync + run; expect fail**
 
 ```bash
 python update_macros.py && python tests/run_smoke.py
@@ -1278,7 +1280,7 @@ python update_macros.py && python tests/run_smoke.py
 
 Expected: `Macro 'Do_set_text' could not be found`.
 
-- [ ] **Step 3: Write `modActions.bas` with skeleton + set_text**
+- [x] **Step 3: Write `modActions.bas` with skeleton + set_text**
 
 ```vb
 Attribute VB_Name = "modActions"
@@ -1314,13 +1316,13 @@ Public Sub Do_set_text(slideNum As Long, shapeId As Long, value As String)
 End Sub
 ```
 
-- [ ] **Step 4: Sync + run; expect pass**
+- [x] **Step 4: Sync + run; expect pass**
 
 ```bash
 python update_macros.py && python tests/run_smoke.py
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modActions.bas tests/run_smoke.py
@@ -1335,7 +1337,7 @@ git commit -m "feat: modActions skeleton + Do_set_text"
 - Modify: `src/modActions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Add failing smoke**
+- [x] **Step 1: Add failing smoke**
 
 ```python
 def test_action_font_ops():
@@ -1364,9 +1366,9 @@ def test_action_font_ops():
 
 Add to `main()`.
 
-- [ ] **Step 2: Sync + run; expect fail**
+- [x] **Step 2: Sync + run; expect fail**
 
-- [ ] **Step 3: Append to `modActions.bas`**
+- [x] **Step 3: Append to `modActions.bas`**
 
 ```vb
 Public Sub Do_set_font_size(slideNum As Long, shapeId As Long, value As Long)
@@ -1409,9 +1411,9 @@ Public Function HexToRgb(ByVal hexValue As String) As Long
 End Function
 ```
 
-- [ ] **Step 4: Sync + run; expect pass**
+- [x] **Step 4: Sync + run; expect pass**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modActions.bas tests/run_smoke.py
@@ -1426,7 +1428,7 @@ git commit -m "feat: font actions (size, bold, italic, color)"
 - Modify: `src/modActions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Add failing smoke**
+- [x] **Step 1: Add failing smoke**
 
 ```python
 def test_action_fill_color():
@@ -1447,9 +1449,9 @@ def test_action_fill_color():
 
 Add to `main()`.
 
-- [ ] **Step 2: Sync + run; expect fail**
+- [x] **Step 2: Sync + run; expect fail**
 
-- [ ] **Step 3: Append to `modActions.bas`**
+- [x] **Step 3: Append to `modActions.bas`**
 
 ```vb
 Public Sub Do_set_fill_color(slideNum As Long, shapeId As Long, hexValue As String)
@@ -1461,9 +1463,9 @@ Public Sub Do_set_fill_color(slideNum As Long, shapeId As Long, hexValue As Stri
 End Sub
 ```
 
-- [ ] **Step 4: Sync + run; expect pass**
+- [x] **Step 4: Sync + run; expect pass**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modActions.bas tests/run_smoke.py
@@ -1478,7 +1480,7 @@ git commit -m "feat: Do_set_fill_color"
 - Modify: `src/modActions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Add failing smoke**
+- [x] **Step 1: Add failing smoke**
 
 ```python
 def test_action_geometry():
@@ -1509,9 +1511,9 @@ def test_action_geometry():
 
 Add to `main()`.
 
-- [ ] **Step 2: Sync + run; expect fail**
+- [x] **Step 2: Sync + run; expect fail**
 
-- [ ] **Step 3: Append to `modActions.bas`**
+- [x] **Step 3: Append to `modActions.bas`**
 
 ```vb
 Public Sub Do_move_shape(slideNum As Long, shapeId As Long, leftPt As Single, topPt As Single)
@@ -1536,9 +1538,9 @@ Public Sub Do_delete_shape(slideNum As Long, shapeId As Long)
 End Sub
 ```
 
-- [ ] **Step 4: Sync + run; expect pass**
+- [x] **Step 4: Sync + run; expect pass**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modActions.bas tests/run_smoke.py
@@ -1553,7 +1555,7 @@ git commit -m "feat: geometry actions (move, resize, delete shape)"
 - Modify: `src/modActions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Add failing smoke**
+- [x] **Step 1: Add failing smoke**
 
 ```python
 def test_action_slide_ops():
@@ -1579,9 +1581,9 @@ def test_action_slide_ops():
 
 Add to `main()`.
 
-- [ ] **Step 2: Sync + run; expect fail**
+- [x] **Step 2: Sync + run; expect fail**
 
-- [ ] **Step 3: Append to `modActions.bas`**
+- [x] **Step 3: Append to `modActions.bas`**
 
 ```vb
 Public Sub Do_add_slide(position As Long, layoutIndex As Long)
@@ -1608,9 +1610,9 @@ Public Sub Do_duplicate_slide(slideNum As Long)
 End Sub
 ```
 
-- [ ] **Step 4: Sync + run; expect pass**
+- [x] **Step 4: Sync + run; expect pass**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modActions.bas tests/run_smoke.py
@@ -1625,7 +1627,7 @@ git commit -m "feat: slide ops (add, delete, duplicate)"
 - Modify: `src/modActions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Add failing smoke**
+- [x] **Step 1: Add failing smoke**
 
 ```python
 def test_action_table_ops():
@@ -1661,9 +1663,9 @@ def test_action_table_ops():
 
 Add to `main()`.
 
-- [ ] **Step 2: Sync + run; expect fail**
+- [x] **Step 2: Sync + run; expect fail**
 
-- [ ] **Step 3: Append to `modActions.bas`**
+- [x] **Step 3: Append to `modActions.bas`**
 
 ```vb
 Public Sub Do_set_cell_text(slideNum As Long, shapeId As Long, _
@@ -1720,9 +1722,9 @@ Private Sub SetCellText(c As cell, t As String)
 End Sub
 ```
 
-- [ ] **Step 4: Sync + run; expect pass**
+- [x] **Step 4: Sync + run; expect pass**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modActions.bas tests/run_smoke.py
@@ -1739,7 +1741,7 @@ git commit -m "feat: table ops (set_cell_text, swap_table_columns, swap_table_ro
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\src\modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Add failing smoke**
+- [x] **Step 1: Add failing smoke**
 
 ```python
 def test_executor_end_to_end():
@@ -1791,9 +1793,9 @@ def test_executor_end_to_end():
 
 Add to `main()`.
 
-- [ ] **Step 2: Sync + run; expect fail**
+- [x] **Step 2: Sync + run; expect fail**
 
-- [ ] **Step 3: Write `modExecuteInstructions.bas`**
+- [x] **Step 3: Write `modExecuteInstructions.bas`**
 
 ```vb
 Attribute VB_Name = "modExecuteInstructions"
@@ -2013,13 +2015,13 @@ Private Function GetVar(d As Object, key As String) As Variant
 End Function
 ```
 
-- [ ] **Step 4: Sync + run; expect pass**
+- [x] **Step 4: Sync + run; expect pass**
 
 ```bash
 python update_macros.py && python tests/run_smoke.py
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modExecuteInstructions.bas tests/run_smoke.py
@@ -2035,7 +2037,7 @@ git commit -m "feat: ExecuteFromString with validation, dispatch, backup, JSONL 
 **Files:**
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\src\modUI.bas`
 
-- [ ] **Step 1: Write `modUI.bas`**
+- [x] **Step 1: Write `modUI.bas`**
 
 ```vb
 Attribute VB_Name = "modUI"
@@ -2051,7 +2053,7 @@ Public Sub ExecuteInstructions()
 End Sub
 ```
 
-- [ ] **Step 2: Sync (will fail because frmExport / frmExecute don't exist yet)**
+- [x] **Step 2: Sync (will fail because frmExport / frmExecute don't exist yet)**
 
 ```bash
 python update_macros.py
@@ -2059,7 +2061,7 @@ python update_macros.py
 
 If sync fails, that's fine — we'll create the forms next. If it succeeds, the macros simply won't run until forms exist.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/modUI.bas
@@ -2076,11 +2078,11 @@ git commit -m "feat: modUI entry points for ExportSnapshot and ExecuteInstructio
 
 UserForm files have a binary `.frx` companion. The cleanest way to author them is in PowerPoint's VBE. We will write the `.frm` text in the repo, then for the first build, open the carrier, manually create a UserForm, copy our code in, save, and export. After that, `update_macros.py` keeps the .frm/.frx in sync.
 
-- [ ] **Step 1: Open carrier in PowerPoint**
+- [x] **Step 1: Open carrier in PowerPoint**
 
 Open `PPT_AI_Editor.pptm` → Alt+F11.
 
-- [ ] **Step 2: Create UserForm**
+- [x] **Step 2: Create UserForm**
 
 Right-click VBProject → Insert → UserForm. Rename to `frmExport` via Properties → Name.
 
@@ -2097,7 +2099,7 @@ Add controls (drag from Toolbox):
 
 Set form Caption: "PPT AI Editor — Export Snapshot". Width≈520, Height≈420.
 
-- [ ] **Step 3: Add the form code (double-click the form)**
+- [x] **Step 3: Add the form code (double-click the form)**
 
 ```vb
 Option Explicit
@@ -2170,11 +2172,11 @@ Private Sub CopyToClipboard(s As String)
 End Sub
 ```
 
-- [ ] **Step 4: Save carrier, then export form to repo**
+- [x] **Step 4: Save carrier, then export form to repo**
 
 In VBE: right-click `frmExport` → **Export File...** → save as `src/frmExport.frm`. This produces both `frmExport.frm` and `frmExport.frx`.
 
-- [ ] **Step 5: Verify by deleting the form, then re-syncing**
+- [x] **Step 5: Verify by deleting the form, then re-syncing**
 
 In VBE: right-click `frmExport` → Remove `frmExport` → No (don't export again). Save carrier.
 
@@ -2182,7 +2184,7 @@ Run `python update_macros.py`. Expected: `[import] frmExport.frm`.
 
 Reopen carrier; verify `frmExport` is back with the same code.
 
-- [ ] **Step 6: Run the macro manually**
+- [x] **Step 6: Run the macro manually**
 
 Open any deck (e.g., `test_decks/full_visual.pptx`) plus the carrier. Alt+F8 → run `ExportSnapshot`. Form should open with JSON populated. Click each button; verify behavior:
 
@@ -2190,7 +2192,7 @@ Open any deck (e.g., `test_decks/full_visual.pptx`) plus the carrier. Alt+F8 →
 - Copy with template → paste into Notepad, see template + JSON inlined where `{snapshot}` was.
 - Save .txt → file appears next to test deck.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/frmExport.frm src/frmExport.frx
@@ -2205,7 +2207,7 @@ git commit -m "feat: frmExport UserForm with snapshot/template/save buttons"
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\src\frmExecute.frm`
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\src\frmExecute.frx`
 
-- [ ] **Step 1: Create UserForm in VBE**
+- [x] **Step 1: Create UserForm in VBE**
 
 Right-click VBProject → Insert → UserForm. Rename to `frmExecute`. Caption: "PPT AI Editor — Execute Instructions". Width≈600, Height≈480.
 
@@ -2220,7 +2222,7 @@ Controls:
 | CommandButton | `btnCancel` | Caption="Cancel" |
 | Label | `lblStatus` | Caption="" |
 
-- [ ] **Step 2: Add code**
+- [x] **Step 2: Add code**
 
 ```vb
 Option Explicit
@@ -2293,7 +2295,7 @@ Private Function GetStrSafe(d As Object, key As String) As String
 End Function
 ```
 
-- [ ] **Step 3: Expose `PreviewValidate` from the executor**
+- [x] **Step 3: Expose `PreviewValidate` from the executor**
 
 Add to `src/modExecuteInstructions.bas` at the bottom:
 
@@ -2304,11 +2306,11 @@ Public Function PreviewValidate(act As Object) As String
 End Function
 ```
 
-- [ ] **Step 4: Save carrier, export form**
+- [x] **Step 4: Save carrier, export form**
 
 In VBE: right-click `frmExecute` → Export File → `src/frmExecute.frm`.
 
-- [ ] **Step 5: Sync + manual smoke**
+- [x] **Step 5: Sync + manual smoke**
 
 ```bash
 python update_macros.py
@@ -2326,7 +2328,7 @@ Click Parse → list shows `1. set_text | slide=1 | shape_id=... | OK`. Apply en
 
 Click Apply → status shows `1 applied, 0 skipped. Log: ... Backup: ...`. Verify deck mutated and a `_backup_*.pptx` exists next to it.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/frmExecute.frm src/frmExecute.frx src/modExecuteInstructions.bas
@@ -2342,7 +2344,7 @@ git commit -m "feat: frmExecute UserForm with dry-run preview + Apply"
 **Files:**
 - Modify: `C:\Users\vinit\Documents\PPT_AI_Editor\README.md`
 
-- [ ] **Step 1: Replace stub README with full content**
+- [x] **Step 1: Replace stub README with full content**
 
 ```markdown
 # PPT AI Editor
@@ -2442,7 +2444,7 @@ docs/superpowers/plans/      ← implementation plan
 ```
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add README.md
@@ -2457,7 +2459,7 @@ git commit -m "docs: full README with daily-use steps and action reference"
 - Modify: `C:\Users\vinit\Documents\PPT_AI_Editor\.gitignore` (remove .pptm exclusion)
 - Add: `PPT_AI_Editor.pptm` to git
 
-- [ ] **Step 1: Run the full smoke suite**
+- [x] **Step 1: Run the full smoke suite**
 
 ```bash
 python tests/make_test_decks.py
@@ -2467,13 +2469,13 @@ python tests/run_smoke.py
 
 Expected: all assertions pass; `all tests passed` at the end.
 
-- [ ] **Step 2: Manual end-to-end**
+- [x] **Step 2: Manual end-to-end**
 
 Open `test_decks/full_visual.pptx` + `PPT_AI_Editor.pptm`. Run `ExportSnapshot`, copy with template, paste into your LLM, ask: *"Make the title bold red and replace the rectangle text with 'BOX 2'."*
 
 Paste the LLM's reply into `ExecuteInstructions`, parse, apply. Verify the deck reflects the changes. Verify backup + log files exist.
 
-- [ ] **Step 3: Commit the carrier**
+- [x] **Step 3: Commit the carrier**
 
 ```bash
 # allow .pptm files in .gitignore (remove the *.pptm-like line if present)
@@ -2482,7 +2484,7 @@ git add PPT_AI_Editor.pptm
 git commit -m "chore: commit populated carrier .pptm"
 ```
 
-- [ ] **Step 4: Tag**
+- [x] **Step 4: Tag**
 
 ```bash
 git tag -a v1.0 -m "PPT AI Editor V1: 15 action types, snapshot+execute, dry-run, backup, log"

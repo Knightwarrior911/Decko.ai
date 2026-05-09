@@ -4,9 +4,10 @@ VBA-based PowerPoint editor driven by natural language via an external LLM.
 
 The user copies a JSON snapshot of the active deck into their LLM tool,
 describes a desired change, copies the LLM's instructions JSON back, and
-clicks Apply. Two macros, two UserForms, no API calls from PowerPoint.
+clicks Apply. Three macros, three UserForms, no API calls from PowerPoint.
 
-See `docs/specs/2026-05-08-ppt-ai-editor-design.md` for full design.
+See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
+`docs/specs/2026-05-08-ppt-ai-editor-phase2-design.md` (Phase 2 design).
 
 ## One-time developer setup
 
@@ -34,7 +35,11 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` for full design.
    executed in order. A summary line shows applied / skipped counts and the
    paths to the backup file and JSONL action log.
 
-## Action types (V1)
+## Action types
+
+56 actions total across 9 modules.
+
+### Core shape + slide (`modActions.bas`, 17)
 
 | Action | Effect |
 |---|---|
@@ -53,6 +58,82 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` for full design.
 | `set_cell_text` | Set text of a table cell `(row, col)`. |
 | `swap_table_columns` | Swap two columns. |
 | `swap_table_rows` | Swap two rows. |
+| `set_speaker_notes` | Replace speaker notes on a slide. |
+| `append_speaker_notes` | Append text to existing speaker notes. |
+
+### Granular text (`modActionsText.bas`, 8)
+
+| Action | Effect |
+|---|---|
+| `set_paragraph_text` | Replace text of paragraph N inside a shape. |
+| `add_paragraph` | Insert a new paragraph at index. |
+| `delete_paragraph` | Remove paragraph at index. |
+| `set_bullet_style` | Set bullet type (none/bullet/number) for a paragraph. |
+| `set_indent_level` | Set indent level (0-4) for a paragraph. |
+| `set_paragraph_font_size` | Per-paragraph font size override. |
+| `set_paragraph_font_color` | Per-paragraph color override. |
+| `find_replace_text` | Scoped find/replace; scope = `deck` or `slide:N`. |
+
+### Layout + alignment (`modActionsLayout.bas`, 13)
+
+| Action | Effect |
+|---|---|
+| `align_shapes` | Align multiple shapes (left/right/top/bottom/hcenter/vcenter). |
+| `distribute_horizontal` | Even horizontal spacing across selected shapes. |
+| `distribute_vertical` | Even vertical spacing across selected shapes. |
+| `tile_grid` | Arrange shapes into N-column grid with gap. |
+| `fit_to_slide_margins` | Fit a shape inside slide minus margin. |
+| `add_line` | Add a line connector between (x1,y1) and (x2,y2). |
+| `add_shape` | Add an `msoAutoShape` (rect, oval, etc.) at given pos. |
+| `set_shape_kind` | Change autoshape kind on existing shape. |
+| `clear_slide` | Delete all shapes except those in `keep_ids`. |
+| `move_shape_relative` | Nudge a shape by (dx, dy). |
+| `recolor_fill_match` | Replace one fill color with another in scope. |
+| `recolor_font_match` | Replace one font color with another in scope. |
+| `delete_shapes_match` | Delete shapes matching kind/text filters in scope. |
+
+### Tables (`modActionsTable.bas`, 5)
+
+| Action | Effect |
+|---|---|
+| `add_table_row` | Insert row after row N. |
+| `delete_table_row` | Remove row N. |
+| `add_table_col` | Insert column after column N. |
+| `delete_table_col` | Remove column N. |
+| `merge_cells` | Merge cell range `(r1,c1)-(r2,c2)`. |
+
+### Charts (`modActionsChart.bas`, 5)
+
+| Action | Effect |
+|---|---|
+| `set_chart_type` | Change chart type (column/bar/line/pie/etc.). |
+| `set_chart_title` | Set chart title text. |
+| `set_chart_axis_title` | Set axis title (category/value). |
+| `set_chart_legend_position` | Position legend (top/right/bottom/left/none). |
+| `set_series_color` | Color a chart series by index. |
+
+### Images (`modActionsImage.bas`, 2)
+
+| Action | Effect |
+|---|---|
+| `insert_picture` | Insert image at position. |
+| `replace_picture` | Replace existing picture, preserving frame. |
+
+### Connectors + groups (`modActionsConnector.bas`, `modActionsGroup.bas`, 3)
+
+| Action | Effect |
+|---|---|
+| `add_connector` | Add elbow/straight connector between two shapes. |
+| `group_shapes` | Group shapes into one. |
+| `ungroup` | Ungroup a group shape. |
+
+### Slide structure (`modActionsSlide.bas`, 3)
+
+| Action | Effect |
+|---|---|
+| `move_slide` | Reorder slide from index A to B. |
+| `extract_slides` | Export selected slides to a new .pptx file. |
+| `import_slides_from_deck` | Import slides from another deck at position. |
 
 ## Safety
 
@@ -85,16 +166,45 @@ python update_macros.py             # ensure carrier matches src/
 python tests/run_smoke.py           # end-to-end COM-driven smoke
 ```
 
+## Macros (Alt+F8)
+
+| Macro | UserForm | Purpose |
+|---|---|---|
+| `ExportSnapshot` | `frmExport` | Build deck snapshot JSON; copy snapshot + prompt to clipboard. |
+| `ExecuteInstructions` | `frmExecute` | Paste instructions JSON, parse, review, apply. |
+| `ImportSlides` | `frmImportSlides` | Import slides from another deck at a given position. |
+
 ## Files
 
 ```
-PPT_AI_Editor.pptm           ← carrier (regenerated from src/)
-src/                         ← VBA source-of-truth
-update_macros.py             ← sync src/ → carrier
-tools/build_carrier.py       ← bootstrap empty carrier
-tools/build_forms.py         ← rebuild UserForms in carrier and export to src/
-tests/                       ← smoke harness + deck generator
-test_decks/                  ← deterministic test inputs
-docs/specs/                  ← design spec
-docs/superpowers/plans/      ← implementation plan
+PPT_AI_Editor.pptm                ← carrier (regenerated from src/)
+src/
+  modUI.bas                       ← public macros (Alt+F8 entry points)
+  modExportSnapshot.bas           ← snapshot JSON builder
+  modExecuteInstructions.bas      ← parse + dispatch + apply pipeline
+  modBackup.bas                   ← auto-backup helper
+  modJSON.bas                     ← JSON parser/encoder
+  modActions.bas                  ← core 17 actions (text/font/shape/slide/notes)
+  modActionsText.bas              ← granular text actions (8)
+  modActionsLayout.bas            ← layout/align/distribute/recolor (13)
+  modActionsTable.bas             ← table row/col/merge (5)
+  modActionsChart.bas             ← chart type/title/axis/legend/series (5)
+  modActionsImage.bas             ← insert/replace picture (2)
+  modActionsConnector.bas         ← connector (1)
+  modActionsGroup.bas             ← group/ungroup (2)
+  modActionsSlide.bas             ← move/extract/import slides (3)
+  frmExport.frm/.frx              ← snapshot UserForm
+  frmExecute.frm/.frx             ← instructions UserForm
+  frmImportSlides.frm/.frx        ← import UserForm
+update_macros.py                  ← sync src/ → carrier
+tools/build_carrier.py            ← bootstrap empty carrier
+tools/build_forms.py              ← rebuild UserForms in carrier; export .frm/.frx to src/
+tools/inspect_form.py             ← inspect UserForm controls via COM
+tools/screenshot_forms.py         ← DPI-aware screenshot of each UserForm
+tools/rebuild_import_slides.py    ← escape hatch for frmImportSlides rebuild
+tools/precheck_carrier.py         ← carrier sanity check
+tests/                            ← smoke harness + deck generator
+test_decks/                       ← deterministic test inputs
+docs/specs/                       ← design specs (Phase 1 + Phase 2)
+docs/superpowers/plans/           ← implementation plans
 ```

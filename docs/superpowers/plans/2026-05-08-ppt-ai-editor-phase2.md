@@ -1,5 +1,7 @@
 # PPT AI Editor — Phase 2 Implementation Plan
 
+> **STATUS: COMPLETE (2026-05-09).** All 196 checkbox steps shipped. 56 actions implemented across 9 `modActions*.bas` modules; smoke suite green. See `README.md` for full action inventory.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Expand action surface from 15 → 70 by adding granular text, layout, cross-cutting, speaker notes, images, slide structure, table, group, connector, and native chart actions, plus a standalone `frmImportSlides` UserForm and a snapshot v2 with per-paragraph and chart fidelity.
@@ -116,7 +118,7 @@ Carrier `PPT_AI_Editor.pptm` is already tracked from V1 — committing it as par
 **Files:**
 - Create: `C:\Users\vinit\Documents\PPT_AI_Editor\tools\precheck_carrier.py`
 
-- [ ] **Step 1: Write the script**
+- [x] **Step 1: Write the script**
 
 ```python
 """Verify the carrier's VBProject compiles after a sync.
@@ -205,7 +207,7 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 2: Run it on the current carrier; expect OK**
+- [x] **Step 2: Run it on the current carrier; expect OK**
 
 ```bash
 python tools/precheck_carrier.py
@@ -213,7 +215,7 @@ python tools/precheck_carrier.py
 
 Expected stdout: `OK: carrier compiles and BuildSnapshotJson returns valid JSON`. Exit code 0.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tools/precheck_carrier.py
@@ -230,7 +232,7 @@ Generate a deck with a native chart, grouped shapes, merged table cells, multi-p
 - Modify: `tests/make_test_decks.py`
 - Generated: `test_decks/phase2.pptx`
 
-- [ ] **Step 1: Add `make_phase2(path)` to `tests/make_test_decks.py`**
+- [x] **Step 1: Add `make_phase2(path)` to `tests/make_test_decks.py`**
 
 Insert after `make_full_visual` and before `def main()`:
 
@@ -330,7 +332,7 @@ def main() -> int:
     return 0
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 ```bash
 python tests/make_test_decks.py
@@ -338,7 +340,7 @@ python tests/make_test_decks.py
 
 Expected: `[done] wrote 3 decks to .../test_decks` and `phase2.pptx` exists.
 
-- [ ] **Step 3: COM-verify the fixture**
+- [x] **Step 3: COM-verify the fixture**
 
 ```bash
 python -c "
@@ -370,7 +372,7 @@ finally:
 
 Expected: `OK: phase2.pptx fixture verified`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/make_test_decks.py test_decks/phase2.pptx
@@ -389,7 +391,7 @@ Six small TDD increments. After each, run precheck + smoke and confirm green.
 - Modify: `tests/run_smoke.py`
 - Modify: `src/modExportSnapshot.bas`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 Add after `test_executor_end_to_end` and before `def main()`:
 
@@ -414,13 +416,13 @@ def test_snapshot_occupied_rects():
 
 Add the call in `main()` after `test_executor_end_to_end()`.
 
-- [ ] **Step 2: Run; expect failure (`occupied_rects` missing)**
+- [x] **Step 2: Run; expect failure (`occupied_rects` missing)**
 
 ```bash
 python tests/run_smoke.py
 ```
 
-- [ ] **Step 3: Modify `BuildSlideDict` in `src/modExportSnapshot.bas`**
+- [x] **Step 3: Modify `BuildSlideDict` in `src/modExportSnapshot.bas`**
 
 Add this line right before `d.Add "shapes", BuildShapesCollection(sl)`:
 
@@ -448,7 +450,7 @@ Private Function BuildOccupiedRects(sl As Slide) As Collection
 End Function
 ```
 
-- [ ] **Step 4: Sync + precheck + smoke**
+- [x] **Step 4: Sync + precheck + smoke**
 
 ```bash
 powershell -Command "Stop-Process -Name POWERPNT -Force -ErrorAction SilentlyContinue"
@@ -459,7 +461,7 @@ python tests/run_smoke.py
 
 All tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/run_smoke.py src/modExportSnapshot.bas PPT_AI_Editor.pptm
@@ -474,7 +476,7 @@ git commit -m "feat: snapshot adds occupied_rects per slide"
 - Modify: `tests/run_smoke.py`
 - Modify: `src/modExportSnapshot.bas`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_snapshot_speaker_notes():
@@ -496,9 +498,9 @@ def test_snapshot_speaker_notes():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Modify `BuildSlideDict` to include notes**
+- [x] **Step 3: Modify `BuildSlideDict` to include notes**
 
 Add after the `occupied_rects` line:
 
@@ -530,9 +532,9 @@ Private Function BuildSpeakerNotes(sl As Slide) As String
 End Function
 ```
 
-- [ ] **Step 4: Sync + precheck + smoke**
+- [x] **Step 4: Sync + precheck + smoke**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -am "feat: snapshot adds speaker_notes per slide"
@@ -546,7 +548,7 @@ git commit -am "feat: snapshot adds speaker_notes per slide"
 - Modify: `tests/run_smoke.py`
 - Modify: `src/modExportSnapshot.bas`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_snapshot_paragraphs():
@@ -577,9 +579,9 @@ def test_snapshot_paragraphs():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Extend `BuildShapeDict` and add helpers**
+- [x] **Step 3: Extend `BuildShapeDict` and add helpers**
 
 In `BuildShapeDict`, replace the existing text block:
 
@@ -663,9 +665,9 @@ Private Function BuildRunsCollection(para As TextRange) As Collection
 End Function
 ```
 
-- [ ] **Step 4: Sync + precheck + smoke**
+- [x] **Step 4: Sync + precheck + smoke**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -am "feat: snapshot adds paragraphs[] with bullet/indent/runs"
@@ -679,7 +681,7 @@ git commit -am "feat: snapshot adds paragraphs[] with bullet/indent/runs"
 - Modify: `tests/run_smoke.py`
 - Modify: `src/modExportSnapshot.bas`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 The phase2 fixture has 3 ungrouped boxes on slide 3. To exercise the `group_children` path, programmatically group them in the test (using PowerPoint COM directly), then verify snapshot reports them as children.
 
@@ -711,9 +713,9 @@ def test_snapshot_group_children():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Extend `BuildShapeDict`**
+- [x] **Step 3: Extend `BuildShapeDict`**
 
 Add after the `If sh.Type = msoPicture Then` block:
 
@@ -736,9 +738,9 @@ Private Function BuildGroupChildren(sh As Shape) As Collection
 End Function
 ```
 
-- [ ] **Step 4: Sync + precheck + smoke**
+- [x] **Step 4: Sync + precheck + smoke**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -am "feat: snapshot adds group_children for grouped shapes"
@@ -752,7 +754,7 @@ git commit -am "feat: snapshot adds group_children for grouped shapes"
 - Modify: `tests/run_smoke.py`
 - Modify: `src/modExportSnapshot.bas`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_snapshot_chart():
@@ -781,9 +783,9 @@ def test_snapshot_chart():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Extend `BuildShapeDict`**
+- [x] **Step 3: Extend `BuildShapeDict`**
 
 Add after the `If sh.HasTable Then` block, replacing the existing chart-related portion:
 
@@ -928,11 +930,11 @@ Private Function ClassifyShapeType(sh As Shape) As String
 End Function
 ```
 
-- [ ] **Step 4: Sync + precheck + smoke**
+- [x] **Step 4: Sync + precheck + smoke**
 
 If `BuildSeriesCollection` triggers Excel workbook open in your environment (visible in Task Manager), set `s.Add "values", Null` and `s.Add "categories", Null` instead of attempting to read them, and rerun. Document the limitation in commit message.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -am "feat: snapshot adds chart{} for native HasChart shapes"
@@ -946,7 +948,7 @@ git commit -am "feat: snapshot adds chart{} for native HasChart shapes"
 - Modify: `tests/run_smoke.py`
 - Modify: `src/modExportSnapshot.bas`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 The phase2 fixture has no merged cells yet. The test merges row 0 cells (col 1+2) at runtime via COM, then verifies snapshot reports the merge.
 
@@ -978,9 +980,9 @@ def test_snapshot_table_extra():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Extend `BuildShapeDict`**
+- [x] **Step 3: Extend `BuildShapeDict`**
 
 Replace the existing table block:
 
@@ -1048,9 +1050,9 @@ Private Function BuildTableExtra(tbl As Table) As Object
 End Function
 ```
 
-- [ ] **Step 4: Sync + precheck + smoke**
+- [x] **Step 4: Sync + precheck + smoke**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -am "feat: snapshot adds table_extra with merged_cells"
@@ -1084,7 +1086,7 @@ End Function
 - Modify: `src/modExecuteInstructions.bas` (validate + dispatch)
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_set_paragraph_text():
@@ -1106,9 +1108,9 @@ def test_action_set_paragraph_text():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Create `src/modActionsText.bas`**
+- [x] **Step 3: Create `src/modActionsText.bas`**
 
 ```vb
 Attribute VB_Name = "modActionsText"
@@ -1132,7 +1134,7 @@ Public Sub Do_set_paragraph_text(slideNum As Long, shapeId As Long, _
 End Sub
 ```
 
-- [ ] **Step 4: Add validation + dispatch in `src/modExecuteInstructions.bas`**
+- [x] **Step 4: Add validation + dispatch in `src/modExecuteInstructions.bas`**
 
 In `ValidateAction`, add a case (alphabetically near `set_text`):
 
@@ -1150,9 +1152,9 @@ In `DispatchAction`:
                                                  CLng(act("paragraph_index")), CStr(act("value"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: modActionsText + Do_set_paragraph_text"
@@ -1167,7 +1169,7 @@ git commit -am "feat: modActionsText + Do_set_paragraph_text"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_paragraph_add_delete():
@@ -1198,9 +1200,9 @@ def test_action_paragraph_add_delete():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsText.bas`**
+- [x] **Step 3: Append to `src/modActionsText.bas`**
 
 ```vb
 Public Sub Do_add_paragraph(slideNum As Long, shapeId As Long, _
@@ -1235,7 +1237,7 @@ Public Sub Do_delete_paragraph(slideNum As Long, shapeId As Long, paragraphIndex
 End Sub
 ```
 
-- [ ] **Step 4: Add validation + dispatch**
+- [x] **Step 4: Add validation + dispatch**
 
 `ValidateAction`:
 
@@ -1259,9 +1261,9 @@ End Sub
                                                CLng(act("paragraph_index"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: Do_add_paragraph + Do_delete_paragraph"
@@ -1276,7 +1278,7 @@ git commit -am "feat: Do_add_paragraph + Do_delete_paragraph"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_bullet_indent():
@@ -1300,9 +1302,9 @@ def test_action_bullet_indent():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsText.bas`**
+- [x] **Step 3: Append to `src/modActionsText.bas`**
 
 ```vb
 Public Sub Do_set_bullet_style(slideNum As Long, shapeId As Long, _
@@ -1341,7 +1343,7 @@ Public Sub Do_set_indent_level(slideNum As Long, shapeId As Long, _
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -1365,9 +1367,9 @@ End Sub
                                                CLng(act("paragraph_index")), CLng(act("value"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: Do_set_bullet_style + Do_set_indent_level"
@@ -1382,7 +1384,7 @@ git commit -am "feat: Do_set_bullet_style + Do_set_indent_level"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_paragraph_font():
@@ -1409,9 +1411,9 @@ def test_action_paragraph_font():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsText.bas`**
+- [x] **Step 3: Append to `src/modActionsText.bas`**
 
 ```vb
 Public Sub Do_set_paragraph_font_size(slideNum As Long, shapeId As Long, _
@@ -1429,7 +1431,7 @@ Public Sub Do_set_paragraph_font_color(slideNum As Long, shapeId As Long, _
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -1453,9 +1455,9 @@ End Sub
                                                         CLng(act("paragraph_index")), CStr(act("value"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: paragraph-level font size + color"
@@ -1470,7 +1472,7 @@ git commit -am "feat: paragraph-level font size + color"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_find_replace_text():
@@ -1492,9 +1494,9 @@ def test_action_find_replace_text():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsText.bas`**
+- [x] **Step 3: Append to `src/modActionsText.bas`**
 
 ```vb
 Public Sub Do_find_replace_text(scope As String, findText As String, replaceText As String)
@@ -1555,7 +1557,7 @@ Private Sub ReplaceInShape(sh As Shape, findText As String, replaceText As Strin
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -1571,9 +1573,9 @@ End Sub
             modActionsText.Do_find_replace_text CStr(act("scope")), CStr(act("find")), CStr(act("replace"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: Do_find_replace_text (scope=deck or slide:N)"
@@ -1590,7 +1592,7 @@ git commit -am "feat: Do_find_replace_text (scope=deck or slide:N)"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_align_shapes():
@@ -1618,9 +1620,9 @@ def test_action_align_shapes():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Create `src/modActionsLayout.bas`**
+- [x] **Step 3: Create `src/modActionsLayout.bas`**
 
 ```vb
 Attribute VB_Name = "modActionsLayout"
@@ -1687,7 +1689,7 @@ Public Function NormalizeIdsArray(v As Variant, ByRef out() As Long) As Long
 End Function
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -1704,9 +1706,9 @@ End Function
             modActionsLayout.Do_align_shapes CLng(act("slide")), act("shape_ids"), CStr(act("anchor"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: modActionsLayout + Do_align_shapes"
@@ -1721,7 +1723,7 @@ git commit -am "feat: modActionsLayout + Do_align_shapes"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_distribute():
@@ -1753,9 +1755,9 @@ def test_action_distribute():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsLayout.bas`**
+- [x] **Step 3: Append to `src/modActionsLayout.bas`**
 
 ```vb
 Public Sub Do_distribute_horizontal(slideNum As Long, shapeIds As Variant)
@@ -1809,7 +1811,7 @@ Private Sub SortShapesByTop(ByRef arr() As Shape)
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -1828,9 +1830,9 @@ End Sub
             modActionsLayout.Do_distribute_vertical CLng(act("slide")), act("shape_ids")
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: Do_distribute_horizontal + Do_distribute_vertical"
@@ -1845,7 +1847,7 @@ git commit -am "feat: Do_distribute_horizontal + Do_distribute_vertical"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_tile_and_fit():
@@ -1879,9 +1881,9 @@ def test_action_tile_and_fit():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsLayout.bas`**
+- [x] **Step 3: Append to `src/modActionsLayout.bas`**
 
 ```vb
 Public Sub Do_tile_grid(slideNum As Long, shapeIds As Variant, cols As Long, gapPt As Single)
@@ -1915,7 +1917,7 @@ Public Sub Do_fit_to_slide_margins(slideNum As Long, shapeId As Long, marginPt A
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -1940,9 +1942,9 @@ End Sub
             modActionsLayout.Do_fit_to_slide_margins CLng(act("slide")), CLng(act("shape_id")), m
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: Do_tile_grid + Do_fit_to_slide_margins"
@@ -1957,7 +1959,7 @@ git commit -am "feat: Do_tile_grid + Do_fit_to_slide_margins"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_add_line_and_shape():
@@ -1992,9 +1994,9 @@ Replace the `app.Run("PPT_AI_Editor!Do_add_shape", ...)` call with:
                 "#1F4E79", "#FFFFFF", 2.0)
 ```
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsLayout.bas`**
+- [x] **Step 3: Append to `src/modActionsLayout.bas`**
 
 ```vb
 Public Sub Do_add_line(slideNum As Long, x1 As Single, y1 As Single, _
@@ -2053,7 +2055,7 @@ Private Function ResolveAutoShapeKind(kind As String) As Long
 End Function
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -2103,9 +2105,9 @@ Update the smoke test to call via the executor instead of `Do_add_shape` directl
         assert "2 applied" in summary, f"summary: {summary}"
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: Do_add_line + Do_add_shape with auto-shape kind map"
@@ -2120,7 +2122,7 @@ git commit -am "feat: Do_add_line + Do_add_shape with auto-shape kind map"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_kind_clear_relative():
@@ -2153,9 +2155,9 @@ def test_action_kind_clear_relative():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsLayout.bas`**
+- [x] **Step 3: Append to `src/modActionsLayout.bas`**
 
 ```vb
 Public Sub Do_set_shape_kind(slideNum As Long, shapeId As Long, kind As String)
@@ -2205,7 +2207,7 @@ Public Sub Do_move_shape_relative(slideNum As Long, shapeId As Long, dxPt As Sin
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -2239,9 +2241,9 @@ End Sub
                                                     CSng(act("dx_pt")), CSng(act("dy_pt"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: Do_set_shape_kind + Do_clear_slide + Do_move_shape_relative"
@@ -2258,7 +2260,7 @@ git commit -am "feat: Do_set_shape_kind + Do_clear_slide + Do_move_shape_relativ
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_cross_cutting():
@@ -2283,9 +2285,9 @@ def test_action_cross_cutting():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsLayout.bas`**
+- [x] **Step 3: Append to `src/modActionsLayout.bas`**
 
 ```vb
 Public Sub Do_recolor_fill_match(scope As String, fromHex As String, toHex As String)
@@ -2424,7 +2426,7 @@ End Function
 
 NOTE: `modExportSnapshot.RgbToHex` was made `Public` in V1 Task 8. If it is still `Private`, change it to `Public` as part of this task.
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -2451,9 +2453,9 @@ NOTE: `modExportSnapshot.RgbToHex` was made `Public` in V1 Task 8. If it is stil
             modActionsLayout.Do_delete_shapes_match CStr(act("scope")), kf, ff, tc
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: cross-cutting recolor_*_match + delete_shapes_match"
@@ -2470,7 +2472,7 @@ git commit -am "feat: cross-cutting recolor_*_match + delete_shapes_match"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_speaker_notes():
@@ -2491,9 +2493,9 @@ def test_action_speaker_notes():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActions.bas`**
+- [x] **Step 3: Append to `src/modActions.bas`**
 
 ```vb
 Public Sub Do_set_speaker_notes(slideNum As Long, value As String)
@@ -2536,7 +2538,7 @@ Public Sub Do_append_speaker_notes(slideNum As Long, value As String)
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -2555,9 +2557,9 @@ End Sub
             modActions.Do_append_speaker_notes CLng(act("slide")), CStr(act("value"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: Do_set_speaker_notes + Do_append_speaker_notes"
@@ -2576,7 +2578,7 @@ git commit -am "feat: Do_set_speaker_notes + Do_append_speaker_notes"
 
 A test image is needed. Use the existing `test_decks` directory and create a tiny PNG via the smoke harness.
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_images():
@@ -2609,9 +2611,9 @@ def test_action_images():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Create `src/modActionsImage.bas`**
+- [x] **Step 3: Create `src/modActionsImage.bas`**
 
 ```vb
 Attribute VB_Name = "modActionsImage"
@@ -2656,7 +2658,7 @@ Private Function FileExists(p As String) As Boolean
 End Function
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -2681,9 +2683,9 @@ End Function
             modActionsImage.Do_replace_picture CLng(act("slide")), CLng(act("shape_id")), CStr(act("path"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: Do_insert_picture + Do_replace_picture (file path only)"
@@ -2700,7 +2702,7 @@ git commit -am "feat: Do_insert_picture + Do_replace_picture (file path only)"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_move_slide():
@@ -2725,9 +2727,9 @@ def test_action_move_slide():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Create `src/modActionsSlide.bas`**
+- [x] **Step 3: Create `src/modActionsSlide.bas`**
 
 ```vb
 Attribute VB_Name = "modActionsSlide"
@@ -2745,7 +2747,7 @@ Public Sub Do_move_slide(fromIdx As Long, toIdx As Long)
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -2761,9 +2763,9 @@ End Sub
             modActionsSlide.Do_move_slide CLng(act("from")), CLng(act("to"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: modActionsSlide + Do_move_slide"
@@ -2778,7 +2780,7 @@ git commit -am "feat: modActionsSlide + Do_move_slide"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_extract_slides():
@@ -2803,9 +2805,9 @@ def test_action_extract_slides():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsSlide.bas`**
+- [x] **Step 3: Append to `src/modActionsSlide.bas`**
 
 ```vb
 Public Sub Do_extract_slides(slideIndices As Variant, outputPath As String)
@@ -2841,7 +2843,7 @@ Public Sub Do_extract_slides(slideIndices As Variant, outputPath As String)
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -2857,9 +2859,9 @@ End Sub
             modActionsSlide.Do_extract_slides act("slide_indices"), CStr(act("output_path"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: Do_extract_slides via copy/paste into new deck"
@@ -2874,7 +2876,7 @@ git commit -am "feat: Do_extract_slides via copy/paste into new deck"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_import_slides():
@@ -2901,9 +2903,9 @@ def test_action_import_slides():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsSlide.bas`**
+- [x] **Step 3: Append to `src/modActionsSlide.bas`**
 
 ```vb
 Public Sub Do_import_slides_from_deck(sourcePath As String, slideIndices As Variant, _
@@ -2949,7 +2951,7 @@ Private Function FileExists(p As String) As Boolean
 End Function
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -2967,9 +2969,9 @@ End Function
                                                        CLng(act("target_position"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: Do_import_slides_from_deck via Slides.InsertFromFile"
@@ -2986,7 +2988,7 @@ git commit -am "feat: Do_import_slides_from_deck via Slides.InsertFromFile"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_table_row_ops():
@@ -3015,9 +3017,9 @@ def test_action_table_row_ops():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Create `src/modActionsTable.bas`**
+- [x] **Step 3: Create `src/modActionsTable.bas`**
 
 ```vb
 Attribute VB_Name = "modActionsTable"
@@ -3051,7 +3053,7 @@ Public Sub Do_delete_table_row(slideNum As Long, shapeId As Long, rowNum As Long
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -3073,9 +3075,9 @@ End Sub
             modActionsTable.Do_delete_table_row CLng(act("slide")), CLng(act("shape_id")), CLng(act("row"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: modActionsTable + add/delete row"
@@ -3090,7 +3092,7 @@ git commit -am "feat: modActionsTable + add/delete row"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_table_col_ops():
@@ -3119,9 +3121,9 @@ def test_action_table_col_ops():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsTable.bas`**
+- [x] **Step 3: Append to `src/modActionsTable.bas`**
 
 ```vb
 Public Sub Do_add_table_col(slideNum As Long, shapeId As Long, afterCol As Long)
@@ -3151,7 +3153,7 @@ Public Sub Do_delete_table_col(slideNum As Long, shapeId As Long, colNum As Long
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -3173,9 +3175,9 @@ End Sub
             modActionsTable.Do_delete_table_col CLng(act("slide")), CLng(act("shape_id")), CLng(act("col"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: add/delete table columns"
@@ -3190,7 +3192,7 @@ git commit -am "feat: add/delete table columns"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_merge_cells():
@@ -3214,9 +3216,9 @@ def test_action_merge_cells():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsTable.bas`**
+- [x] **Step 3: Append to `src/modActionsTable.bas`**
 
 ```vb
 Public Sub Do_merge_cells(slideNum As Long, shapeId As Long, _
@@ -3229,7 +3231,7 @@ Public Sub Do_merge_cells(slideNum As Long, shapeId As Long, _
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -3248,9 +3250,9 @@ End Sub
                                            CLng(act("row_b")), CLng(act("col_b"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: Do_merge_cells"
@@ -3267,7 +3269,7 @@ git commit -am "feat: Do_merge_cells"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_group_ungroup():
@@ -3295,9 +3297,9 @@ def test_action_group_ungroup():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Create `src/modActionsGroup.bas`**
+- [x] **Step 3: Create `src/modActionsGroup.bas`**
 
 ```vb
 Attribute VB_Name = "modActionsGroup"
@@ -3329,7 +3331,7 @@ Public Sub Do_ungroup(slideNum As Long, shapeId As Long)
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -3351,9 +3353,9 @@ End Sub
             modActionsGroup.Do_ungroup CLng(act("slide")), CLng(act("shape_id"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: modActionsGroup + group_shapes + ungroup"
@@ -3370,7 +3372,7 @@ git commit -am "feat: modActionsGroup + group_shapes + ungroup"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_add_connector():
@@ -3394,9 +3396,9 @@ def test_action_add_connector():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Create `src/modActionsConnector.bas`**
+- [x] **Step 3: Create `src/modActionsConnector.bas`**
 
 ```vb
 Attribute VB_Name = "modActionsConnector"
@@ -3443,7 +3445,7 @@ Public Sub Do_add_connector(slideNum As Long, fromId As Long, toId As Long, _
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -3468,9 +3470,9 @@ End Sub
                                                  CStr(act("kind")), ae, cc, cw
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: modActionsConnector + Do_add_connector"
@@ -3487,7 +3489,7 @@ git commit -am "feat: modActionsConnector + Do_add_connector"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_set_chart_type():
@@ -3508,9 +3510,9 @@ def test_action_set_chart_type():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Create `src/modActionsChart.bas`**
+- [x] **Step 3: Create `src/modActionsChart.bas`**
 
 ```vb
 Attribute VB_Name = "modActionsChart"
@@ -3540,7 +3542,7 @@ Public Function ChartTypeFromName(name As String) As Long
 End Function
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -3557,9 +3559,9 @@ End Function
             modActionsChart.Do_set_chart_type CLng(act("slide")), CLng(act("shape_id")), CStr(act("value"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: modActionsChart + Do_set_chart_type"
@@ -3574,7 +3576,7 @@ git commit -am "feat: modActionsChart + Do_set_chart_type"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_chart_titles():
@@ -3599,9 +3601,9 @@ def test_action_chart_titles():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsChart.bas`**
+- [x] **Step 3: Append to `src/modActionsChart.bas`**
 
 ```vb
 Public Sub Do_set_chart_title(slideNum As Long, shapeId As Long, _
@@ -3635,7 +3637,7 @@ Public Sub Do_set_chart_axis_title(slideNum As Long, shapeId As Long, _
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -3661,9 +3663,9 @@ End Sub
                                                     CStr(act("axis")), CStr(act("value"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: chart title + axis title"
@@ -3678,7 +3680,7 @@ git commit -am "feat: chart title + axis title"
 - Modify: `src/modExecuteInstructions.bas`
 - Modify: `tests/run_smoke.py`
 
-- [ ] **Step 1: Append failing test**
+- [x] **Step 1: Append failing test**
 
 ```python
 def test_action_chart_legend_and_series():
@@ -3700,9 +3702,9 @@ def test_action_chart_legend_and_series():
 
 Add to `main()`.
 
-- [ ] **Step 2: Run; expect failure**
+- [x] **Step 2: Run; expect failure**
 
-- [ ] **Step 3: Append to `src/modActionsChart.bas`**
+- [x] **Step 3: Append to `src/modActionsChart.bas`**
 
 ```vb
 Public Sub Do_set_chart_legend_position(slideNum As Long, shapeId As Long, value As String)
@@ -3739,7 +3741,7 @@ Public Sub Do_set_series_color(slideNum As Long, shapeId As Long, _
 End Sub
 ```
 
-- [ ] **Step 4: Validation + dispatch**
+- [x] **Step 4: Validation + dispatch**
 
 `ValidateAction`:
 
@@ -3763,11 +3765,11 @@ End Sub
                                                 CLng(act("series_index")), CStr(act("value"))
 ```
 
-- [ ] **Step 5: Sync + precheck + smoke**
+- [x] **Step 5: Sync + precheck + smoke**
 
 If `Do_set_series_color` causes Excel to open visibly (check Task Manager during the smoke), demote it to V3 and remove from the spec/dispatch/snapshot. Document the demotion in the commit message.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat: chart legend position + series color"
@@ -3784,7 +3786,7 @@ git commit -am "feat: chart legend position + series color"
 - Modify: `src/modUI.bas` (add `Public Sub ImportSlides()`)
 - Generated: `src/frmImportSlides.frm`, `src/frmImportSlides.frx`
 
-- [ ] **Step 1: Extend `tools/build_forms.py`**
+- [x] **Step 1: Extend `tools/build_forms.py`**
 
 Below `build_frm_execute(...)` add a `build_frm_import_slides(components)` function. Mirror the existing form-building pattern. Form size: width 480, height 320. Controls:
 
@@ -3912,7 +3914,7 @@ import_slides_comp = components("frmImportSlides")
 import_slides_comp.Export(str(SRC_DIR / "frmImportSlides.frm"))
 ```
 
-- [ ] **Step 2: Run `tools/build_forms.py`**
+- [x] **Step 2: Run `tools/build_forms.py`**
 
 ```bash
 powershell -Command "Stop-Process -Name POWERPNT -Force -ErrorAction SilentlyContinue"
@@ -3921,7 +3923,7 @@ python tools/build_forms.py
 
 Expected: `[add] frmImportSlides`, no errors. Verify `src/frmImportSlides.frm` and `src/frmImportSlides.frx` exist.
 
-- [ ] **Step 3: Add `ImportSlides` macro to `src/modUI.bas`**
+- [x] **Step 3: Add `ImportSlides` macro to `src/modUI.bas`**
 
 Append:
 
@@ -3931,14 +3933,14 @@ Public Sub ImportSlides()
 End Sub
 ```
 
-- [ ] **Step 4: Sync + precheck**
+- [x] **Step 4: Sync + precheck**
 
 ```bash
 python update_macros.py
 python tools/precheck_carrier.py
 ```
 
-- [ ] **Step 5: Smoke**
+- [x] **Step 5: Smoke**
 
 ```bash
 python tests/run_smoke.py
@@ -3946,7 +3948,7 @@ python tests/run_smoke.py
 
 All existing tests pass. (No automated test for the form — that is verified manually by Alt+F8 → ImportSlides.)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add tools/build_forms.py src/modUI.bas src/frmImportSlides.frm src/frmImportSlides.frx PPT_AI_Editor.pptm
@@ -3967,7 +3969,7 @@ The current `PromptTemplate()` function in `frmExport.frm` lists 15 schemas. Rep
 
 Build the new template once in `tools/build_forms.py` so the form-rebuild script and the on-disk `.frm` stay in sync.
 
-- [ ] **Step 1: Replace `PromptTemplate()` in BOTH `src/frmExport.frm` and `tools/build_forms.py`**
+- [x] **Step 1: Replace `PromptTemplate()` in BOTH `src/frmExport.frm` and `tools/build_forms.py`**
 
 Open both files and replace the existing `Private Function PromptTemplate() As String ... End Function` with this version. Same body in both places:
 
@@ -4084,7 +4086,7 @@ Private Function PromptTemplate() As String
 End Function
 ```
 
-- [ ] **Step 2: Sync + precheck + smoke**
+- [x] **Step 2: Sync + precheck + smoke**
 
 ```bash
 powershell -Command "Stop-Process -Name POWERPNT -Force -ErrorAction SilentlyContinue"
@@ -4093,7 +4095,7 @@ python tools/precheck_carrier.py
 python tests/run_smoke.py
 ```
 
-- [ ] **Step 3: Manual sanity-check the template**
+- [x] **Step 3: Manual sanity-check the template**
 
 In an interactive Python shell:
 
@@ -4108,7 +4110,7 @@ deck.Windows(1).Activate()
 
 Or just do a manual smoke: open the carrier, run `ExportSnapshot`, click "Copy snapshot + prompt template", paste into a text editor, verify all 11 buckets are visible in the template.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/frmExport.frm tools/build_forms.py PPT_AI_Editor.pptm
@@ -4122,7 +4124,7 @@ git commit -m "docs(prompt): full Phase 2 prompt template (70 schemas, 11 bucket
 **Files:**
 - (no source changes; integration verification only)
 
-- [ ] **Step 1: Run full automated suite**
+- [x] **Step 1: Run full automated suite**
 
 ```bash
 powershell -Command "Stop-Process -Name POWERPNT -Force -ErrorAction SilentlyContinue"
@@ -4134,7 +4136,7 @@ python tests/run_smoke.py
 
 Expected: all ~40 tests pass, "all tests passed" line at end.
 
-- [ ] **Step 2: Verify carrier components**
+- [x] **Step 2: Verify carrier components**
 
 ```python
 python -c "
@@ -4179,7 +4181,7 @@ finally:
 
 Expected: `OK: 17 components present with correct types`.
 
-- [ ] **Step 3: Commit any pending carrier changes**
+- [x] **Step 3: Commit any pending carrier changes**
 
 ```bash
 git add PPT_AI_Editor.pptm
@@ -4192,13 +4194,13 @@ If anything changed (it should, given prompt template + frmImportSlides + new mo
 git commit -m "chore: commit Phase 2 carrier .pptm with 17 components"
 ```
 
-- [ ] **Step 4: Tag v2.0**
+- [x] **Step 4: Tag v2.0**
 
 ```bash
 git tag -a v2.0 -m "PPT AI Editor V2: 70 actions, snapshot v2, frmImportSlides, native chart ops"
 ```
 
-- [ ] **Step 5: Update memory**
+- [x] **Step 5: Update memory**
 
 Add a one-line entry to `C:\Users\vinit\.claude\projects\C--Users-vinit\memory\ppt-ai-editor.md` summarizing Phase 2 completion (run-time output as part of the final report; do not commit it from the project repo).
 
