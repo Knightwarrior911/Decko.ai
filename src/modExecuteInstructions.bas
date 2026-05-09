@@ -21,6 +21,7 @@ Public Function ExecuteFromString(jsonText As String) As String
 
     Dim actions As Object
     Set actions = parsed("actions")
+    Set actions = ReorderForRunIndexSafety(actions)
 
     Dim deckPath As String
     deckPath = ActivePresentation.FullName
@@ -569,3 +570,68 @@ End Function
 Public Function PreviewValidate(act As Object) As String
     PreviewValidate = ValidateAction(act)
 End Function
+
+' Group actions by (slide, shape, paragraph_index) when they target a run.
+' Within each group, process descending run_index so a set_run_text on run 0
+' doesn't shift the indices of runs 1, 2, ... that come later in the batch.
+' Non-run actions retain their relative order; run-action groups land at the
+' position of their first member in the original list.
+Private Function ReorderForRunIndexSafety(src As Object) As Collection
+    Dim out As New Collection
+    Dim seenGroups As Object: Set seenGroups = CreateObject("Scripting.Dictionary")
+    Dim i As Long
+    For i = 1 To src.Count
+        Dim a As Object: Set a = src(i)
+        If IsRunAction(GetStr(a, "type")) Then
+            Dim key As String
+            key = GetStr(a, "slide") & "|" & GetStr(a, "shape_id") & "|" & GetStr(a, "paragraph_index")
+            If Not seenGroups.Exists(key) Then
+                ' Collect all run actions in src that share the key, sort by run_index DESC, append to out.
+                Dim group As New Collection
+                Dim j As Long
+                For j = i To src.Count
+                    Dim aj As Object: Set aj = src(j)
+                    If IsRunAction(GetStr(aj, "type")) _
+                       And GetStr(aj, "slide") = GetStr(a, "slide") _
+                       And GetStr(aj, "shape_id") = GetStr(a, "shape_id") _
+                       And GetStr(aj, "paragraph_index") = GetStr(a, "paragraph_index") Then
+                        InsertSortedDesc group, aj
+                    End If
+                Next j
+                Dim k As Long
+                For k = 1 To group.Count
+                    out.Add group(k)
+                Next k
+                seenGroups.Add key, True
+            End If
+            ' Skip — group emitted already
+        Else
+            out.Add a
+        End If
+    Next i
+    Set ReorderForRunIndexSafety = out
+End Function
+
+Private Function IsRunAction(t As String) As Boolean
+    Select Case t
+        Case "set_run_bold", "set_run_italic", "set_run_underline", _
+             "set_run_strikethrough", "set_run_subscript", "set_run_superscript", _
+             "set_run_font_color", "set_run_font_size", "set_run_font_name", _
+             "set_run_text", "set_run_hyperlink"
+            IsRunAction = True
+        Case Else
+            IsRunAction = False
+    End Select
+End Function
+
+Private Sub InsertSortedDesc(c As Collection, item As Object)
+    Dim ri As Long: ri = CLng(item("run_index"))
+    Dim i As Long
+    For i = 1 To c.Count
+        If CLng(c(i)("run_index")) < ri Then
+            c.Add item, , i
+            Exit Sub
+        End If
+    Next i
+    c.Add item
+End Sub
