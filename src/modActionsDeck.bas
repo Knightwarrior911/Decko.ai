@@ -224,9 +224,13 @@ Public Sub Do_bulk_insert_image(slideIndices As Variant, picturePath As String, 
     Dim i As Long
     For i = 0 To n - 1
         If ids(i) >= 1 And ids(i) <= total Then
-            ActivePresentation.Slides(ids(i)).Shapes.AddPicture _
+            Dim pic As Shape
+            Set pic = ActivePresentation.Slides(ids(i)).Shapes.AddPicture( _
                 FileName:=picturePath, LinkToFile:=msoFalse, SaveWithDocument:=msoTrue, _
-                Left:=leftPt, Top:=topPt, Width:=widthPt, Height:=heightPt
+                Left:=leftPt, Top:=topPt, Width:=widthPt, Height:=heightPt)
+            pic.LockAspectRatio = msoFalse
+            pic.Width = widthPt
+            pic.Height = heightPt
         End If
     Next i
 End Sub
@@ -245,6 +249,7 @@ Public Sub Do_bulk_insert_text_box(slideIndices As Variant, text As String, _
             Set sh = ActivePresentation.Slides(ids(i)).Shapes.AddTextbox( _
                 Orientation:=msoTextOrientationHorizontal, _
                 Left:=leftPt, Top:=topPt, Width:=widthPt, Height:=heightPt)
+            sh.TextFrame.AutoSize = ppAutoSizeNone
             sh.TextFrame.TextRange.Text = text
         End If
     Next i

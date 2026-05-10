@@ -33,6 +33,49 @@ Public Function FindShapeByName(slideNum As Long, refName As String) As Shape
     Next sh
 End Function
 
+' Universal shape reference resolver. Accepts numeric Id (Long/string-of-digits)
+' or string ref_name. Returns the numeric Id or raises a descriptive error.
+' Use this in the dispatcher for any shape-id field (from_shape_id, ref_shape_id,
+' source_shape_id, target_shape_id, shape_a_id, shape_b_id, etc.) where the LLM
+' might emit either an integer or the ref_name from the original add_shape call.
+Public Function ResolveShapeRef(ByVal slideNum As Long, ByVal raw As Variant, ByVal label As String) As Long
+    If IsNumeric(raw) Then
+        ResolveShapeRef = CLng(raw)
+        Exit Function
+    End If
+    Dim asStr As String: asStr = CStr(raw)
+    Dim sh As Shape: Set sh = FindShapeByName(slideNum, asStr)
+    If sh Is Nothing Then
+        Err.Raise vbObjectError + 2050, "ResolveShapeRef", _
+                  label & " not found on slide " & slideNum & ": " & asStr
+    End If
+    ResolveShapeRef = sh.Id
+End Function
+
+' Debug helper: round-trip a JSON array through ResolveShapeRef per-element.
+' Called from Python tests to localize where Variant-binding fails.
+Public Function DebugResolveArray(slideNum As Long, jsonArrayText As String) As String
+    Dim parsed As Object
+    Set parsed = modJSON.ParseJson("{""a"":" & jsonArrayText & "}")
+    Dim col As Object: Set col = parsed("a")
+    Dim out As String: out = ""
+    Dim i As Long
+    For i = 1 To col.Count
+        On Error Resume Next
+        Dim v As Variant: v = col(i)
+        Dim t As String: t = TypeName(v)
+        Dim id As Long: id = ResolveShapeRef(slideNum, v, "test[" & (i - 1) & "]")
+        If Err.Number <> 0 Then
+            out = out & "[" & i & "] " & t & " ERR=" & Err.Description & "; "
+            Err.Clear
+        Else
+            out = out & "[" & i & "] " & t & " ok=" & id & "; "
+        End If
+        On Error GoTo 0
+    Next i
+    DebugResolveArray = out
+End Function
+
 ' --- Text/format actions ---------------------------------------------------
 
 Public Sub Do_set_text(slideNum As Long, shapeId As Long, value As String)
@@ -74,12 +117,81 @@ End Sub
 Public Function HexToRgb(ByVal hexValue As String) As Long
     Dim h As String: h = hexValue
     If Left(h, 1) = "#" Then h = Mid(h, 2)
-    If Len(h) <> 6 Then Err.Raise vbObjectError + 2003, "HexToRgb", "expected #RRGGBB"
+    If Len(h) <> 6 Then Err.Raise vbObjectError + 2003, "HexToRgb", "expected #RRGGBB, got: " & hexValue
     Dim r As Long, g As Long, b As Long
     r = CLng("&H" & Mid(h, 1, 2))
     g = CLng("&H" & Mid(h, 3, 2))
     b = CLng("&H" & Mid(h, 5, 2))
     HexToRgb = RGB(r, g, b)
+End Function
+
+' Universal color resolver. Accepts:
+'   "#RRGGBB" / "RRGGBB" / "rgb(r,g,b)" / array [r,g,b] / Collection(r,g,b) / numeric Long.
+Public Function ResolveColor(ByVal v As Variant) As Long
+    If TypeName(v) = "Collection" Then
+        Dim col As Object: Set col = v
+        If col.Count <> 3 Then Err.Raise vbObjectError + 2004, "ResolveColor", "rgb collection needs 3 elements"
+        ResolveColor = RGB(CLng(col(1)), CLng(col(2)), CLng(col(3)))
+        Exit Function
+    ElseIf IsArray(v) Then
+        Dim lo As Long, hi As Long
+        lo = LBound(v): hi = UBound(v)
+        If hi - lo + 1 <> 3 Then Err.Raise vbObjectError + 2004, "ResolveColor", "rgb array needs 3 elements"
+        ResolveColor = RGB(CLng(v(lo)), CLng(v(lo + 1)), CLng(v(lo + 2)))
+        Exit Function
+    ElseIf IsNumeric(v) Then
+        ResolveColor = CLng(v)
+        Exit Function
+    End If
+    Dim s As String: s = Trim(CStr(v))
+    If LCase(Left(s, 4)) = "rgb(" And Right(s, 1) = ")" Then
+        Dim inner As String: inner = Mid(s, 5, Len(s) - 5)
+        Dim parts() As String: parts = Split(inner, ",")
+        If UBound(parts) - LBound(parts) + 1 <> 3 Then Err.Raise vbObjectError + 2004, "ResolveColor", "rgb() needs 3 args"
+        ResolveColor = RGB(CLng(Trim(parts(0))), CLng(Trim(parts(1))), CLng(Trim(parts(2))))
+        Exit Function
+    End If
+    ResolveColor = HexToRgb(s)
+End Function
+
+' Locale-tolerant boolean coercion. Accepts True/False, 1/0, "true"/"false"/"yes"/"no"/"y"/"n"/"on"/"off".
+Public Function ToBool(ByVal v As Variant) As Boolean
+    If IsNull(v) Or IsEmpty(v) Then ToBool = False: Exit Function
+    If TypeName(v) = "Boolean" Then ToBool = CBool(v): Exit Function
+    If IsNumeric(v) Then ToBool = (CDbl(v) <> 0): Exit Function
+    Dim s As String: s = LCase(Trim(CStr(v)))
+    Select Case s
+        Case "true", "yes", "y", "on", "1":  ToBool = True
+        Case "false", "no", "n", "off", "0", "": ToBool = False
+        Case Else: Err.Raise vbObjectError + 2005, "ToBool", "cannot coerce to bool: " & CStr(v)
+    End Select
+End Function
+
+' Tolerant integer coercion. Accepts numeric, "42", "42.0", "42pt".
+Public Function ToLong(ByVal v As Variant) As Long
+    If IsNumeric(v) Then ToLong = CLng(CDbl(v)): Exit Function
+    Dim s As String: s = Trim(CStr(v))
+    ' Strip common unit suffixes (pt, px, em)
+    Dim units As Variant: units = Array("pt", "px", "em", "rem", "%")
+    Dim u As Variant
+    For Each u In units
+        If Len(s) > Len(u) And LCase(Right(s, Len(u))) = u Then s = Trim(Left(s, Len(s) - Len(u)))
+    Next u
+    If IsNumeric(s) Then ToLong = CLng(CDbl(s)): Exit Function
+    Err.Raise vbObjectError + 2006, "ToLong", "cannot coerce to long: " & CStr(v)
+End Function
+
+' Tolerant single-precision float coercion (same suffix-stripping).
+Public Function ToSng(ByVal v As Variant) As Single
+    If IsNumeric(v) Then ToSng = CSng(CDbl(v)): Exit Function
+    Dim s As String: s = Trim(CStr(v))
+    Dim units As Variant: units = Array("pt", "px", "em", "rem", "%")
+    Dim u As Variant
+    For Each u In units
+        If Len(s) > Len(u) And LCase(Right(s, Len(u))) = u Then s = Trim(Left(s, Len(s) - Len(u)))
+    Next u
+    If IsNumeric(s) Then ToSng = CSng(CDbl(s)): Exit Function
+    Err.Raise vbObjectError + 2007, "ToSng", "cannot coerce to single: " & CStr(v)
 End Function
 
 ' --- Fill color action -------------------------------------------------------
@@ -233,3 +345,4 @@ Public Sub Do_append_speaker_notes(slideNum As Long, value As String)
         End If
     Next i
 End Sub
+

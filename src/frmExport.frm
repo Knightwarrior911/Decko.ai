@@ -20,6 +20,17 @@ Private Function PromptTemplate() As String
 
     s = "You are editing a PowerPoint presentation. Below is the current state as JSON:" & vbCrLf & vbCrLf
     s = s & "```json" & vbCrLf & "{snapshot}" & vbCrLf & "```" & vbCrLf & vbCrLf
+    s = s & "CANVAS DIMENSIONS (CRITICAL):" & vbCrLf
+    s = s & "  Read deck.slide_width_pt and deck.slide_height_pt from the snapshot above." & vbCrLf
+    s = s & "  Default widescreen deck = 960pt x 540pt. Default 4:3 deck = 720pt x 540pt." & vbCrLf
+    s = s & "  All pos.left/top/width/height values must respect these bounds — do NOT" & vbCrLf
+    s = s & "  hardcode 720 for width unless the snapshot says so." & vbCrLf
+    s = s & "  Full-bleed bands: pos.left=0, pos.width=slide_width_pt." & vbCrLf
+    s = s & "TEXT-FIT GUIDANCE:" & vbCrLf
+    s = s & "  Big numbers (font_size>=72) need pos.width >= font_size * 0.7 * char_count" & vbCrLf
+    s = s & "  to avoid wrap. ""14-15%"" at font_size=88 needs ~430pt width." & vbCrLf
+    s = s & "  When in doubt, append {""type"":""enable_text_shrink_for_overflow"",""scope"":""slide:N""}" & vbCrLf
+    s = s & "  at the end of the batch — every text shape on slide N gets auto-shrink." & vbCrLf & vbCrLf
     s = s & "I want the following changes:" & vbCrLf & vbCrLf
     s = s & "[REPLACE THIS LINE WITH YOUR REQUEST]" & vbCrLf & vbCrLf
 
@@ -125,10 +136,11 @@ Private Function PromptTemplate() As String
     s = s & "  Numeric escape: ""kind"":""mso_52"" or ""kind"":""52"" passes raw msoAutoShapeType" & vbCrLf & vbCrLf
 
     s = s & "CONNECTORS (org chart / process flow):" & vbCrLf
-    s = s & "  {""type"":""add_connector"",""slide"":1,""from_shape_id"":3,""to_shape_id"":7," & _
+    s = s & "  {""type"":""add_connector"",""slide"":1,""from_shape_name"":""box1"",""to_shape_name"":""box2""," & _
             """kind"":""elbow"",""arrow_end"":""filled"",""arrow_start"":""none""," & _
             """from_point"":""bottom"",""to_point"":""top""," & _
             """color"":""#000000"",""weight_pt"":1.5,""arrow_size"":""medium"",""dash_style"":""solid""}" & vbCrLf
+    s = s & "  (from_shape_name/to_shape_name = ref_name used when creating the shape; numeric from_shape_id/to_shape_id also accepted)" & vbCrLf
     s = s & "  - kind: straight | elbow | curved" & vbCrLf
     s = s & "  - arrow_end / arrow_start: filled | open | diamond | oval | none" & vbCrLf
     s = s & "  - from_point / to_point: top | right | bottom | left | auto (or 1-8 numeric)" & vbCrLf

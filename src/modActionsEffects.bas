@@ -12,6 +12,30 @@ Public Sub Do_rotate_shape(slideNum As Long, shapeId As Long, degrees As Double)
     sh.Rotation = degrees
 End Sub
 
+' Set a single Adjustment value on a shape. Used to control parameters of
+' parametric shapes — pie wedge start/end angles, callout pointer position,
+' rounded-rect corner radius, arrow stem width, etc. Index is 1-based.
+' Value units depend on the shape (degrees for pie wedges, fraction 0..1 for
+' most others). Caller must know the schema for the shape being adjusted.
+Public Sub Do_set_shape_adjustment(slideNum As Long, shapeId As Long, _
+                                    idx As Long, value As Double)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8003, "Do_set_shape_adjustment", "shape not found"
+    On Error Resume Next
+    Dim cnt As Long: cnt = sh.Adjustments.Count
+    If Err.Number <> 0 Then
+        Err.Clear
+        Err.Raise vbObjectError + 8004, "Do_set_shape_adjustment", _
+                  "shape has no adjustments collection (kind=" & sh.AutoShapeType & ")"
+    End If
+    On Error GoTo 0
+    If idx < 1 Or idx > cnt Then
+        Err.Raise vbObjectError + 8005, "Do_set_shape_adjustment", _
+                  "adjustment index " & idx & " out of range 1.." & cnt
+    End If
+    sh.Adjustments(idx) = value
+End Sub
+
 Public Sub Do_flip_shape(slideNum As Long, shapeId As Long, axis As String)
     Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 8002, "Do_flip_shape", "shape not found"

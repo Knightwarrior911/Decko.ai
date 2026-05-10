@@ -104,6 +104,18 @@ Private Function BuildShapeDict(sh As Shape) As Object
     Set BuildShapeDict = d
 End Function
 
+Private Function IsConnectorShape(sh As Shape) As Boolean
+    On Error Resume Next
+    Dim c As Long: c = sh.Connector
+    If Err.Number = 0 Then
+        IsConnectorShape = (c = msoTrue)
+    Else
+        IsConnectorShape = False
+        Err.Clear
+    End If
+    On Error GoTo 0
+End Function
+
 Private Function ClassifyShapeType(sh As Shape) As String
     If sh.Type = msoPlaceholder Then
         Select Case sh.PlaceholderFormat.Type
@@ -120,6 +132,12 @@ Private Function ClassifyShapeType(sh As Shape) As String
         ClassifyShapeType = "table"
     ElseIf sh.Type = msoPicture Then
         ClassifyShapeType = "picture"
+    ElseIf IsConnectorShape(sh) Then
+        ClassifyShapeType = "connector"
+    ElseIf sh.Type = msoLine Then
+        ClassifyShapeType = "line"
+    ElseIf sh.Type = msoGroup Then
+        ClassifyShapeType = "group"
     ElseIf sh.HasTextFrame Then
         ClassifyShapeType = "textbox"
     Else

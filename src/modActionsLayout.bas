@@ -22,7 +22,7 @@ End Sub
 
 Public Function ShapesByIds(slideNum As Long, shapeIds As Variant, ByRef out() As Shape) As Long
     Dim ids() As Long
-    Dim cnt As Long: cnt = NormalizeIdsArray(shapeIds, ids)
+    Dim cnt As Long: cnt = NormalizeIdsArray(shapeIds, ids, slideNum)
     ReDim out(0 To cnt - 1)
     Dim i As Long, found As Long: found = 0
     For i = 0 To cnt - 1
@@ -36,7 +36,11 @@ Public Function ShapesByIds(slideNum As Long, shapeIds As Variant, ByRef out() A
     ShapesByIds = found
 End Function
 
-Public Function NormalizeIdsArray(v As Variant, ByRef out() As Long) As Long
+Public Function NormalizeIdsArray(v As Variant, ByRef out() As Long, _
+                                  Optional ByVal slideNum As Long = 0) As Long
+    ' If slideNum > 0, each element may be a numeric Id or a string ref_name
+    ' (resolved via modActions.ResolveShapeRef). If slideNum = 0, elements
+    ' must be numeric (legacy behavior, kept for non-shape ID arrays).
     Dim col As Object
     If TypeName(v) = "Collection" Then
         Set col = v
@@ -48,7 +52,11 @@ Public Function NormalizeIdsArray(v As Variant, ByRef out() As Long) As Long
         ReDim out(0 To col.Count - 1)
         Dim i As Long
         For i = 1 To col.Count
-            out(i - 1) = CLng(col(i))
+            If slideNum > 0 Then
+                out(i - 1) = modActions.ResolveShapeRef(slideNum, col(i), "shape_ids[" & (i - 1) & "]")
+            Else
+                out(i - 1) = CLng(col(i))
+            End If
         Next i
         NormalizeIdsArray = col.Count
     ElseIf IsArray(v) Then
@@ -64,12 +72,20 @@ Public Function NormalizeIdsArray(v As Variant, ByRef out() As Long) As Long
         End If
         ReDim out(0 To hi - lo)
         For i = lo To hi
-            out(i - lo) = CLng(v(i))
+            If slideNum > 0 Then
+                out(i - lo) = modActions.ResolveShapeRef(slideNum, v(i), "shape_ids[" & (i - lo) & "]")
+            Else
+                out(i - lo) = CLng(v(i))
+            End If
         Next i
         NormalizeIdsArray = hi - lo + 1
     Else
         ReDim out(0 To 0)
-        out(0) = CLng(v)
+        If slideNum > 0 Then
+            out(0) = modActions.ResolveShapeRef(slideNum, v, "shape_id")
+        Else
+            out(0) = CLng(v)
+        End If
         NormalizeIdsArray = 1
     End If
 End Function
@@ -156,7 +172,10 @@ End Sub
 
 Public Sub Do_add_line(slideNum As Long, x1 As Single, y1 As Single, _
                        x2 As Single, y2 As Single, _
-                       hexColor As String, weightPt As Single)
+                       hexColor As String, weightPt As Single, _
+                       Optional arrowEnd As String = "none", _
+                       Optional arrowStart As String = "none", _
+                       Optional dashStyle As String = "solid")
     Dim pres As Presentation: Set pres = ActivePresentation
     If slideNum < 1 Or slideNum > pres.Slides.Count Then
         Err.Raise vbObjectError + 4005, "Do_add_line", "slide_out_of_range"
@@ -165,7 +184,27 @@ Public Sub Do_add_line(slideNum As Long, x1 As Single, y1 As Single, _
     Set ln = pres.Slides(slideNum).Shapes.AddLine(x1, y1, x2, y2)
     ln.Line.ForeColor.RGB = modActions.HexToRgb(hexColor)
     ln.Line.Weight = weightPt
+    ln.Line.EndArrowheadStyle = ResolveArrowheadStyle(arrowEnd)
+    ln.Line.BeginArrowheadStyle = ResolveArrowheadStyle(arrowStart)
+    Select Case LCase(dashStyle)
+        Case "dash":     ln.Line.DashStyle = msoLineDash
+        Case "dot":      ln.Line.DashStyle = msoLineSquareDot
+        Case "round_dot": ln.Line.DashStyle = msoLineRoundDot
+        Case "dash_dot": ln.Line.DashStyle = msoLineDashDot
+        Case Else:       ln.Line.DashStyle = msoLineSolid
+    End Select
 End Sub
+
+Private Function ResolveArrowheadStyle(s As String) As Long
+    Select Case LCase(Trim(s))
+        Case "filled", "triangle": ResolveArrowheadStyle = 2
+        Case "open":               ResolveArrowheadStyle = 3
+        Case "stealth":            ResolveArrowheadStyle = 4
+        Case "diamond":            ResolveArrowheadStyle = 5
+        Case "oval":               ResolveArrowheadStyle = 6
+        Case Else:                 ResolveArrowheadStyle = 1   ' none
+    End Select
+End Function
 
 Public Sub Do_add_shape(slideNum As Long, kind As String, _
                         leftPt As Single, topPt As Single, _
@@ -178,7 +217,9 @@ Public Sub Do_add_shape(slideNum As Long, kind As String, _
                         Optional fontSize As Long = 0, _
                         Optional fontBold As Boolean = False, _
                         Optional hAlign As String = "center", _
-                        Optional vAlign As String = "middle")
+                        Optional vAlign As String = "middle", _
+                        Optional superSuffix As String = "", _
+                        Optional subSuffix As String = "")
     Dim pres As Presentation: Set pres = ActivePresentation
     If slideNum < 1 Or slideNum > pres.Slides.Count Then
         Err.Raise vbObjectError + 4005, "Do_add_shape", "slide_out_of_range"
@@ -202,6 +243,7 @@ Public Sub Do_add_shape(slideNum As Long, kind As String, _
         sh.Line.Visible = msoFalse
     End If
     If Len(textVal) > 0 And sh.HasTextFrame Then
+        sh.TextFrame.AutoSize = ppAutoSizeNone
         With sh.TextFrame.TextRange
             .Text = textVal
             If Len(fontColor) > 0 Then .Font.Color.RGB = modActions.HexToRgb(fontColor)
@@ -218,6 +260,8 @@ Public Sub Do_add_shape(slideNum As Long, kind As String, _
             Case "bottom": sh.TextFrame.VerticalAnchor = msoAnchorBottom
             Case Else:     sh.TextFrame.VerticalAnchor = msoAnchorMiddle
         End Select
+        AppendBaselineSuffix sh, superSuffix, 0.3
+        AppendBaselineSuffix sh, subSuffix, -0.25
     End If
 End Sub
 
@@ -232,7 +276,9 @@ Public Sub Do_add_text_box(slideNum As Long, textVal As String, _
                             Optional hAlign As String = "", _
                             Optional fillHex As String = "", _
                             Optional strokeHex As String = "", _
-                            Optional strokeWeight As Single = 1.0)
+                            Optional strokeWeight As Single = 1.0, _
+                            Optional superSuffix As String = "", _
+                            Optional subSuffix As String = "")
     Dim pres As Presentation: Set pres = ActivePresentation
     If slideNum < 1 Or slideNum > pres.Slides.Count Then
         Err.Raise vbObjectError + 4005, "Do_add_text_box", "slide_out_of_range"
@@ -272,11 +318,33 @@ Public Sub Do_add_text_box(slideNum As Long, textVal As String, _
             Case "center": .ParagraphFormat.Alignment = ppAlignCenter
         End Select
     End With
+    AppendBaselineSuffix sh, superSuffix, 0.3
+    AppendBaselineSuffix sh, subSuffix, -0.25
+End Sub
+
+' Append a small text run after main text and apply BaselineOffset (positive = superscript,
+' negative = subscript). Used to add footnote markers like (a), (1), (tied) in superscript.
+Private Sub AppendBaselineSuffix(sh As Shape, suffix As String, offset As Double)
+    If Len(suffix) = 0 Then Exit Sub
+    If Not sh.HasTextFrame Then Exit Sub
+    Dim baseLen As Long: baseLen = Len(sh.TextFrame.TextRange.Text)
+    sh.TextFrame.TextRange.InsertAfter suffix
+    Dim r As TextRange
+    Set r = sh.TextFrame.TextRange.Characters(baseLen + 1, Len(suffix))
+    r.Font.BaselineOffset = offset
 End Sub
 
 Public Sub Do_z_order(slideNum As Long, shapeId As Long, order As String)
     Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 4001, "Do_z_order", "shape not found"
+    ' Children of a group cannot be z-ordered directly; user must target the group itself
+    On Error Resume Next
+    Dim parentGrp As Shape: Set parentGrp = sh.ParentGroup
+    On Error GoTo 0
+    If Not parentGrp Is Nothing Then
+        Err.Raise vbObjectError + 4009, "Do_z_order", _
+                  "shape is inside group '" & parentGrp.Name & "' — z_order the group instead, or ungroup first"
+    End If
     Select Case LCase(Trim(order))
         Case "front":    sh.ZOrder msoBringToFront
         Case "back":     sh.ZOrder msoSendToBack
@@ -366,9 +434,9 @@ Public Function ResolveAutoShapeKind(kind As String) As Long
         Case "hexagon":                     ResolveAutoShapeKind = 10
         Case "cross", "plus":               ResolveAutoShapeKind = 11
         Case "pentagon", "regular_pentagon": ResolveAutoShapeKind = 12
-        Case "capsule":                     ResolveAutoShapeKind = 73
+        Case "capsule":                     ResolveAutoShapeKind = 5   ' RoundedRectangle (no dedicated capsule)
         ' --- Arrows ---
-        Case "arrow", "right_arrow":        ResolveAutoShapeKind = 13
+        Case "arrow", "right_arrow":        ResolveAutoShapeKind = 33  ' msoShapeRightArrow (was 13 = Can)
         Case "left_arrow":                  ResolveAutoShapeKind = 34
         Case "up_arrow":                    ResolveAutoShapeKind = 35
         Case "down_arrow":                  ResolveAutoShapeKind = 36
@@ -387,26 +455,28 @@ Public Function ResolveAutoShapeKind(kind As String) As Long
         Case "chevron":                     ResolveAutoShapeKind = 52
         Case "chevron_pentagon":            ResolveAutoShapeKind = 51
         ' --- Callouts ---
-        Case "callout_rect", "rectangular_callout": ResolveAutoShapeKind = 61
-        Case "callout_rrect", "rounded_callout":    ResolveAutoShapeKind = 84
-        Case "callout_oval":                ResolveAutoShapeKind = 83
+        Case "callout_rect", "rectangular_callout": ResolveAutoShapeKind = 105  ' msoShapeRectangularCallout (was 61 = FlowchartProcess)
+        Case "callout_rrect", "rounded_callout":    ResolveAutoShapeKind = 106  ' msoShapeRoundedRectangularCallout (was 84 = FlowchartDelay)
+        Case "callout_oval":                ResolveAutoShapeKind = 107          ' msoShapeOvalCallout (was 83 = FlowchartStoredData)
         Case "callout_cloud":               ResolveAutoShapeKind = 108
         Case "callout_line1":               ResolveAutoShapeKind = 109
-        Case "callout_line2":               ResolveAutoShapeKind = 107
+        Case "callout_line2":               ResolveAutoShapeKind = 110          ' msoShapeLineCallout2 (was 107 = OvalCallout)
         ' --- Stars/banners (msoShape{N}pointStar enum) ---
         Case "star4", "star_4":             ResolveAutoShapeKind = 91
         Case "star5", "star_5", "star":     ResolveAutoShapeKind = 92
-        Case "star8", "star_8":             ResolveAutoShapeKind = 96
+        Case "star8", "star_8":             ResolveAutoShapeKind = 93   ' msoShape8pointStar (was 96 = 32pointStar)
         Case "star10", "star_10":           ResolveAutoShapeKind = 149
         Case "star12", "star_12":           ResolveAutoShapeKind = 150
         Case "star16", "star_16":           ResolveAutoShapeKind = 94
         Case "star24", "star_24":           ResolveAutoShapeKind = 95
-        Case "star32", "star_32":           ResolveAutoShapeKind = 187
-        Case "ribbon_up":                   ResolveAutoShapeKind = 100
-        Case "ribbon_down":                 ResolveAutoShapeKind = 101
+        Case "star32", "star_32":           ResolveAutoShapeKind = 96   ' msoShape32pointStar (was 187 = out of range)
+        Case "ribbon_up":                   ResolveAutoShapeKind = 97   ' msoShapeUpRibbon (was 100 = CurvedDownRibbon)
+        Case "ribbon_down":                 ResolveAutoShapeKind = 98   ' msoShapeDownRibbon (was 101 = VerticalScroll)
         ' --- Misc business shapes ---
         Case "donut", "ring":               ResolveAutoShapeKind = 18
         Case "block_arc":                   ResolveAutoShapeKind = 20
+        Case "pie", "wedge":                ResolveAutoShapeKind = 175  ' msoShapePieWedge (Office 2013+; 84 = FlowchartDelay)
+        Case "arc":                         ResolveAutoShapeKind = 25   ' msoShapeArc
         Case "brace_left":                  ResolveAutoShapeKind = 31
         Case "brace_right":                 ResolveAutoShapeKind = 32
         Case "bracket_left":                ResolveAutoShapeKind = 29
@@ -439,7 +509,7 @@ Public Sub Do_clear_slide(slideNum As Long, keepShapeIds As Variant)
     Dim sl As Slide: Set sl = pres.Slides(slideNum)
 
     Dim keepIds() As Long
-    Dim keepCount As Long: keepCount = NormalizeIdsArray(keepShapeIds, keepIds)
+    Dim keepCount As Long: keepCount = NormalizeIdsArray(keepShapeIds, keepIds, slideNum)
 
     Dim toDelete As New Collection
     Dim sh As Shape, i As Long, keep As Boolean
@@ -781,3 +851,4 @@ Private Function RectsOverlap(a As Shape, b As Shape) As Boolean
     If b.Top + b.Height <= a.Top Then Exit Function
     RectsOverlap = True
 End Function
+

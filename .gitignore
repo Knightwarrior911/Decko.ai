@@ -20,3 +20,11 @@ Thumbs.db
 # Form-build debug artifacts
 tools/_screens/
 tools/_temp_form_stage.pptm
+
+# VP-built test artifacts (third-party-inspired layouts)
+test_decks/vp_built_*
+tests/build_citi_deck.py
+tests/build_dashboard_slide.py
+tests/build_pie_slide.py
+tests/build_returns_slide.py
+tests/export_deck_pngs.py

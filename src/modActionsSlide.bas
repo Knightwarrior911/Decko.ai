@@ -27,6 +27,7 @@ Public Sub Do_insert_slide_number(slideNum As Long, _
     Set sh = pres.Slides(slideNum).Shapes.AddTextbox( _
         msoTextOrientationHorizontal, leftPt, topPt, widthPt, heightPt)
     If Len(refName) > 0 Then sh.Name = refName
+    sh.TextFrame.AutoSize = ppAutoSizeNone
     sh.TextFrame.TextRange.InsertSlideNumber
     With sh.TextFrame.TextRange.Font
         If Len(fontColor) > 0 Then .Color.RGB = modActions.HexToRgb(fontColor)

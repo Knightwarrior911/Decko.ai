@@ -173,13 +173,24 @@ Private Function ValidateAction(act As Object) As String
             ValidateAction = RequireFields(act, Array("slide", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
         Case "insert_picture"
-            ValidateAction = RequireFields(act, Array("slide", "path", "pos"))
-            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+            ' Accept "path" or "picture_path" (LLMs and bulk_insert_image use the latter)
+            If Not act.Exists("path") And Not act.Exists("picture_path") Then
+                ValidateAction = "missing_field: path or picture_path"
+            ElseIf Not act.Exists("pos") Then
+                ValidateAction = "missing_field: pos"
+            Else
+                ValidateAction = ValidateSlide(act)
+            End If
         Case "replace_picture"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "path"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "move_slide"
-            ValidateAction = RequireFields(act, Array("from", "to"))
+            ' Accept from/to OR from_slide/to_slide (less ambiguous vs add_connector)
+            If Not act.Exists("from") And Not act.Exists("from_slide") Then
+                ValidateAction = "missing_field: from or from_slide"
+            ElseIf Not act.Exists("to") And Not act.Exists("to_slide") Then
+                ValidateAction = "missing_field: to or to_slide"
+            End If
         Case "extract_slides"
             ValidateAction = RequireFields(act, Array("slide_indices", "output_path"))
         Case "import_slides_from_deck"
@@ -206,8 +217,31 @@ Private Function ValidateAction(act As Object) As String
             ValidateAction = RequireFields(act, Array("slide", "shape_id"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "add_connector"
-            ValidateAction = RequireFields(act, Array("slide", "from_shape_id", "to_shape_id", "kind"))
+            If Not act.Exists("from_shape_id") And Not act.Exists("from_shape_name") Then
+                ValidateAction = "missing: from_shape_id or from_shape_name"
+            ElseIf Not act.Exists("to_shape_id") And Not act.Exists("to_shape_name") Then
+                ValidateAction = "missing: to_shape_id or to_shape_name"
+            ElseIf Not act.Exists("kind") Then
+                ValidateAction = "missing: kind"
+            Else
+                If Not act.Exists("slide") Then
+                    ValidateAction = "missing: slide"
+                Else
+                    ValidateAction = ValidateSlide(act)
+                End If
+            End If
+        Case "add_chart"
+            ValidateAction = RequireFields(act, Array("slide", "chart_type", "pos", "categories", "series"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "set_chart_axis"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "axis", "props"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_chart_series"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "series_index", "props"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_chart_legend"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "props"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "set_chart_type"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
@@ -420,6 +454,8 @@ Private Function ValidateAction(act As Object) As String
             End If
         Case "rotate_shape"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "degrees"))
+        Case "set_shape_adjustment"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "index", "value"))
         Case "flip_shape"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "axis"))
             If ValidateAction = "" Then
@@ -546,12 +582,21 @@ End Function
 
 Private Function RequireFields(act As Object, fields As Variant) As String
     Dim i As Long
+    Dim hasShapeId As Boolean: hasShapeId = False
     For i = LBound(fields) To UBound(fields)
         Dim f As String: f = CStr(fields(i))
-        If f = "shape_id" Then
-            ' accept shape_id OR shape_name
-            If Not act.Exists("shape_id") And Not act.Exists("shape_name") Then
-                RequireFields = "missing_field: shape_id or shape_name"
+        Dim altName As String: altName = ""
+        ' Any *_shape_ids field accepts *_shape_names alternative
+        ' Any *_shape_id  field accepts *_shape_name  alternative
+        If InStr(f, "shape_ids") > 0 Then
+            altName = Replace(f, "shape_ids", "shape_names")
+        ElseIf InStr(f, "shape_id") > 0 Then
+            altName = Replace(f, "shape_id", "shape_name")
+        End If
+        If f = "shape_id" Then hasShapeId = True
+        If Len(altName) > 0 Then
+            If Not act.Exists(f) And Not act.Exists(altName) Then
+                RequireFields = "missing_field: " & f & " or " & altName
                 Exit Function
             End If
         ElseIf Not act.Exists(f) Then
@@ -559,13 +604,66 @@ Private Function RequireFields(act As Object, fields As Variant) As String
             Exit Function
         End If
     Next i
+    ' If singular shape_id was required, run ValidateShape so shape_name
+    ' aliases get resolved to a numeric shape_id injected into the act dict.
+    ' Idempotent — explicit ValidateShape calls in case bodies still safe.
+    If hasShapeId Then
+        Dim shapeErr As String: shapeErr = ValidateShape(act)
+        If Len(shapeErr) > 0 Then
+            RequireFields = shapeErr
+            Exit Function
+        End If
+    End If
     RequireFields = ""
 End Function
 
+' Resolve a shape ref field (any *_shape_id) to a numeric Id, accepting either
+' the *_id (numeric or string-of-digits) or the *_name (ref_name) variant.
+Private Function ResolveActShapeId(act As Object, idKey As String) As Long
+    Dim raw As Variant
+    Dim nameKey As String: nameKey = Replace(idKey, "shape_id", "shape_name")
+    If act.Exists(idKey) Then
+        raw = act(idKey)
+    ElseIf act.Exists(nameKey) Then
+        raw = act(nameKey)
+    Else
+        Err.Raise vbObjectError + 2060, "ResolveActShapeId", _
+                  "missing field " & idKey & " or " & nameKey
+    End If
+    ResolveActShapeId = modActions.ResolveShapeRef(CLng(act("slide")), raw, idKey)
+End Function
+
+' Resolve an array shape-ref field (*_shape_ids) into act("...shape_ids") with
+' numeric Ids in place, so existing dispatch code can pass it to NormalizeIdsArray
+' unchanged. Accepts strings (ref_names) or numbers per element.
+Private Function ResolveActShapeIdArray(act As Object, idsKey As String) As Variant
+    Dim namesKey As String: namesKey = Replace(idsKey, "shape_ids", "shape_names")
+    ' JSON arrays parse to Collection (Object). Variant return holding Object needs Set.
+    Dim key As String
+    If act.Exists(idsKey) Then
+        key = idsKey
+    ElseIf act.Exists(namesKey) Then
+        key = namesKey
+    Else
+        Err.Raise vbObjectError + 2061, "ResolveActShapeIdArray", _
+                  "missing field " & idsKey & " or " & namesKey
+    End If
+    If IsObject(act(key)) Then
+        Set ResolveActShapeIdArray = act(key)
+    Else
+        ResolveActShapeIdArray = act(key)
+    End If
+End Function
+
 Private Function ValidateSlide(act As Object) As String
+    If Not act.Exists("slide") Then ValidateSlide = "missing_field: slide": Exit Function
+    If Not IsNumeric(act("slide")) Then
+        ValidateSlide = "slide must be numeric (1-based), got: " & CStr(act("slide"))
+        Exit Function
+    End If
     Dim n As Long: n = CLng(act("slide"))
     If n < 1 Or n > ActivePresentation.Slides.Count Then
-        ValidateSlide = "slide_out_of_range"
+        ValidateSlide = "slide_out_of_range: " & n & " (deck has " & ActivePresentation.Slides.Count & ")"
     End If
 End Function
 
@@ -575,24 +673,35 @@ Private Function ValidateShape(act As Object) As String
         ValidateShape = slideErr
         Exit Function
     End If
-    ' Resolve shape_name → inject shape_id so all dispatch code works unchanged
-    If Not act.Exists("shape_id") Then
-        If act.Exists("shape_name") Then
-            Dim sh As Shape
-            Set sh = modActions.FindShapeByName(CLng(act("slide")), CStr(act("shape_name")))
-            If sh Is Nothing Then
-                ValidateShape = "shape_name '" & CStr(act("shape_name")) & "': not found"
+    Dim slideN As Long: slideN = CLng(act("slide"))
+    ' Three accepted forms: shape_id (numeric), shape_id (string ref_name), shape_name (string)
+    ' All normalize to numeric shape_id so downstream dispatch code is uniform.
+    If act.Exists("shape_id") Then
+        If Not IsNumeric(act("shape_id")) Then
+            Dim shByIdName As Shape
+            Set shByIdName = modActions.FindShapeByName(slideN, CStr(act("shape_id")))
+            If shByIdName Is Nothing Then
+                ValidateShape = "shape_id '" & CStr(act("shape_id")) & "': not found as Id or ref_name"
                 Exit Function
             End If
-            act.Add "shape_id", CLng(sh.Id)
-        Else
-            ValidateShape = "shape_id or shape_name: required"
+            act.Remove "shape_id"
+            act.Add "shape_id", CLng(shByIdName.Id)
+        End If
+    ElseIf act.Exists("shape_name") Then
+        Dim sh As Shape
+        Set sh = modActions.FindShapeByName(slideN, CStr(act("shape_name")))
+        If sh Is Nothing Then
+            ValidateShape = "shape_name '" & CStr(act("shape_name")) & "': not found"
             Exit Function
         End If
+        act.Add "shape_id", CLng(sh.Id)
+    Else
+        ValidateShape = "shape_id or shape_name: required"
+        Exit Function
     End If
     Dim shCheck As Shape
-    Set shCheck = modActions.FindShape(CLng(act("slide")), CLng(act("shape_id")))
-    If shCheck Is Nothing Then ValidateShape = "shape_not_found"
+    Set shCheck = modActions.FindShape(slideN, CLng(act("shape_id")))
+    If shCheck Is Nothing Then ValidateShape = "shape_not_found: id=" & CLng(act("shape_id"))
 End Function
 
 Private Sub DispatchAction(act As Object)
@@ -603,9 +712,9 @@ Private Sub DispatchAction(act As Object)
         Case "set_font_size"
             modActions.Do_set_font_size CLng(act("slide")), CLng(act("shape_id")), CLng(act("value"))
         Case "set_font_bold"
-            modActions.Do_set_font_bold CLng(act("slide")), CLng(act("shape_id")), CBool(act("value"))
+            modActions.Do_set_font_bold CLng(act("slide")), CLng(act("shape_id")), modActions.ToBool(act("value"))
         Case "set_font_italic"
-            modActions.Do_set_font_italic CLng(act("slide")), CLng(act("shape_id")), CBool(act("value"))
+            modActions.Do_set_font_italic CLng(act("slide")), CLng(act("shape_id")), modActions.ToBool(act("value"))
         Case "set_font_color"
             modActions.Do_set_font_color CLng(act("slide")), CLng(act("shape_id")), CStr(act("value"))
         Case "set_fill_color"
@@ -657,22 +766,29 @@ Private Sub DispatchAction(act As Object)
         Case "find_replace_text"
             modActionsText.Do_find_replace_text CStr(act("scope")), CStr(act("find")), CStr(act("replace"))
         Case "align_shapes"
-            modActionsLayout.Do_align_shapes CLng(act("slide")), act("shape_ids"), CStr(act("anchor"))
+            modActionsLayout.Do_align_shapes CLng(act("slide")), ResolveActShapeIdArray(act, "shape_ids"), CStr(act("anchor"))
         Case "distribute_horizontal"
-            modActionsLayout.Do_distribute_horizontal CLng(act("slide")), act("shape_ids")
+            modActionsLayout.Do_distribute_horizontal CLng(act("slide")), ResolveActShapeIdArray(act, "shape_ids")
         Case "distribute_vertical"
-            modActionsLayout.Do_distribute_vertical CLng(act("slide")), act("shape_ids")
+            modActionsLayout.Do_distribute_vertical CLng(act("slide")), ResolveActShapeIdArray(act, "shape_ids")
         Case "tile_grid"
-            modActionsLayout.Do_tile_grid CLng(act("slide")), act("shape_ids"), _
+            modActionsLayout.Do_tile_grid CLng(act("slide")), ResolveActShapeIdArray(act, "shape_ids"), _
                                           CLng(act("cols")), CSng(act("gap_pt"))
         Case "fit_to_slide_margins"
             Dim m As Single: m = 36.0
             If act.Exists("margin_pt") Then m = CSng(act("margin_pt"))
             modActionsLayout.Do_fit_to_slide_margins CLng(act("slide")), CLng(act("shape_id")), m
         Case "add_line"
+            Dim alAE As String: alAE = "none"
+            Dim alAS As String: alAS = "none"
+            Dim alDS As String: alDS = "solid"
+            If act.Exists("arrow_end") Then alAE = CStr(act("arrow_end"))
+            If act.Exists("arrow_start") Then alAS = CStr(act("arrow_start"))
+            If act.Exists("dash_style") Then alDS = CStr(act("dash_style"))
             modActionsLayout.Do_add_line CLng(act("slide")), CSng(act("x1")), CSng(act("y1")), _
                                          CSng(act("x2")), CSng(act("y2")), _
-                                         CStr(act("color")), CSng(act("weight_pt"))
+                                         CStr(act("color")), CSng(act("weight_pt")), _
+                                         alAE, alAS, alDS
         Case "add_shape"
             Dim posDict As Object: Set posDict = act("pos")
             Dim fh As String: fh = ""
@@ -692,19 +808,24 @@ Private Sub DispatchAction(act As Object)
             If act.Exists("text") Then asTxt = CStr(act("text"))
             If act.Exists("font_color") Then asFc = CStr(act("font_color"))
             If act.Exists("font_size") Then asFs = CLng(act("font_size"))
-            If act.Exists("font_bold") Then asBold = CBool(act("font_bold"))
+            If act.Exists("font_bold") Then asBold = modActions.ToBool(act("font_bold"))
             If act.Exists("h_align") Then asAlign = CStr(act("h_align"))
             If act.Exists("v_align") Then asVAlign = CStr(act("v_align"))
+            Dim asSuper As String: asSuper = ""
+            Dim asSub As String: asSub = ""
+            If act.Exists("super_suffix") Then asSuper = CStr(act("super_suffix"))
+            If act.Exists("sub_suffix") Then asSub = CStr(act("sub_suffix"))
             modActionsLayout.Do_add_shape CLng(act("slide")), CStr(act("kind")), _
                                           CSng(posDict("left")), CSng(posDict("top")), _
                                           CSng(posDict("width")), CSng(posDict("height")), _
-                                          fh, shex, swt, asRef, asTxt, asFc, asFs, asBold, asAlign, asVAlign
+                                          fh, shex, swt, asRef, asTxt, asFc, asFs, asBold, asAlign, asVAlign, _
+                                          asSuper, asSub
         Case "set_shape_kind"
             modActionsLayout.Do_set_shape_kind CLng(act("slide")), CLng(act("shape_id")), CStr(act("kind"))
         Case "clear_slide"
             Dim keep As Variant
             If act.Exists("keep_shape_ids") Then
-                keep = act("keep_shape_ids")
+                keep = ResolveActShapeIdArray(act, "keep_shape_ids")
             Else
                 keep = Array()
             End If
@@ -729,13 +850,18 @@ Private Sub DispatchAction(act As Object)
             modActions.Do_append_speaker_notes CLng(act("slide")), CStr(act("value"))
         Case "insert_picture"
             Dim ipos As Object: Set ipos = act("pos")
-            modActionsImage.Do_insert_picture CLng(act("slide")), CStr(act("path")), _
+            Dim ipPath As String
+            If act.Exists("path") Then ipPath = CStr(act("path")) Else ipPath = CStr(act("picture_path"))
+            modActionsImage.Do_insert_picture CLng(act("slide")), ipPath, _
                                               CSng(ipos("left")), CSng(ipos("top")), _
                                               CSng(ipos("width")), CSng(ipos("height"))
         Case "replace_picture"
             modActionsImage.Do_replace_picture CLng(act("slide")), CLng(act("shape_id")), CStr(act("path"))
         Case "move_slide"
-            modActionsSlide.Do_move_slide CLng(act("from")), CLng(act("to"))
+            Dim msFrom As Variant, msTo As Variant
+            If act.Exists("from_slide") Then msFrom = act("from_slide") Else msFrom = act("from")
+            If act.Exists("to_slide") Then msTo = act("to_slide") Else msTo = act("to")
+            modActionsSlide.Do_move_slide CLng(msFrom), CLng(msTo)
         Case "extract_slides"
             modActionsSlide.Do_extract_slides act("slide_indices"), CStr(act("output_path"))
         Case "import_slides_from_deck"
@@ -755,7 +881,11 @@ Private Sub DispatchAction(act As Object)
                                            CLng(act("row_a")), CLng(act("col_a")), _
                                            CLng(act("row_b")), CLng(act("col_b"))
         Case "group_shapes"
-            modActionsGroup.Do_group_shapes CLng(act("slide")), act("shape_ids")
+            Dim grpRef As String: grpRef = ""
+            If act.Exists("ref_name") Then grpRef = CStr(act("ref_name"))
+            modActionsGroup.Do_group_shapes CLng(act("slide")), _
+                                            ResolveActShapeIdArray(act, "shape_ids"), _
+                                            grpRef
         Case "ungroup"
             modActionsGroup.Do_ungroup CLng(act("slide")), CLng(act("shape_id"))
         Case "add_connector"
@@ -771,15 +901,72 @@ Private Sub DispatchAction(act As Object)
             If act.Exists("from_point") Then fp = CStr(act("from_point"))
             If act.Exists("to_point") Then tp = CStr(act("to_point"))
             If act.Exists("dash_style") Then ds = CStr(act("dash_style"))
-            modActionsConnector.Do_add_connector CLng(act("slide")), _
-                                                 CLng(act("from_shape_id")), _
-                                                 CLng(act("to_shape_id")), _
+            Dim connSlide As Long: connSlide = CLng(act("slide"))
+            Dim fromId As Long, toId As Long
+            Dim shFr As Shape, shTo2 As Shape
+            Dim fromRaw As String, toRaw As String
+            If act.Exists("from_shape_id") Then
+                fromRaw = CStr(act("from_shape_id"))
+            Else
+                fromRaw = CStr(act("from_shape_name"))
+            End If
+            If act.Exists("to_shape_id") Then
+                toRaw = CStr(act("to_shape_id"))
+            Else
+                toRaw = CStr(act("to_shape_name"))
+            End If
+            If IsNumeric(fromRaw) Then
+                fromId = CLng(fromRaw)
+            Else
+                Set shFr = modActions.FindShapeByName(connSlide, fromRaw)
+                If shFr Is Nothing Then Err.Raise vbObjectError + 10002, "add_connector", "from shape not found: " & fromRaw
+                fromId = shFr.Id
+            End If
+            If IsNumeric(toRaw) Then
+                toId = CLng(toRaw)
+            Else
+                Set shTo2 = modActions.FindShapeByName(connSlide, toRaw)
+                If shTo2 Is Nothing Then Err.Raise vbObjectError + 10002, "add_connector", "to shape not found: " & toRaw
+                toId = shTo2.Id
+            End If
+            modActionsConnector.Do_add_connector connSlide, fromId, toId, _
                                                  CStr(act("kind")), ae, cc, cw, astart, asize, fp, tp, ds
+        Case "add_chart"
+            Dim acPos As Object: Set acPos = act("pos")
+            Dim acRef As String: acRef = ""
+            Dim acLeg As Boolean: acLeg = True
+            Dim acVals As Boolean: acVals = False
+            Dim acTitle As String: acTitle = ""
+            Dim acClean As Boolean: acClean = False
+            Dim acFmt As String: acFmt = ""
+            If act.Exists("ref_name") Then acRef = CStr(act("ref_name"))
+            If act.Exists("show_legend") Then acLeg = modActions.ToBool(act("show_legend"))
+            If act.Exists("show_values") Then acVals = modActions.ToBool(act("show_values"))
+            If act.Exists("title") Then acTitle = CStr(act("title"))
+            If act.Exists("clean_style") Then acClean = modActions.ToBool(act("clean_style"))
+            If act.Exists("value_format") Then acFmt = CStr(act("value_format"))
+            modActionsChart.Do_add_chart CLng(act("slide")), CStr(act("chart_type")), _
+                                          CSng(acPos("left")), CSng(acPos("top")), _
+                                          CSng(acPos("width")), CSng(acPos("height")), _
+                                          act("categories"), act("series"), _
+                                          acRef, acLeg, acVals, acTitle, _
+                                          acClean, acFmt
+        Case "set_chart_axis"
+            Dim caxProps As Object: Set caxProps = act("props")
+            modActionsChart.Do_set_chart_axis CLng(act("slide")), CLng(act("shape_id")), _
+                                               CStr(act("axis")), caxProps
+        Case "set_chart_series"
+            Dim cssProps As Object: Set cssProps = act("props")
+            modActionsChart.Do_set_chart_series CLng(act("slide")), CLng(act("shape_id")), _
+                                                 CLng(act("series_index")), cssProps
+        Case "set_chart_legend"
+            Dim cleProps As Object: Set cleProps = act("props")
+            modActionsChart.Do_set_chart_legend CLng(act("slide")), CLng(act("shape_id")), cleProps
         Case "set_chart_type"
             modActionsChart.Do_set_chart_type CLng(act("slide")), CLng(act("shape_id")), CStr(act("value"))
         Case "set_chart_title"
             Dim cte As Boolean: cte = True
-            If act.Exists("enabled") Then cte = CBool(act("enabled"))
+            If act.Exists("enabled") Then cte = modActions.ToBool(act("enabled"))
             modActionsChart.Do_set_chart_title CLng(act("slide")), CLng(act("shape_id")), _
                                                CStr(act("value")), cte
         Case "set_chart_axis_title"
@@ -794,23 +981,23 @@ Private Sub DispatchAction(act As Object)
         Case "set_run_bold"
             modActionsRun.Do_set_run_bold CLng(act("slide")), CLng(act("shape_id")), _
                                           CLng(act("paragraph_index")), CLng(act("run_index")), _
-                                          CBool(act("value"))
+                                          modActions.ToBool(act("value"))
         Case "set_run_italic"
             modActionsRun.Do_set_run_italic CLng(act("slide")), CLng(act("shape_id")), _
                                             CLng(act("paragraph_index")), CLng(act("run_index")), _
-                                            CBool(act("value"))
+                                            modActions.ToBool(act("value"))
         Case "set_run_underline"
             modActionsRun.Do_set_run_underline CLng(act("slide")), CLng(act("shape_id")), _
                                                CLng(act("paragraph_index")), CLng(act("run_index")), _
-                                               CBool(act("value"))
+                                               modActions.ToBool(act("value"))
         Case "set_run_subscript"
             modActionsRun.Do_set_run_subscript CLng(act("slide")), CLng(act("shape_id")), _
                                                CLng(act("paragraph_index")), CLng(act("run_index")), _
-                                               CBool(act("value"))
+                                               modActions.ToBool(act("value"))
         Case "set_run_superscript"
             modActionsRun.Do_set_run_superscript CLng(act("slide")), CLng(act("shape_id")), _
                                                  CLng(act("paragraph_index")), CLng(act("run_index")), _
-                                                 CBool(act("value"))
+                                                 modActions.ToBool(act("value"))
         Case "set_run_font_color"
             modActionsRun.Do_set_run_font_color CLng(act("slide")), CLng(act("shape_id")), _
                                                 CLng(act("paragraph_index")), CLng(act("run_index")), _
@@ -862,25 +1049,29 @@ Private Sub DispatchAction(act As Object)
         Case "fit_to_content"
             modActionsLayout.Do_fit_to_content CLng(act("slide")), CLng(act("shape_id"))
         Case "match_size"
-            modActionsLayout.Do_match_size CLng(act("slide")), CLng(act("ref_shape_id")), _
-                                           act("target_shape_ids")
+            modActionsLayout.Do_match_size CLng(act("slide")), _
+                                           ResolveActShapeId(act, "ref_shape_id"), _
+                                           ResolveActShapeIdArray(act, "target_shape_ids")
         Case "uniform_size"
-            modActionsLayout.Do_uniform_size CLng(act("slide")), act("shape_ids"), _
+            modActionsLayout.Do_uniform_size CLng(act("slide")), ResolveActShapeIdArray(act, "shape_ids"), _
                                              CDbl(act("width_pt")), CDbl(act("height_pt"))
         Case "smart_spacing"
-            modActionsLayout.Do_smart_spacing CLng(act("slide")), act("shape_ids"), _
+            modActionsLayout.Do_smart_spacing CLng(act("slide")), ResolveActShapeIdArray(act, "shape_ids"), _
                                               CDbl(act("gap_pt")), CStr(act("axis"))
         Case "equalize_spacing"
-            modActionsLayout.Do_equalize_spacing CLng(act("slide")), act("shape_ids"), _
+            modActionsLayout.Do_equalize_spacing CLng(act("slide")), ResolveActShapeIdArray(act, "shape_ids"), _
                                                  CStr(act("axis"))
         Case "match_position"
-            modActionsLayout.Do_match_position CLng(act("slide")), CLng(act("ref_shape_id")), _
-                                               CLng(act("target_shape_id")), CStr(act("edge"))
+            modActionsLayout.Do_match_position CLng(act("slide")), _
+                                               ResolveActShapeId(act, "ref_shape_id"), _
+                                               ResolveActShapeId(act, "target_shape_id"), _
+                                               CStr(act("edge"))
         Case "swap_positions"
-            modActionsLayout.Do_swap_positions CLng(act("slide")), CLng(act("shape_a_id")), _
-                                               CLng(act("shape_b_id"))
+            modActionsLayout.Do_swap_positions CLng(act("slide")), _
+                                               ResolveActShapeId(act, "shape_a_id"), _
+                                               ResolveActShapeId(act, "shape_b_id")
         Case "group_by_overlap"
-            modActionsLayout.Do_group_by_overlap CLng(act("slide")), act("shape_ids")
+            modActionsLayout.Do_group_by_overlap CLng(act("slide")), ResolveActShapeIdArray(act, "shape_ids")
         Case "find_replace_regex"
             modActionsDeck.Do_find_replace_regex CStr(act("scope")), CStr(act("pattern")), CStr(act("replacement"))
         Case "swap_font_deck_wide"
@@ -913,6 +1104,9 @@ Private Sub DispatchAction(act As Object)
             modActionsDeck.Do_apply_layout_to_slides act("slide_indices"), CLng(act("layout_index"))
         Case "rotate_shape"
             modActionsEffects.Do_rotate_shape CLng(act("slide")), CLng(act("shape_id")), CDbl(act("degrees"))
+        Case "set_shape_adjustment"
+            modActionsEffects.Do_set_shape_adjustment CLng(act("slide")), CLng(act("shape_id")), _
+                                                       CLng(act("index")), CDbl(act("value"))
         Case "flip_shape"
             modActionsEffects.Do_flip_shape CLng(act("slide")), CLng(act("shape_id")), CStr(act("axis"))
         Case "set_line_color"
@@ -964,15 +1158,20 @@ Private Sub DispatchAction(act As Object)
             If act.Exists("ref_name") Then tbRef = CStr(act("ref_name"))
             If act.Exists("font_color") Then tbFc = CStr(act("font_color"))
             If act.Exists("font_size") Then tbFs = CLng(act("font_size"))
-            If act.Exists("font_bold") Then tbBold = CBool(act("font_bold"))
-            If act.Exists("font_italic") Then tbItalic = CBool(act("font_italic"))
+            If act.Exists("font_bold") Then tbBold = modActions.ToBool(act("font_bold"))
+            If act.Exists("font_italic") Then tbItalic = modActions.ToBool(act("font_italic"))
             If act.Exists("h_align") Then tbAlign = CStr(act("h_align"))
             If act.Exists("fill") Then If Not IsNull(act("fill")) Then tbFill = CStr(act("fill"))
             If act.Exists("stroke") Then If Not IsNull(act("stroke")) Then tbStroke = CStr(act("stroke"))
             If act.Exists("stroke_weight_pt") Then tbSw = CSng(act("stroke_weight_pt"))
+            Dim tbSuper As String: tbSuper = ""
+            Dim tbSub As String: tbSub = ""
+            If act.Exists("super_suffix") Then tbSuper = CStr(act("super_suffix"))
+            If act.Exists("sub_suffix") Then tbSub = CStr(act("sub_suffix"))
             modActionsLayout.Do_add_text_box CLng(act("slide")), CStr(act("text")), _
                 CSng(tbPos("left")), CSng(tbPos("top")), CSng(tbPos("width")), CSng(tbPos("height")), _
-                tbRef, tbFc, tbFs, tbBold, tbItalic, tbAlign, tbFill, tbStroke, tbSw
+                tbRef, tbFc, tbFs, tbBold, tbItalic, tbAlign, tbFill, tbStroke, tbSw, _
+                tbSuper, tbSub
         Case "z_order"
             modActionsLayout.Do_z_order CLng(act("slide")), CLng(act("shape_id")), CStr(act("order"))
         Case "duplicate_shape"
@@ -998,7 +1197,7 @@ Private Sub DispatchAction(act As Object)
             Dim cbVisible As Boolean: cbVisible = True
             If act.Exists("color") Then cbColor = CStr(act("color"))
             If act.Exists("weight_pt") Then cbWeight = CSng(act("weight_pt"))
-            If act.Exists("visible") Then cbVisible = CBool(act("visible"))
+            If act.Exists("visible") Then cbVisible = modActions.ToBool(act("visible"))
             modActionsTable.Do_set_cell_border CLng(act("slide")), CLng(act("shape_id")), _
                 CLng(act("row")), CLng(act("col")), CStr(act("side")), cbColor, cbWeight, cbVisible
         Case "set_cell_text_align"
@@ -1038,10 +1237,11 @@ Private Sub DispatchAction(act As Object)
                 CSng(isnPos("width")), CSng(isnPos("height")), isnRef, isnFc, isnFs
         Case "copy_formatting"
             modActionsLayout.Do_copy_formatting CLng(act("slide")), _
-                CLng(act("source_shape_id")), CLng(act("target_shape_id"))
+                ResolveActShapeId(act, "source_shape_id"), _
+                ResolveActShapeId(act, "target_shape_id")
         Case "set_run_strikethrough"
             modActionsRun.Do_set_run_strikethrough CLng(act("slide")), CLng(act("shape_id")), _
-                CLng(act("paragraph_index")), CLng(act("run_index")), CBool(act("value"))
+                CLng(act("paragraph_index")), CLng(act("run_index")), modActions.ToBool(act("value"))
     End Select
 End Sub
 
@@ -1316,3 +1516,4 @@ Private Sub InsertSortedDesc(c As Collection, item As Object)
     Next i
     c.Add item
 End Sub
+

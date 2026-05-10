@@ -11,12 +11,17 @@ Public Sub Do_insert_picture(slideNum As Long, picturePath As String, _
     If Not FileExists(picturePath) Then
         Err.Raise vbObjectError + 6002, "Do_insert_picture", "file_not_found: " & picturePath
     End If
-    pres.Slides(slideNum).Shapes.AddPicture _
+    Dim pic As Shape
+    Set pic = pres.Slides(slideNum).Shapes.AddPicture( _
         FileName:=picturePath, _
         LinkToFile:=msoFalse, _
         SaveWithDocument:=msoTrue, _
         Left:=leftPt, Top:=topPt, _
-        Width:=widthPt, Height:=heightPt
+        Width:=widthPt, Height:=heightPt)
+    ' Force exact dimensions — AddPicture preserves source aspect by default
+    pic.LockAspectRatio = msoFalse
+    pic.Width = widthPt
+    pic.Height = heightPt
 End Sub
 
 Public Sub Do_replace_picture(slideNum As Long, shapeId As Long, picturePath As String)
@@ -28,9 +33,13 @@ Public Sub Do_replace_picture(slideNum As Long, shapeId As Long, picturePath As 
     Dim L As Single, T As Single, W As Single, H As Single
     L = sh.Left: T = sh.Top: W = sh.Width: H = sh.Height
     sh.Delete
-    ActivePresentation.Slides(slideNum).Shapes.AddPicture _
+    Dim pic As Shape
+    Set pic = ActivePresentation.Slides(slideNum).Shapes.AddPicture( _
         FileName:=picturePath, LinkToFile:=msoFalse, SaveWithDocument:=msoTrue, _
-        Left:=L, Top:=T, Width:=W, Height:=H
+        Left:=L, Top:=T, Width:=W, Height:=H)
+    pic.LockAspectRatio = msoFalse
+    pic.Width = W
+    pic.Height = H
 End Sub
 
 Private Function FileExists(p As String) As Boolean

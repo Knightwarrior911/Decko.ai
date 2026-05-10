@@ -25,9 +25,9 @@ Public Sub Do_add_connector(slideNum As Long, fromId As Long, toId As Long, _
 
     Dim ctype As Long
     Select Case LCase(kind)
-        Case "straight": ctype = 1
-        Case "elbow":    ctype = 2
-        Case "curved":   ctype = 3
+        Case "straight": ctype = 1  ' msoConnectorStraight = 1
+        Case "elbow":    ctype = 2  ' msoConnectorElbow = 2
+        Case "curved":   ctype = 3  ' msoConnectorCurved = 3
         Case Else:       ctype = 1
     End Select
 
@@ -36,8 +36,8 @@ Public Sub Do_add_connector(slideNum As Long, fromId As Long, toId As Long, _
 
     Dim fpIdx As Long: fpIdx = ResolveConnPoint(fromPoint)
     Dim tpIdx As Long: tpIdx = ResolveConnPoint(toPoint)
-    Dim autoRoute As Boolean: autoRoute = (fpIdx = 0 And tpIdx = 0)
 
+    On Error GoTo ConnectFail
     If fpIdx > 0 Then
         conn.ConnectorFormat.BeginConnect shFrom, fpIdx
     Else
@@ -48,7 +48,17 @@ Public Sub Do_add_connector(slideNum As Long, fromId As Long, toId As Long, _
     Else
         conn.ConnectorFormat.EndConnect shTo, 1
     End If
-    If autoRoute Then conn.RerouteConnections
+    On Error GoTo 0
+    conn.RerouteConnections
+    GoTo StyleConn
+
+ConnectFail:
+    Dim failMsg As String: failMsg = Err.Description
+    conn.Delete
+    Err.Raise vbObjectError + 10003, "Do_add_connector", _
+              "BeginConnect/EndConnect failed (one of the endpoint shapes likely lacks connection sites — e.g. a Group): " & failMsg
+
+StyleConn:
 
     conn.Line.ForeColor.RGB = modActions.HexToRgb(hexColor)
     conn.Line.Weight = weightPt
