@@ -340,6 +340,16 @@ Private Function PromptTemplate() As String
     s = s & "    Use slide:N when you only edited one slide; deck for multi-slide" & vbCrLf
     s = s & "    edits. This action MUST be last so it sees the final content." & vbCrLf
 
+    s = s & vbCrLf & "ICON ACTION (Microsoft Fluent UI icons, fetched from unpkg CDN):" & vbCrLf
+    s = s & "  Use when user asks for an icon/pictogram on a slide." & vbCrLf
+    s = s & "  Find icon names at https://fluenticons.co (search concept, use name in lowercase_underscores)." & vbCrLf
+    s = s & "  style: ""filled"" (default) or ""regular"". size: 16|20|24|28|32|48 (default 48)." & vbCrLf
+    s = s & "  color: hex string e.g. ""#15283C"". Omit color to keep default dark grey." & vbCrLf
+    s = s & "  left/top/width/height all in points." & vbCrLf
+    s = s & "    {""type"":""insert_icon"",""slide"":1,""icon"":""building_factory""," & vbCrLf
+    s = s & "     ""style"":""filled"",""size"":48,""color"":""#15283C""," & vbCrLf
+    s = s & "     ""left"":100,""top"":200,""width"":60,""height"":60}" & vbCrLf
+
     s = s & vbCrLf & "ADDITIONAL ACTIONS (use as needed):" & vbCrLf
     s = s & "  {""type"":""set_text_autofit"",""slide"":1,""shape_id"":11,""mode"":""shrink""}" & vbCrLf
     s = s & "  {""type"":""enable_text_shrink_for_overflow"",""scope"":""slide:1""}" & vbCrLf
