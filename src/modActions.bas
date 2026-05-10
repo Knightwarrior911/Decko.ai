@@ -231,6 +231,7 @@ End Sub
 
 Public Sub Do_add_slide(position As Long, layoutIndex As Long)
     Dim pres As Presentation: Set pres = ActivePresentation
+    If position < 1 Or position > pres.Slides.Count + 1 Then position = pres.Slides.Count + 1
     Dim layout As CustomLayout
     Set layout = pres.SlideMaster.CustomLayouts(layoutIndex + 1)  ' 1-based in VBA
     pres.Slides.AddSlide position, layout
