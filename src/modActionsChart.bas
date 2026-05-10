@@ -223,6 +223,13 @@ Public Sub Do_set_chart_format(slideNum As Long, shapeId As Long, ByVal props As
             ch.ChartArea.Format.Line.Visible = msoFalse
         End If
     End If
+    ' 3D chart rotation / perspective (only for 3D chart types)
+    If props.Exists("rotation") Then ch.Rotation = modActions.ToLong(props("rotation"))
+    If props.Exists("elevation") Then ch.Elevation = modActions.ToLong(props("elevation"))
+    If props.Exists("perspective") Then ch.Perspective = modActions.ToLong(props("perspective"))
+    If props.Exists("right_angle_axes") Then ch.RightAngleAxes = modActions.ToBool(props("right_angle_axes"))
+    If props.Exists("height_percent") Then ch.HeightPercent = modActions.ToLong(props("height_percent"))
+    If props.Exists("gap_depth") Then cg.GapDepth = modActions.ToLong(props("gap_depth"))
     ' Plot area (inner data region) styling
     If props.Exists("plot_area_fill") Then
         ch.PlotArea.Format.Fill.Solid
@@ -598,16 +605,24 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
             ser.Format.Line.Visible = msoFalse
         End If
     End If
-    ' Pie/doughnut leader lines — show connector lines from outside-end labels
-    ' to their slices (auto-placed by PowerPoint when needed)
+    ' Pie/doughnut leader lines — try multiple API paths since exposed differently
+    ' across PowerPoint versions (Series.HasLeaderLines vs DataLabels.ShowLeaderLines)
     If props.Exists("show_leader_lines") Then
+        Dim showLeaders As Boolean: showLeaders = modActions.ToBool(props("show_leader_lines"))
         On Error Resume Next
-        ser.HasLeaderLines = modActions.ToBool(props("show_leader_lines"))
+        ser.HasLeaderLines = showLeaders
+        Err.Clear
+        ser.DataLabels.ShowLeaderLines = showLeaders
+        Err.Clear
         On Error GoTo 0
     End If
     If props.Exists("leader_line_color") Then
+        Dim llC As Long: llC = modActions.HexToRgb(CStr(props("leader_line_color")))
         On Error Resume Next
-        ser.LeaderLines.Format.Line.ForeColor.RGB = modActions.HexToRgb(CStr(props("leader_line_color")))
+        ser.LeaderLines.Format.Line.ForeColor.RGB = llC
+        Err.Clear
+        ser.DataLabels.LeaderLines.Format.Line.ForeColor.RGB = llC
+        Err.Clear
         On Error GoTo 0
     End If
     ' Gradient fill — props.gradient_fill = { from, to, direction }
@@ -937,6 +952,20 @@ Public Function ChartTypeFromName(chartName As String) As Long
         Case "radar":                                 ChartTypeFromName = -4151
         Case "radarmarkers", "radar_markers":         ChartTypeFromName = 81
         Case "radarfilled", "radar_filled":           ChartTypeFromName = 82
+        ' 3D chart types
+        Case "column3d", "column_3d":                 ChartTypeFromName = -4100
+        Case "columnclustered3d", "column_clustered_3d": ChartTypeFromName = 54
+        Case "columnstacked3d", "column_stacked_3d":  ChartTypeFromName = 55
+        Case "bar3d", "bar_3d":                       ChartTypeFromName = -4099
+        Case "barclustered3d", "bar_clustered_3d":    ChartTypeFromName = 60
+        Case "barstacked3d", "bar_stacked_3d":        ChartTypeFromName = 61
+        Case "line3d", "line_3d":                     ChartTypeFromName = -4101
+        Case "pie3d", "pie_3d":                       ChartTypeFromName = -4102
+        Case "pieexploded3d", "pie_exploded_3d":      ChartTypeFromName = 70
+        Case "area3d", "area_3d":                     ChartTypeFromName = -4098
+        Case "areastacked3d", "area_stacked_3d":      ChartTypeFromName = 79
+        Case "surface", "surface3d":                  ChartTypeFromName = 83
+        Case "surfacewireframe":                      ChartTypeFromName = 84
         Case "pie", "xlpie":                          ChartTypeFromName = 5
         Case "barclustered", "xlbarclustered":        ChartTypeFromName = 57
         Case "barstacked":                            ChartTypeFromName = 58
