@@ -108,7 +108,7 @@ End Sub
 
 ' ---------- HTTP -------------------------------------------------------------
 
-Private Function HttpGetText(url As String) As String
+Public Function HttpGetText(url As String) As String
     Dim http As Object
     Set http = CreateObject("WinHttp.WinHttpRequest.5.1")
     On Error Resume Next
@@ -405,7 +405,7 @@ Private Function ParentFolder(path As String) As String
     If slash > 0 Then ParentFolder = Left(p, slash - 1) Else ParentFolder = ""
 End Function
 
-Private Sub WriteTextFile(path As String, contents As String)
+Public Sub WriteTextFile(path As String, contents As String)
     ' Write UTF-8 *without* the leading BOM. ADODB.Stream's text mode prepends
     ' a 3-byte BOM that breaks downstream JSON parsers (Python's json.loads,
     ' VBA modJSON.ParseJson). Strip it by re-staging through a binary stream.

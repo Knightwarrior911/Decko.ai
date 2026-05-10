@@ -172,6 +172,8 @@ Private Function ValidateAction(act As Object) As String
         Case "set_speaker_notes", "append_speaker_notes"
             ValidateAction = RequireFields(act, Array("slide", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "insert_icon"
+            ValidateAction = RequireFields(act, Array("slide", "icon", "left", "top", "width", "height"))
         Case "insert_picture"
             ' Accept "path" or "picture_path" (LLMs and bulk_insert_image use the latter)
             If Not act.Exists("path") And Not act.Exists("picture_path") Then
@@ -868,6 +870,8 @@ Private Sub DispatchAction(act As Object)
             modActions.Do_set_speaker_notes CLng(act("slide")), CStr(act("value"))
         Case "append_speaker_notes"
             modActions.Do_append_speaker_notes CLng(act("slide")), CStr(act("value"))
+        Case "insert_icon"
+            modActionsIcon.Do_insert_icon act
         Case "insert_picture"
             Dim ipos As Object: Set ipos = act("pos")
             Dim ipPath As String
