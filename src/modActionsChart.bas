@@ -223,6 +223,12 @@ Public Sub Do_set_chart_format(slideNum As Long, shapeId As Long, ByVal props As
             ch.ChartArea.Format.Line.Visible = msoFalse
         End If
     End If
+    If props.Exists("chart_area_image") Then
+        ch.ChartArea.Format.Fill.UserPicture CStr(props("chart_area_image"))
+    End If
+    If props.Exists("plot_area_image") Then
+        ch.PlotArea.Format.Fill.UserPicture CStr(props("plot_area_image"))
+    End If
     ' 3D chart rotation / perspective (only for 3D chart types)
     If props.Exists("rotation") Then ch.Rotation = modActions.ToLong(props("rotation"))
     If props.Exists("elevation") Then ch.Elevation = modActions.ToLong(props("elevation"))
