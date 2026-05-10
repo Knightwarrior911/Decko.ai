@@ -144,6 +144,190 @@ End Function
 
 ' --- Granular chart-element actions: parity with PowerPoint's chart UI -----
 
+' Chart-group / chart-level visual properties.
+'   props (Object): any subset of:
+'     gap_width (0-500)        — space between category groups (column/bar charts)
+'     overlap (-100 to 100)    — overlap between series in same category
+'     bar_shape (string)       — "box", "cone", "cone_to_max", "cylinder", "pyramid", "pyramid_to_max"
+'     vary_by_categories (bool)— color each point in a single-series chart
+'     reverse_categories (bool)— reverse category-axis plot order
+'     reverse_series (bool)    — reverse series plot order
+'     scale_type (string)      — "linear" or "logarithmic" for value axis
+'     doughnut_hole_size (10-90)— inner-radius % for doughnut charts
+Public Sub Do_set_chart_format(slideNum As Long, shapeId As Long, ByVal props As Object)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 11050, "Do_set_chart_format", "shape not found"
+    If Not sh.HasChart Then Err.Raise vbObjectError + 11051, "Do_set_chart_format", "not a chart"
+    Dim ch As Object: Set ch = sh.Chart
+    On Error Resume Next
+    Dim cg As Object: Set cg = ch.ChartGroups(1)
+    If props.Exists("gap_width") Then cg.GapWidth = modActions.ToLong(props("gap_width"))
+    If props.Exists("overlap") Then cg.Overlap = modActions.ToLong(props("overlap"))
+    If props.Exists("vary_by_categories") Then cg.VaryByCategories = modActions.ToBool(props("vary_by_categories"))
+    If props.Exists("doughnut_hole_size") Then cg.DoughnutHoleSize = modActions.ToLong(props("doughnut_hole_size"))
+    If props.Exists("bar_shape") Then
+        Select Case LCase(CStr(props("bar_shape")))
+            Case "box":            cg.BarShape = 0
+            Case "pyramid":        cg.BarShape = 1
+            Case "pyramid_to_max": cg.BarShape = 2
+            Case "cylinder":       cg.BarShape = 3
+            Case "cone":           cg.BarShape = 4
+            Case "cone_to_max":    cg.BarShape = 5
+        End Select
+    End If
+    If props.Exists("reverse_categories") Then
+        ch.Axes(1).ReversePlotOrder = modActions.ToBool(props("reverse_categories"))
+    End If
+    If props.Exists("reverse_series") Then
+        ch.Axes(2).ReversePlotOrder = modActions.ToBool(props("reverse_series"))
+    End If
+    If props.Exists("scale_type") Then
+        Select Case LCase(CStr(props("scale_type")))
+            Case "linear":      ch.Axes(2).ScaleType = -4132    ' xlScaleLinear
+            Case "logarithmic": ch.Axes(2).ScaleType = -4133    ' xlScaleLogarithmic
+        End Select
+    End If
+    On Error GoTo 0
+End Sub
+
+' Add a trendline to a chart series.
+'   seriesIndex: 1-based
+'   props (Object):
+'     type (string)             — "linear" | "log" | "polynomial" | "power" |
+'                                 "exponential" | "moving_avg"
+'     order (long)              — for polynomial (2-6)
+'     period (long)             — for moving_avg (2..)
+'     forward (number)          — periods to extend forward
+'     backward (number)         — periods to extend backward
+'     intercept (number)        — y-intercept
+'     display_equation (bool)
+'     display_r_squared (bool)
+'     name (string)             — custom trendline name
+'     color (hex), weight (number), dash (solid/dash/dot/...)
+Public Sub Do_add_chart_trendline(slideNum As Long, shapeId As Long, _
+                                    seriesIndex As Long, ByVal props As Object)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 11060, "Do_add_chart_trendline", "shape not found"
+    If Not sh.HasChart Then Err.Raise vbObjectError + 11061, "Do_add_chart_trendline", "not a chart"
+    Dim ch As Object: Set ch = sh.Chart
+    If seriesIndex < 1 Or seriesIndex > ch.SeriesCollection.Count Then
+        Err.Raise vbObjectError + 11062, "Do_add_chart_trendline", _
+                  "series_index out of range 1.." & ch.SeriesCollection.Count
+    End If
+    Dim ser As Object: Set ser = ch.SeriesCollection(seriesIndex)
+    Dim trType As Long: trType = -4132   ' xlLinear default
+    If props.Exists("type") Then
+        Select Case LCase(CStr(props("type")))
+            Case "linear":      trType = -4132    ' xlLinear
+            Case "log":         trType = -4133    ' xlLogarithmic
+            Case "polynomial":  trType = 3        ' xlPolynomial
+            Case "power":       trType = 4        ' xlPower
+            Case "exponential": trType = 5        ' xlExponential
+            Case "moving_avg":  trType = 6        ' xlMovingAvg
+        End Select
+    End If
+    Dim tr As Object: Set tr = ser.Trendlines.Add(Type:=trType)
+    On Error Resume Next
+    If props.Exists("order") Then tr.Order = modActions.ToLong(props("order"))
+    If props.Exists("period") Then tr.Period = modActions.ToLong(props("period"))
+    If props.Exists("forward") Then tr.Forward = CDbl(props("forward"))
+    If props.Exists("backward") Then tr.Backward = CDbl(props("backward"))
+    If props.Exists("intercept") Then
+        tr.InterceptIsAuto = False
+        tr.Intercept = CDbl(props("intercept"))
+    End If
+    If props.Exists("display_equation") Then tr.DisplayEquation = modActions.ToBool(props("display_equation"))
+    If props.Exists("display_r_squared") Then tr.DisplayRSquared = modActions.ToBool(props("display_r_squared"))
+    If props.Exists("name") Then
+        tr.NameIsAuto = False
+        tr.Name = CStr(props("name"))
+    End If
+    If props.Exists("color") Then
+        tr.Format.Line.ForeColor.RGB = modActions.HexToRgb(CStr(props("color")))
+    End If
+    If props.Exists("weight") Then tr.Format.Line.Weight = CDbl(props("weight"))
+    If props.Exists("dash") Then
+        Select Case LCase(CStr(props("dash")))
+            Case "solid":         tr.Format.Line.DashStyle = msoLineSolid
+            Case "dash":          tr.Format.Line.DashStyle = msoLineDash
+            Case "dot":           tr.Format.Line.DashStyle = msoLineSquareDot
+            Case "round_dot":     tr.Format.Line.DashStyle = msoLineRoundDot
+            Case "dash_dot":      tr.Format.Line.DashStyle = msoLineDashDot
+            Case "long_dash":     tr.Format.Line.DashStyle = msoLineLongDash
+            Case "long_dash_dot": tr.Format.Line.DashStyle = msoLineLongDashDot
+        End Select
+    End If
+    On Error GoTo 0
+End Sub
+
+' Add error bars to a chart series.
+'   props (Object):
+'     direction (string)        — "x" | "y"
+'     include (string)          — "both" | "plus" | "minus"
+'     type (string)             — "fixed" | "percent" | "stdev" | "stderr" | "custom"
+'     amount (number)           — value for fixed/percent/stdev
+'     end_style (string)        — "cap" | "no_cap"
+'     color (hex), weight (number)
+Public Sub Do_set_chart_error_bars(slideNum As Long, shapeId As Long, _
+                                     seriesIndex As Long, ByVal props As Object)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 11070, "Do_set_chart_error_bars", "shape not found"
+    If Not sh.HasChart Then Err.Raise vbObjectError + 11071, "Do_set_chart_error_bars", "not a chart"
+    Dim ch As Object: Set ch = sh.Chart
+    Dim ser As Object: Set ser = ch.SeriesCollection(seriesIndex)
+
+    Dim direction As Long: direction = 2   ' xlY
+    Dim include As Long: include = 1       ' xlBoth
+    Dim ebType As Long: ebType = 1         ' xlErrorBarTypeFixedValue
+    Dim amount As Double: amount = 1
+    Dim minusValues As Double: minusValues = 1
+
+    If props.Exists("direction") Then
+        Select Case LCase(CStr(props("direction")))
+            Case "x": direction = 1   ' xlX
+            Case "y": direction = 2   ' xlY
+        End Select
+    End If
+    If props.Exists("include") Then
+        Select Case LCase(CStr(props("include")))
+            Case "both":  include = 1   ' xlErrorBarIncludeBoth
+            Case "plus":  include = 2   ' xlErrorBarIncludePlusValues
+            Case "minus": include = 3   ' xlErrorBarIncludeMinusValues
+        End Select
+    End If
+    If props.Exists("type") Then
+        Select Case LCase(CStr(props("type")))
+            Case "fixed":   ebType = 1   ' xlErrorBarTypeFixedValue
+            Case "percent": ebType = 2   ' xlErrorBarTypePercent
+            Case "stdev":   ebType = 3   ' xlErrorBarTypeStDev
+            Case "stderr":  ebType = 4   ' xlErrorBarTypeStError
+            Case "custom":  ebType = -4114  ' xlErrorBarTypeCustom
+        End Select
+    End If
+    If props.Exists("amount") Then amount = CDbl(props("amount"))
+
+    On Error Resume Next
+    ser.HasErrorBars = True
+    ser.ErrorBar Direction:=direction, Include:=include, Type:=ebType, Amount:=amount
+    ' Force error bars visible — defaults are sometimes hidden after method call
+    ser.ErrorBars.Format.Line.Visible = msoTrue
+    ser.ErrorBars.Format.Line.Weight = 1.5
+    ser.ErrorBars.Format.Line.ForeColor.RGB = modActions.HexToRgb("#000000")
+    If props.Exists("end_style") Then
+        Select Case LCase(CStr(props("end_style")))
+            Case "no_cap": ser.ErrorBars.EndStyle = 2   ' xlNoCap
+            Case "cap":    ser.ErrorBars.EndStyle = 1   ' xlCap
+        End Select
+    End If
+    If props.Exists("color") Then
+        ser.ErrorBars.Format.Line.ForeColor.RGB = modActions.HexToRgb(CStr(props("color")))
+    End If
+    If props.Exists("weight") Then ser.ErrorBars.Format.Line.Weight = CDbl(props("weight"))
+    On Error GoTo 0
+End Sub
+
+
+
 ' Set properties on a chart axis: visibility, label position, line, font, format, scale.
 '   axis: "x" / "y" / "category" / "value" — selects axis
 '   props (Object): any subset of:
@@ -456,6 +640,24 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
                                 Dim plcRgb As Long: plcRgb = modActions.HexToRgb(plcHex)
                                 pl.Font.Color.RGB = plcRgb
                                 pl.Format.TextFrame2.TextRange.Font.Fill.ForeColor.RGB = plcRgb
+                            End If
+                        End If
+                    End If
+                    ' Per-point label position override (positive bars above, negatives below, etc.)
+                    If props.Exists("point_label_positions") Then
+                        Dim plp As Object: Set plp = props("point_label_positions")
+                        If p <= plp.Count Then
+                            Dim plpStr As String: plpStr = CStr(plp(p))
+                            If Len(plpStr) > 0 Then
+                                Select Case LCase(plpStr)
+                                    Case "outside_end", "above": pl.Position = 0
+                                    Case "inside_end":           pl.Position = 3
+                                    Case "inside_base":          pl.Position = 4
+                                    Case "center":               pl.Position = -4108
+                                    Case "below":                pl.Position = 1
+                                    Case "left":                 pl.Position = 2
+                                    Case "right":                pl.Position = 4
+                                End Select
                             End If
                         End If
                     End If

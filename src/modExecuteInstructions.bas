@@ -236,6 +236,15 @@ Private Function ValidateAction(act As Object) As String
         Case "set_chart_axis"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "axis", "props"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_chart_format"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "props"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "add_chart_trendline"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "series_index", "props"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_chart_error_bars"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "series_index", "props"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "set_chart_series"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "series_index", "props"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
@@ -955,6 +964,17 @@ Private Sub DispatchAction(act As Object)
             Dim caxProps As Object: Set caxProps = act("props")
             modActionsChart.Do_set_chart_axis CLng(act("slide")), CLng(act("shape_id")), _
                                                CStr(act("axis")), caxProps
+        Case "set_chart_format"
+            Dim cfmtProps As Object: Set cfmtProps = act("props")
+            modActionsChart.Do_set_chart_format CLng(act("slide")), CLng(act("shape_id")), cfmtProps
+        Case "add_chart_trendline"
+            Dim ctlProps As Object: Set ctlProps = act("props")
+            modActionsChart.Do_add_chart_trendline CLng(act("slide")), CLng(act("shape_id")), _
+                                                    CLng(act("series_index")), ctlProps
+        Case "set_chart_error_bars"
+            Dim cebProps As Object: Set cebProps = act("props")
+            modActionsChart.Do_set_chart_error_bars CLng(act("slide")), CLng(act("shape_id")), _
+                                                     CLng(act("series_index")), cebProps
         Case "set_chart_series"
             Dim cssProps As Object: Set cssProps = act("props")
             modActionsChart.Do_set_chart_series CLng(act("slide")), CLng(act("shape_id")), _
