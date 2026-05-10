@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmExecute 
-   Caption         =   "Decko.ai • Execute Instructions"
+   Caption         =   "Decko.ai ï¿½ Execute Instructions"
    ClientHeight    =   9600
    ClientLeft      =   91
    ClientTop       =   406
@@ -27,7 +27,7 @@ Private Sub btnParse_Click()
     lstActions.Clear
 
     On Error Resume Next
-    Set mParsed = modJSON.ParseJson(txtInstructions.Text)
+    Set mParsed = modJSON.ParseJson(modExecuteInstructions.SanitizeJsonInput(txtInstructions.Text))
     If Err.Number <> 0 Then
         lblStatus.Caption = "Invalid JSON: " & Err.Description
         Err.Clear
