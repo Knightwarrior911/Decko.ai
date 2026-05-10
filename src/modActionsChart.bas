@@ -51,7 +51,14 @@ Public Sub Do_add_chart(slideNum As Long, chartType As String, _
                  chartTypeNum = 123)
 
     Dim s As Long
-    If Not isSpecial Then
+    If isSpecial Then
+        ' Special chart types (waterfall, sunburst, treemap, funnel, histogram,
+        ' pareto, boxwhisker) reject SeriesCollection.Values writes. Custom data
+        ' would need ChartData.Workbook write, but PowerPoint embedded chart
+        ' workbooks don't persist programmatic writes reliably (chart re-renders
+        ' from cached defaults). KNOWN LIMITATION — chart created with AddChart2
+        ' default placeholder data; user must edit data manually post-creation.
+    Else
         Dim existingCount As Long: existingCount = ch.SeriesCollection.Count
         Do While ch.SeriesCollection.Count > seriesCount
             ch.SeriesCollection(ch.SeriesCollection.Count).Delete
