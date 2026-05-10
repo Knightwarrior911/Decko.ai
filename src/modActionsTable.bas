@@ -477,6 +477,7 @@ Private Sub PlaceImageOverImageCell(sl As Slide, cell As Object, imgPath As Stri
         picT = ct + pad
     End If
 
+    imgPath = Replace(imgPath, "/", "\")   ' AddPicture requires backslashes
     If fit = "stretch" Then
         On Error Resume Next
         Dim pic As Shape

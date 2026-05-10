@@ -4,6 +4,7 @@ Option Explicit
 Public Sub Do_insert_picture(slideNum As Long, picturePath As String, _
                              leftPt As Single, topPt As Single, _
                              widthPt As Single, heightPt As Single)
+    picturePath = Replace(picturePath, "/", "\")
     Dim pres As Presentation: Set pres = ActivePresentation
     If slideNum < 1 Or slideNum > pres.Slides.Count Then
         Err.Raise vbObjectError + 6001, "Do_insert_picture", "slide_out_of_range"
@@ -25,6 +26,7 @@ Public Sub Do_insert_picture(slideNum As Long, picturePath As String, _
 End Sub
 
 Public Sub Do_replace_picture(slideNum As Long, shapeId As Long, picturePath As String)
+    picturePath = Replace(picturePath, "/", "\")
     Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 6001, "Do_replace_picture", "shape not found"
     If sh.Type <> msoPicture Then Err.Raise vbObjectError + 6003, "Do_replace_picture", "shape is not a picture"
@@ -169,6 +171,7 @@ Public Sub AddPictureContain(sl As Slide, imgPath As String, _
                               leftPt As Single, topPt As Single, _
                               widthPt As Single, heightPt As Single)
     On Error GoTo failed
+    imgPath = Replace(imgPath, "/", "\")   ' AddPicture requires backslashes
     Dim pic As Shape
     ' Pass -1 for Width/Height so PowerPoint uses the source pixel dimensions
     ' (in points). This gives us the natural aspect ratio to compute the fit.
