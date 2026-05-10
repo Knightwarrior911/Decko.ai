@@ -199,6 +199,47 @@ Public Sub Do_set_chart_format(slideNum As Long, shapeId As Long, ByVal props As
     If props.Exists("hi_lo_lines") Then cg.HasHiLoLines = modActions.ToBool(props("hi_lo_lines"))
     ' Up-down bars (line charts with 2 series) - boxes showing diff between series
     If props.Exists("up_down_bars") Then cg.HasUpDownBars = modActions.ToBool(props("up_down_bars"))
+    ' Chart area (outer frame) styling
+    If props.Exists("chart_area_fill") Then
+        ch.ChartArea.Format.Fill.Solid
+        ch.ChartArea.Format.Fill.ForeColor.RGB = modActions.HexToRgb(CStr(props("chart_area_fill")))
+        ch.ChartArea.Format.Fill.Visible = msoTrue
+    End If
+    If props.Exists("chart_area_fill_visible") Then
+        If modActions.ToBool(props("chart_area_fill_visible")) Then
+            ch.ChartArea.Format.Fill.Visible = msoTrue
+        Else
+            ch.ChartArea.Format.Fill.Visible = msoFalse
+        End If
+    End If
+    If props.Exists("chart_area_border") Then
+        ch.ChartArea.Format.Line.ForeColor.RGB = modActions.HexToRgb(CStr(props("chart_area_border")))
+        ch.ChartArea.Format.Line.Visible = msoTrue
+    End If
+    If props.Exists("chart_area_border_visible") Then
+        If modActions.ToBool(props("chart_area_border_visible")) Then
+            ch.ChartArea.Format.Line.Visible = msoTrue
+        Else
+            ch.ChartArea.Format.Line.Visible = msoFalse
+        End If
+    End If
+    ' Plot area (inner data region) styling
+    If props.Exists("plot_area_fill") Then
+        ch.PlotArea.Format.Fill.Solid
+        ch.PlotArea.Format.Fill.ForeColor.RGB = modActions.HexToRgb(CStr(props("plot_area_fill")))
+        ch.PlotArea.Format.Fill.Visible = msoTrue
+    End If
+    If props.Exists("plot_area_fill_visible") Then
+        If modActions.ToBool(props("plot_area_fill_visible")) Then
+            ch.PlotArea.Format.Fill.Visible = msoTrue
+        Else
+            ch.PlotArea.Format.Fill.Visible = msoFalse
+        End If
+    End If
+    If props.Exists("plot_area_border") Then
+        ch.PlotArea.Format.Line.ForeColor.RGB = modActions.HexToRgb(CStr(props("plot_area_border")))
+        ch.PlotArea.Format.Line.Visible = msoTrue
+    End If
     On Error GoTo 0
 End Sub
 
@@ -425,6 +466,27 @@ Public Sub Do_set_chart_axis(slideNum As Long, shapeId As Long, _
         ax.HasTitle = True
         ax.AxisTitle.Text = CStr(props("title"))
     End If
+    ' Axis title font
+    If ax.HasTitle Then
+        Dim at As Object: Set at = ax.AxisTitle
+        If props.Exists("title_size") Then
+            at.Font.Size = modActions.ToLong(props("title_size"))
+            at.Format.TextFrame2.TextRange.Font.Size = modActions.ToLong(props("title_size"))
+        End If
+        If props.Exists("title_color") Then
+            Dim atC As Long: atC = modActions.HexToRgb(CStr(props("title_color")))
+            at.Font.Color.RGB = atC
+            at.Format.TextFrame2.TextRange.Font.Fill.ForeColor.RGB = atC
+        End If
+        If props.Exists("title_bold") Then
+            at.Font.Bold = modActions.ToBool(props("title_bold"))
+            at.Format.TextFrame2.TextRange.Font.Bold = modActions.ToBool(props("title_bold"))
+        End If
+        If props.Exists("title_italic") Then
+            at.Font.Italic = modActions.ToBool(props("title_italic"))
+            at.Format.TextFrame2.TextRange.Font.Italic = modActions.ToBool(props("title_italic"))
+        End If
+    End If
     ' Tick label rotation in degrees (-90 to 90)
     If props.Exists("label_rotation") Then
         ax.TickLabels.Orientation = modActions.ToLong(props("label_rotation"))
@@ -469,6 +531,84 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
     If props.Exists("fill") Then
         ser.Format.Fill.Solid
         ser.Format.Fill.ForeColor.RGB = modActions.HexToRgb(CStr(props("fill")))
+    End If
+    ' Pattern fill — props.pattern_fill = { fore, back, type }
+    ' type: dotted_5/10/20/25/30/40/50/60/70/75/80/90, dark_horizontal, dark_vertical,
+    '       dark_diagonal_down/up, light_horizontal/vertical/diagonal_down/up,
+    '       diagonal_brick, divot, large_checker_board, large_confetti, large_grid,
+    '       small_checker_board, small_confetti, small_grid, weave, waves, etc.
+    If props.Exists("pattern_fill") Then
+        Dim pf As Object: Set pf = props("pattern_fill")
+        Dim pfType As Long: pfType = 1   ' dotted_5 default
+        If pf.Exists("type") Then
+            Select Case LCase(CStr(pf("type")))
+                Case "dotted_5":             pfType = 1
+                Case "dotted_10":            pfType = 2
+                Case "dotted_20":            pfType = 3
+                Case "dotted_25":            pfType = 4
+                Case "dotted_30":            pfType = 5
+                Case "dotted_40":            pfType = 6
+                Case "dotted_50":            pfType = 7
+                Case "dotted_60":            pfType = 8
+                Case "dotted_70":            pfType = 9
+                Case "dotted_75":            pfType = 10
+                Case "dotted_80":            pfType = 11
+                Case "dotted_90":            pfType = 12
+                Case "dark_horizontal":      pfType = 13
+                Case "dark_vertical":        pfType = 14
+                Case "dark_diagonal_down":   pfType = 15
+                Case "dark_diagonal_up":     pfType = 16
+                Case "small_checker":        pfType = 17
+                Case "trellis":              pfType = 18
+                Case "light_horizontal":     pfType = 19
+                Case "light_vertical":       pfType = 20
+                Case "light_diagonal_down":  pfType = 21
+                Case "light_diagonal_up":    pfType = 22
+                Case "small_grid":           pfType = 23
+                Case "small_confetti":       pfType = 24
+                Case "large_checker":        pfType = 25
+                Case "large_grid":           pfType = 26
+                Case "large_confetti":       pfType = 27
+                Case "horizontal_brick":     pfType = 28
+                Case "diagonal_brick":       pfType = 29
+                Case "weave":                pfType = 30
+                Case "plaid":                pfType = 31
+                Case "divot":                pfType = 32
+                Case "dotted_diamond":       pfType = 33
+                Case "shingle":              pfType = 34
+                Case "wave":                 pfType = 35
+                Case "zig_zag":              pfType = 36
+            End Select
+        End If
+        ser.Format.Fill.Patterned pfType
+        If pf.Exists("fore") Then
+            ser.Format.Fill.ForeColor.RGB = modActions.HexToRgb(CStr(pf("fore")))
+        End If
+        If pf.Exists("back") Then
+            ser.Format.Fill.BackColor.RGB = modActions.HexToRgb(CStr(pf("back")))
+        End If
+    End If
+    ' Series border (column/bar/area outline) - independent of fill.
+    ' line_color/line_weight/line_dash already set above; this just exposes
+    ' explicit visibility toggle for borders on filled-area-style series.
+    If props.Exists("border_visible") Then
+        If modActions.ToBool(props("border_visible")) Then
+            ser.Format.Line.Visible = msoTrue
+        Else
+            ser.Format.Line.Visible = msoFalse
+        End If
+    End If
+    ' Pie/doughnut leader lines — show connector lines from outside-end labels
+    ' to their slices (auto-placed by PowerPoint when needed)
+    If props.Exists("show_leader_lines") Then
+        On Error Resume Next
+        ser.HasLeaderLines = modActions.ToBool(props("show_leader_lines"))
+        On Error GoTo 0
+    End If
+    If props.Exists("leader_line_color") Then
+        On Error Resume Next
+        ser.LeaderLines.Format.Line.ForeColor.RGB = modActions.HexToRgb(CStr(props("leader_line_color")))
+        On Error GoTo 0
     End If
     ' Gradient fill — props.gradient_fill = { from, to, direction }
     If props.Exists("gradient_fill") Then
