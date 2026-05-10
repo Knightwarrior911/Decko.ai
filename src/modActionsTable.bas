@@ -218,3 +218,324 @@ Public Sub Do_set_cell_fill(slideNum As Long, shapeId As Long, _
     cell.Shape.Fill.Solid
     cell.Shape.Fill.ForeColor.RGB = modActions.HexToRgb(hexColor)
 End Sub
+
+' Build a 2-column "image + bullets" table populated from a rows array.
+' Per-row layout in the image_col cell: an image overlay plus a name caption
+' anchored at the cell's top or bottom. The desc_col cell receives bullet
+' paragraphs of the row's blurb. Image overlays are placed AFTER all cells
+' are filled so the table's final cell rects are stable.
+'
+' Action shape (consumed via Do_build_image_grid_table_act):
+'   {"type":"build_image_grid_table","slide":1,"ref_name":"tbl",
+'    "pos":{"left":30,"top":60,"width":900,"height":500},
+'    "image_col":1,"desc_col":2,
+'    "name_position":"bottom","name_strip_pt":30,"image_pad_pt":6,
+'    "header_row":false,
+'    "col1_width_pt":300,"col2_width_pt":600,
+'    "name_font":{"size":12,"bold":true,"color":"#15283C"},
+'    "desc_font":{"size":10,"color":"#333333"},
+'    "rows":[{"name":"Aerospace","image_path":"...","bullets":["..."]}]}
+Public Sub Do_build_image_grid_table_act(act As Object)
+    Dim stage As String: stage = "init"
+    On Error GoTo bailout
+    If Not act.Exists("rows") Then
+        Err.Raise vbObjectError + 8030, "Do_build_image_grid_table", "rows array required"
+    End If
+    stage = "read_rows"
+    Dim rows As Object: Set rows = act("rows")
+    Dim n As Long: n = rows.Count
+    If n = 0 Then
+        Err.Raise vbObjectError + 8031, "Do_build_image_grid_table", "rows is empty"
+    End If
+
+    Dim slideNum As Long: slideNum = CLng(act("slide"))
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 8032, "Do_build_image_grid_table", "slide_out_of_range"
+    End If
+
+    Dim posD As Object: Set posD = act("pos")
+    Dim totalLeft As Single: totalLeft = CSng(posD("left"))
+    Dim totalTop As Single: totalTop = CSng(posD("top"))
+    Dim totalW As Single: totalW = CSng(posD("width"))
+    Dim totalH As Single: totalH = CSng(posD("height"))
+
+    Dim imgCol As Long: imgCol = 1
+    Dim descCol As Long: descCol = 2
+    If act.Exists("image_col") Then imgCol = CLng(act("image_col"))
+    If act.Exists("desc_col") Then descCol = CLng(act("desc_col"))
+
+    Dim hasHeader As Boolean: hasHeader = False
+    If act.Exists("header_row") Then hasHeader = modActions.ToBool(act("header_row"))
+
+    Dim namePos As String: namePos = "bottom"
+    If act.Exists("name_position") Then namePos = LCase(CStr(act("name_position")))
+
+    Dim nameStrip As Single: nameStrip = 30
+    If act.Exists("name_strip_pt") Then nameStrip = CSng(act("name_strip_pt"))
+    Dim imgPad As Single: imgPad = 6
+    If act.Exists("image_pad_pt") Then imgPad = CSng(act("image_pad_pt"))
+    Dim imgFit As String: imgFit = "contain"
+    If act.Exists("image_fit") Then imgFit = LCase(CStr(act("image_fit")))
+
+    Dim totalRows As Long: totalRows = n + IIf(hasHeader, 1, 0)
+    Dim cols As Long: cols = 2
+
+    ' Create the table.
+    stage = "add_table"
+    Dim tShp As Shape
+    Set tShp = pres.Slides(slideNum).Shapes.AddTable(totalRows, cols, _
+        totalLeft, totalTop, totalW, totalH)
+    If act.Exists("ref_name") Then
+        If Len(CStr(act("ref_name"))) > 0 Then tShp.Name = CStr(act("ref_name"))
+    End If
+
+    ' Optional column widths.
+    Dim w1 As Single, w2 As Single
+    w1 = -1: w2 = -1
+    If act.Exists("col1_width_pt") Then w1 = CSng(act("col1_width_pt"))
+    If act.Exists("col2_width_pt") Then w2 = CSng(act("col2_width_pt"))
+    If w1 < 0 And w2 < 0 Then
+        w1 = totalW * 0.4
+        w2 = totalW - w1
+    ElseIf w1 < 0 Then
+        w1 = totalW - w2
+    ElseIf w2 < 0 Then
+        w2 = totalW - w1
+    End If
+    On Error Resume Next
+    tShp.Table.Columns(1).Width = w1
+    tShp.Table.Columns(2).Width = w2
+    Err.Clear
+    On Error GoTo bailout
+
+    ' Force uniform row heights so caller's totalH actually applies. PowerPoint
+    ' otherwise distributes by content.
+    Dim rh As Single: rh = totalH / totalRows
+    Dim ri As Long
+    On Error Resume Next
+    For ri = 1 To totalRows
+        tShp.Table.Rows(ri).Height = rh
+    Next ri
+    Err.Clear
+    On Error GoTo bailout
+
+    stage = "set_widths_done"
+    ' Header row (optional) - bold, no bullets.
+    Dim startDataRow As Long: startDataRow = 1
+    If hasHeader Then
+        startDataRow = 2
+        Dim hdrImg As String: hdrImg = ""
+        Dim hdrDesc As String: hdrDesc = ""
+        If act.Exists("header_text_image") Then hdrImg = CStr(act("header_text_image"))
+        If act.Exists("header_text_desc") Then hdrDesc = CStr(act("header_text_desc"))
+        WriteHeaderCell tShp.Table.Cell(1, imgCol), hdrImg
+        WriteHeaderCell tShp.Table.Cell(1, descCol), hdrDesc
+    End If
+
+    ' Caption + bullet font configs.
+    Dim nameFontSize As Single: nameFontSize = 12
+    Dim nameFontColor As String: nameFontColor = "#15283C"
+    Dim nameFontBold As Boolean: nameFontBold = True
+    If act.Exists("name_font") Then
+        Dim nf As Object: Set nf = act("name_font")
+        If nf.Exists("size") Then nameFontSize = CSng(nf("size"))
+        If nf.Exists("color") Then nameFontColor = CStr(nf("color"))
+        If nf.Exists("bold") Then nameFontBold = modActions.ToBool(nf("bold"))
+    End If
+    Dim descFontSize As Single: descFontSize = 10
+    Dim descFontColor As String: descFontColor = "#333333"
+    If act.Exists("desc_font") Then
+        Dim df As Object: Set df = act("desc_font")
+        If df.Exists("size") Then descFontSize = CSng(df("size"))
+        If df.Exists("color") Then descFontColor = CStr(df("color"))
+    End If
+
+    ' Pass 1 - fill cell text (no images yet).
+    stage = "pass1_start"
+    Dim r As Long
+    For r = 1 To n
+        stage = "pass1_row=" & r
+        Dim row As Object: Set row = rows(r)
+        Dim tableRow As Long: tableRow = r + (startDataRow - 1)
+
+        Dim nameTxt As String: nameTxt = ""
+        If row.Exists("name") Then nameTxt = CStr(row("name"))
+        stage = "pass1_row=" & r & "_name"
+        WriteNameCell tShp.Table.Cell(tableRow, imgCol), nameTxt, _
+                      namePos, nameFontSize, nameFontColor, nameFontBold
+
+        Dim bullets As Object
+        If row.Exists("bullets") Then Set bullets = row("bullets") Else Set bullets = Nothing
+        stage = "pass1_row=" & r & "_bullets"
+        WriteBulletCell tShp.Table.Cell(tableRow, descCol), bullets, _
+                        descFontSize, descFontColor
+    Next r
+
+    ' Pass 2 - download (if URL) and overlay images on imageCol cells.
+    stage = "pass2_start"
+    For r = 1 To n
+        stage = "pass2_row=" & r
+        Dim row2 As Object: Set row2 = rows(r)
+        Dim tableRow2 As Long: tableRow2 = r + (startDataRow - 1)
+
+        Dim imgPath As String: imgPath = ""
+        If row2.Exists("image_path") Then imgPath = CStr(row2("image_path"))
+        If Len(imgPath) = 0 And row2.Exists("image_url") Then
+            Dim url As String: url = CStr(row2("image_url"))
+            If Len(url) > 0 Then imgPath = DownloadInlineImage(url)
+        End If
+        If Len(imgPath) > 0 And FileExistsLocal(imgPath) Then
+            stage = "pass2_row=" & r & "_overlay"
+            PlaceImageOverImageCell pres.Slides(slideNum), _
+                                     tShp.Table.Cell(tableRow2, imgCol), _
+                                     imgPath, namePos, nameStrip, imgPad, imgFit
+        End If
+    Next r
+    Exit Sub
+bailout:
+    Err.Raise vbObjectError + 8033, "Do_build_image_grid_table", _
+        "stage=" & stage & " err=" & Err.Description
+End Sub
+
+Private Sub WriteHeaderCell(cell As Object, txt As String)
+    cell.Shape.TextFrame.TextRange.Text = txt
+    cell.Shape.TextFrame.TextRange.Font.Bold = msoTrue
+    cell.Shape.TextFrame.VerticalAnchor = msoAnchorMiddle
+    cell.Shape.TextFrame.TextRange.ParagraphFormat.Alignment = ppAlignCenter
+End Sub
+
+Private Sub WriteNameCell(cell As Object, txt As String, namePos As String, _
+                           sz As Single, hexColor As String, bold As Boolean)
+    Dim tr As Object: Set tr = cell.Shape.TextFrame.TextRange
+    tr.Text = txt
+    tr.Font.Size = sz
+    tr.Font.Bold = IIf(bold, msoTrue, msoFalse)
+    On Error Resume Next
+    tr.Font.Color.RGB = modActions.HexToRgb(hexColor)
+    On Error GoTo 0
+    tr.ParagraphFormat.Alignment = ppAlignCenter
+    Select Case namePos
+        Case "top":    cell.Shape.TextFrame.VerticalAnchor = msoAnchorTop
+        Case Else:     cell.Shape.TextFrame.VerticalAnchor = msoAnchorBottom
+    End Select
+End Sub
+
+Private Sub WriteBulletCell(cell As Object, bullets As Object, _
+                             sz As Single, hexColor As String)
+    Dim tr As Object: Set tr = cell.Shape.TextFrame.TextRange
+    cell.Shape.TextFrame.VerticalAnchor = msoAnchorMiddle
+
+    If bullets Is Nothing Then
+        tr.Text = ""
+        Exit Sub
+    End If
+    Dim m As Long: m = bullets.Count
+    If m = 0 Then
+        tr.Text = ""
+        Exit Sub
+    End If
+
+    Dim joined As String: joined = ""
+    Dim i As Long
+    For i = 1 To m
+        If i > 1 Then joined = joined & vbCr
+        joined = joined & CStr(bullets(i))
+    Next i
+    tr.Text = joined
+    tr.Font.Size = sz
+    On Error Resume Next
+    tr.Font.Color.RGB = modActions.HexToRgb(hexColor)
+    On Error GoTo 0
+    tr.ParagraphFormat.Alignment = ppAlignLeft
+
+    For i = 1 To m
+        On Error Resume Next
+        With tr.Paragraphs(i).ParagraphFormat.Bullet
+            .Type = 1            ' ppBulletUnnumbered
+            .Character = 8226    ' bullet •
+        End With
+        On Error GoTo 0
+    Next i
+End Sub
+
+Private Sub PlaceImageOverImageCell(sl As Slide, cell As Object, imgPath As String, _
+                                     namePos As String, nameStrip As Single, _
+                                     pad As Single, fit As String)
+    Dim cl As Single: cl = cell.Shape.Left
+    Dim ct As Single: ct = cell.Shape.Top
+    Dim cw As Single: cw = cell.Shape.Width
+    Dim ch As Single: ch = cell.Shape.Height
+
+    Dim picL As Single, picT As Single, picW As Single, picH As Single
+    picL = cl + pad
+    picW = cw - 2 * pad
+    picH = ch - nameStrip - 2 * pad
+    If picH < 10 Then picH = 10
+    If picW < 10 Then picW = 10
+    If namePos = "top" Then
+        picT = ct + nameStrip + pad
+    Else
+        picT = ct + pad
+    End If
+
+    If fit = "stretch" Then
+        On Error Resume Next
+        Dim pic As Shape
+        Set pic = sl.Shapes.AddPicture(FileName:=imgPath, _
+            LinkToFile:=msoFalse, SaveWithDocument:=msoTrue, _
+            Left:=picL, Top:=picT, Width:=picW, Height:=picH)
+        If Err.Number = 0 And Not pic Is Nothing Then
+            pic.LockAspectRatio = msoFalse
+            pic.Width = picW
+            pic.Height = picH
+        End If
+        Err.Clear
+        On Error GoTo 0
+    Else
+        ' default = contain (preserve aspect, letterbox)
+        modActionsImage.AddPictureContain sl, imgPath, picL, picT, picW, picH
+    End If
+End Sub
+
+Private Function FileExistsLocal(p As String) As Boolean
+    Dim fso As Object: Set fso = CreateObject("Scripting.FileSystemObject")
+    FileExistsLocal = fso.FileExists(p)
+End Function
+
+Private Function DownloadInlineImage(url As String) As String
+    Dim deckDir As String
+    deckDir = ActivePresentation.Path
+    Dim folder As String: folder = deckDir & "\assets\inline"
+    On Error Resume Next
+    If Dir(folder, vbDirectory) = "" Then
+        Dim parent As String: parent = deckDir & "\assets"
+        If Dir(parent, vbDirectory) = "" Then MkDir parent
+        MkDir folder
+    End If
+    On Error GoTo 0
+    Dim ts As String: ts = Format(Now, "yyyymmddhhnnss")
+    Dim ext As String: ext = "jpg"
+    Dim u As String: u = LCase(url)
+    Dim q As Long: q = InStr(u, "?")
+    If q > 0 Then u = Left(u, q - 1)
+    Dim dot As Long: dot = InStrRev(u, ".")
+    If dot > 0 Then
+        Dim e As String: e = Mid(u, dot + 1)
+        Select Case e
+            Case "jpg", "jpeg", "png", "gif", "webp", "bmp"
+                ext = e
+        End Select
+    End If
+    Dim destPath As String
+    destPath = folder & "\inline_" & ts & "_" & CLng(Rnd * 1000000) & "." & ext
+    On Error Resume Next
+    modActionsWeb.Do_download_image url, destPath
+    If Err.Number <> 0 Then
+        DownloadInlineImage = ""
+        Err.Clear
+        Exit Function
+    End If
+    On Error GoTo 0
+    DownloadInlineImage = destPath
+End Function

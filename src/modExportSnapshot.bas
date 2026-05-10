@@ -1,19 +1,107 @@
 Attribute VB_Name = "modExportSnapshot"
 Option Explicit
 
+' Snapshot scope persisted across the form's lifetime so the entry-point
+' macros can preselect "all" vs "active" without rebuilding the form.
+'   "" or "all"   -> every slide (default; preserves prior behavior)
+'   "active"      -> only ActiveWindow.View.Slide.SlideIndex
+'   "N"           -> slide N (1-based)
+'   "A-B"         -> slides A..B inclusive
+Public g_SnapshotScope As String
+
 ' Build a JSON snapshot of ActivePresentation.
-' V0: text shapes only — slides, slide_number, shapes[].{shape_id, shape_name, type, text}
-' Later tasks add pos, font, fill, table, picture, theme.
-Public Function BuildSnapshotJson() As String
+' Optional slideFilter overrides g_SnapshotScope when supplied.
+Public Function BuildSnapshotJson(Optional ByVal slideFilter As Variant) As String
     Dim pres As Presentation
     Set pres = ActivePresentation
+
+    Dim scope As String
+    If IsMissing(slideFilter) Then
+        scope = g_SnapshotScope
+    Else
+        scope = CStr(slideFilter)
+    End If
 
     Dim root As Object
     Set root = CreateObject("Scripting.Dictionary")
     root.Add "deck", BuildDeckDict(pres)
-    root.Add "slides", BuildSlidesCollection(pres)
+    root.Add "slides", BuildSlidesCollection(pres, scope)
 
     BuildSnapshotJson = modJSON.ConvertToJson(root)
+End Function
+
+' Entry points the user can wire to ribbon/QAT/Alt+F8.
+Public Sub Decko_SnapshotAll()
+    g_SnapshotScope = "all"
+    frmExport.Show
+End Sub
+
+Public Sub Decko_SnapshotActive()
+    g_SnapshotScope = "active"
+    frmExport.Show
+End Sub
+
+' Resolve scope string -> array of 1-based slide indices to include.
+Private Function ResolveSlideScope(pres As Presentation, scope As String) As Variant
+    Dim total As Long: total = pres.Slides.Count
+    Dim s As String: s = LCase(Trim(scope))
+
+    If Len(s) = 0 Or s = "all" Or s = "*" Then
+        Dim allArr() As Long
+        ReDim allArr(1 To total)
+        Dim k As Long
+        For k = 1 To total: allArr(k) = k: Next k
+        ResolveSlideScope = allArr
+        Exit Function
+    End If
+
+    If s = "active" Then
+        Dim activeIdx As Long: activeIdx = 1
+        On Error Resume Next
+        activeIdx = ActiveWindow.View.Slide.SlideIndex
+        If Err.Number <> 0 Or activeIdx < 1 Or activeIdx > total Then activeIdx = 1
+        Err.Clear
+        On Error GoTo 0
+        Dim oneArr(1 To 1) As Long: oneArr(1) = activeIdx
+        ResolveSlideScope = oneArr
+        Exit Function
+    End If
+
+    ' Range "A-B"
+    If InStr(s, "-") > 0 Then
+        Dim parts() As String: parts = Split(s, "-")
+        If UBound(parts) = 1 Then
+            Dim a As Long, b As Long
+            a = Val(parts(0)): b = Val(parts(1))
+            If a < 1 Then a = 1
+            If b > total Then b = total
+            If b >= a Then
+                Dim rngArr() As Long
+                ReDim rngArr(1 To (b - a + 1))
+                Dim j As Long: j = 1
+                Dim i As Long
+                For i = a To b
+                    rngArr(j) = i: j = j + 1
+                Next i
+                ResolveSlideScope = rngArr
+                Exit Function
+            End If
+        End If
+    End If
+
+    ' Single integer
+    Dim n As Long: n = Val(s)
+    If n >= 1 And n <= total Then
+        Dim sgl(1 To 1) As Long: sgl(1) = n
+        ResolveSlideScope = sgl
+        Exit Function
+    End If
+
+    ' Fallback: all
+    Dim fb() As Long: ReDim fb(1 To total)
+    Dim x As Long
+    For x = 1 To total: fb(x) = x: Next x
+    ResolveSlideScope = fb
 End Function
 
 Private Function BuildDeckDict(pres As Presentation) As Object
@@ -26,11 +114,13 @@ Private Function BuildDeckDict(pres As Presentation) As Object
     Set BuildDeckDict = d
 End Function
 
-Private Function BuildSlidesCollection(pres As Presentation) As Collection
+Private Function BuildSlidesCollection(pres As Presentation, scope As String) As Collection
     Dim col As New Collection
+    Dim idxArr As Variant
+    idxArr = ResolveSlideScope(pres, scope)
     Dim i As Long
-    For i = 1 To pres.Slides.Count
-        col.Add BuildSlideDict(pres.Slides(i))
+    For i = LBound(idxArr) To UBound(idxArr)
+        col.Add BuildSlideDict(pres.Slides(idxArr(i)))
     Next i
     Set BuildSlidesCollection = col
 End Function

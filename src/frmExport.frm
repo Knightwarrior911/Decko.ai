@@ -93,6 +93,33 @@ Private Function PromptTemplate() As String
     s = s & "  {""type"":""insert_picture"",""slide"":1,""path"":""C:\\path\\to\\img.png"",""pos"":{""left"":50,""top"":50,""width"":200,""height"":150}}" & vbCrLf
     s = s & "  {""type"":""replace_picture"",""slide"":1,""shape_id"":7,""path"":""C:\\path\\to\\new.png""}" & vbCrLf & vbCrLf
 
+    s = s & "WEB IMAGE WORKFLOW (scrape + visual pick + grid table):" & vbCrLf
+    s = s & "  Use this 3-action sequence when the user wants images from a website" & vbCrLf
+    s = s & "  (e.g. ""build a slide on company X's industry applications from URL"")." & vbCrLf
+    s = s & "  Action 1 - download all images from a page into <deck>\\assets\\<slug>_<ts>\\:" & vbCrLf
+    s = s & "    {""type"":""fetch_page_images"",""url"":""https://example.com/industries""}" & vbCrLf
+    s = s & "  Action 2 - drop the downloaded images onto a NEW slide as a labeled grid" & vbCrLf
+    s = s & "  so the user can visually identify which filenames they want:" & vbCrLf
+    s = s & "    {""type"":""build_image_picker_slide"",""folder"":""<from_step1>"",""cols"":4}" & vbCrLf
+    s = s & "  Action 3 - after the user tells you which filenames map to which row," & vbCrLf
+    s = s & "  build a 2-column image+name+bullets table on the target slide:" & vbCrLf
+    s = s & "    {""type"":""build_image_grid_table"",""slide"":2,""ref_name"":""apps_tbl""," & vbCrLf
+    s = s & "     ""pos"":{""left"":30,""top"":60,""width"":900,""height"":480}," & vbCrLf
+    s = s & "     ""image_col"":1,""desc_col"":2,""name_position"":""bottom""," & vbCrLf
+    s = s & "     ""name_strip_pt"":30,""image_pad_pt"":6," & vbCrLf
+    s = s & "     ""col1_width_pt"":280,""col2_width_pt"":620," & vbCrLf
+    s = s & "     ""name_font"":{""size"":12,""bold"":true,""color"":""#15283C""}," & vbCrLf
+    s = s & "     ""desc_font"":{""size"":10,""color"":""#333333""}," & vbCrLf
+    s = s & "     ""rows"":[" & vbCrLf
+    s = s & "       {""name"":""Aerospace"",""image_path"":""C:\\\\path\\\\img_003.jpg"",""bullets"":[""Lightweight fasteners"",""FAA compliant""]}," & vbCrLf
+    s = s & "       {""name"":""Automotive"",""image_path"":""C:\\\\path\\\\img_007.jpg"",""bullets"":[""High-volume assembly"",""Vibration-resistant""]}" & vbCrLf
+    s = s & "     ]}" & vbCrLf
+    s = s & "  Each row's image_path is a downloaded file from the picker slide; the row's" & vbCrLf
+    s = s & "  ""image_url"" alternative downloads on the fly." & vbCrLf
+    s = s & "  Image is overlaid as a separate shape on top of the cell - the cell text" & vbCrLf
+    s = s & "  ""name"" sits at the bottom (or top) of the same cell visually." & vbCrLf
+    s = s & "  Standalone helper: {""type"":""download_image"",""url"":""..."",""dest_path"":""C:\\\\...""}" & vbCrLf & vbCrLf
+
     s = s & "SLIDE STRUCTURE:" & vbCrLf
     s = s & "  {""type"":""move_slide"",""from"":3,""to"":1}" & vbCrLf
     s = s & "  {""type"":""extract_slides"",""slide_indices"":[1,3,5],""output_path"":""C:\\path\\out.pptx""}" & vbCrLf
@@ -323,7 +350,33 @@ End Function
 
 Private Sub UserForm_Initialize()
     On Error Resume Next
-    txtSnapshot.Text = modExportSnapshot.BuildSnapshotJson()
+    Dim scope As String: scope = modExportSnapshot.g_SnapshotScope
+    txtSnapshot.Text = modExportSnapshot.BuildSnapshotJson(scope)
+    If Err.Number <> 0 Then
+        txtSnapshot.Text = "ERROR: " & Err.Description
+        Err.Clear
+    End If
+    Dim suffix As String
+    If LCase(Trim(scope)) = "active" Then
+        Dim idx As Long: idx = 1
+        On Error Resume Next
+        idx = ActiveWindow.View.Slide.SlideIndex
+        On Error GoTo 0
+        suffix = "  (ACTIVE SLIDE ONLY: slide " & idx & ")"
+    ElseIf Len(Trim(scope)) > 0 And LCase(Trim(scope)) <> "all" Then
+        suffix = "  (SCOPE: " & scope & ")"
+    Else
+        suffix = "  (ALL SLIDES)"
+    End If
+    Me.Caption = "Decko.ai - Export Snapshot" & suffix
+End Sub
+
+' User can flip scope from the form without closing it.
+' Run via VBE Immediate window or wire to a button if you add one to the .frx.
+Public Sub RebuildSnapshot(scope As String)
+    modExportSnapshot.g_SnapshotScope = scope
+    On Error Resume Next
+    txtSnapshot.Text = modExportSnapshot.BuildSnapshotJson(scope)
     If Err.Number <> 0 Then
         txtSnapshot.Text = "ERROR: " & Err.Description
         Err.Clear

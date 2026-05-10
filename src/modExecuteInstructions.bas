@@ -184,6 +184,17 @@ Private Function ValidateAction(act As Object) As String
         Case "replace_picture"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "path"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "fetch_page_images"
+            ValidateAction = RequireFields(act, Array("url"))
+        Case "open_image_picker"
+            ' folder optional - falls back to last fetch
+            ValidateAction = ""
+        Case "build_image_picker_slide"
+            ValidateAction = RequireFields(act, Array("folder"))
+        Case "download_image"
+            ValidateAction = RequireFields(act, Array("url", "dest_path"))
+        Case "build_image_grid_table"
+            ValidateAction = RequireFields(act, Array("slide", "pos", "rows"))
         Case "move_slide"
             ' Accept from/to OR from_slide/to_slide (less ambiguous vs add_connector)
             If Not act.Exists("from") And Not act.Exists("from_slide") Then
@@ -866,6 +877,28 @@ Private Sub DispatchAction(act As Object)
                                               CSng(ipos("width")), CSng(ipos("height"))
         Case "replace_picture"
             modActionsImage.Do_replace_picture CLng(act("slide")), CLng(act("shape_id")), CStr(act("path"))
+        Case "fetch_page_images"
+            Dim fpiFolder As String: fpiFolder = ""
+            Dim fpiRef As String: fpiRef = ""
+            If act.Exists("dest_folder") Then fpiFolder = CStr(act("dest_folder"))
+            If act.Exists("ref_name") Then fpiRef = CStr(act("ref_name"))
+            modActionsWeb.Do_fetch_page_images CStr(act("url")), fpiFolder, fpiRef
+        Case "open_image_picker"
+            Dim oipFolder As String: oipFolder = ""
+            If act.Exists("folder") Then oipFolder = CStr(act("folder"))
+            modActionsWeb.Do_open_image_picker oipFolder
+        Case "build_image_picker_slide"
+            Dim bipCols As Long: bipCols = 4
+            Dim bipAt As Long: bipAt = 0
+            Dim bipMax As Long: bipMax = 24
+            If act.Exists("cols") Then bipCols = CLng(act("cols"))
+            If act.Exists("insert_at") Then bipAt = CLng(act("insert_at"))
+            If act.Exists("max_per_slide") Then bipMax = CLng(act("max_per_slide"))
+            modActionsImage.Do_build_image_picker_slide CStr(act("folder")), bipCols, bipAt, bipMax
+        Case "download_image"
+            modActionsWeb.Do_download_image CStr(act("url")), CStr(act("dest_path"))
+        Case "build_image_grid_table"
+            modActionsTable.Do_build_image_grid_table_act act
         Case "move_slide"
             Dim msFrom As Variant, msTo As Variant
             If act.Exists("from_slide") Then msFrom = act("from_slide") Else msFrom = act("from")
