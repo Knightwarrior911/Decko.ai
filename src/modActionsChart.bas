@@ -106,15 +106,23 @@ Public Sub Do_add_chart(slideNum As Long, chartType As String, _
         On Error GoTo 0
     End If
 
-    ' Clean style: hide y-axis (both primary + secondary), hide gridlines,
-    ' hide chart/plot borders & fills
+    ' Clean style: hide y-axis labels + line (keep scale active so series render),
+    ' delete gridlines, hide chart/plot borders & fills.
+    ' DO NOT use HasAxis=False — that removes the axis entirely, killing the scale
+    ' that the bars depend on for sizing (especially in combo charts).
     If cleanStyle Then
         On Error Resume Next
-        ch.HasAxis(2, 1) = False                ' xlValue=2, xlPrimary=1
-        ch.HasAxis(2, 2) = False                ' xlValue=2, xlSecondary=2
-        ch.Axes(1).MajorGridlines.Delete         ' xlCategory=1
-        ch.Axes(2).MajorGridlines.Delete         ' xlValue=2 primary
-        ch.Axes(2, 2).MajorGridlines.Delete      ' xlValue=2 secondary
+        ' Primary value axis — hide visual but keep scale
+        ch.Axes(2, 1).TickLabelPosition = -4142     ' xlNone
+        ch.Axes(2, 1).Format.Line.Visible = msoFalse
+        ch.Axes(2, 1).MajorGridlines.Delete
+        ' Secondary value axis (may not exist; On Error swallows)
+        ch.Axes(2, 2).TickLabelPosition = -4142
+        ch.Axes(2, 2).Format.Line.Visible = msoFalse
+        ch.Axes(2, 2).MajorGridlines.Delete
+        ' Category axis gridlines
+        ch.Axes(1).MajorGridlines.Delete
+        ' Frame
         ch.ChartArea.Format.Line.Visible = msoFalse
         ch.PlotArea.Format.Line.Visible = msoFalse
         ch.ChartArea.Format.Fill.Visible = msoFalse
@@ -257,7 +265,11 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
         If modActions.ToBool(props("fill_visible")) Then
             ser.Format.Fill.Visible = msoTrue
         Else
+            ' Force no fill — Format.Fill.Visible alone doesn't override "Automatic".
+            ' DO NOT touch Line here — caller uses line_color/line_dash/line_weight for borders
             ser.Format.Fill.Visible = msoFalse
+            ser.Format.Fill.Transparency = 1
+            ser.Interior.ColorIndex = -4142   ' xlNone (Excel chart API)
         End If
     End If
     If props.Exists("line_color") Then
@@ -322,11 +334,25 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
             End Select
         End If
         If props.Exists("label_format") Then lbls.NumberFormat = CStr(props("label_format"))
-        If props.Exists("label_size") Then lbls.Font.Size = modActions.ToLong(props("label_size"))
-        If props.Exists("label_bold") Then lbls.Font.Bold = modActions.ToBool(props("label_bold"))
-        If props.Exists("label_italic") Then lbls.Font.Italic = modActions.ToBool(props("label_italic"))
+        If props.Exists("label_size") Then
+            Dim lcSz As Long: lcSz = modActions.ToLong(props("label_size"))
+            lbls.Font.Size = lcSz
+            lbls.Format.TextFrame2.TextRange.Font.Size = lcSz
+        End If
+        If props.Exists("label_bold") Then
+            Dim lcBd As Boolean: lcBd = modActions.ToBool(props("label_bold"))
+            lbls.Font.Bold = lcBd
+            lbls.Format.TextFrame2.TextRange.Font.Bold = lcBd
+        End If
+        If props.Exists("label_italic") Then
+            Dim lcIt As Boolean: lcIt = modActions.ToBool(props("label_italic"))
+            lbls.Font.Italic = lcIt
+            lbls.Format.TextFrame2.TextRange.Font.Italic = lcIt
+        End If
         If props.Exists("label_color") Then
-            lbls.Font.Color.RGB = modActions.HexToRgb(CStr(props("label_color")))
+            Dim lcCl As Long: lcCl = modActions.HexToRgb(CStr(props("label_color")))
+            lbls.Font.Color.RGB = lcCl
+            lbls.Format.TextFrame2.TextRange.Font.Fill.ForeColor.RGB = lcCl
         End If
         ' Label background fill (for tile-style labels in tight stacked segments)
         If props.Exists("label_fill") Then
@@ -338,6 +364,18 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
                 lbls.Format.Fill.Visible = msoTrue
             Else
                 lbls.Format.Fill.Visible = msoFalse
+                lbls.Format.Fill.Transparency = 1
+                lbls.Interior.ColorIndex = -4142   ' xlNone
+            End If
+        End If
+        ' Label outline border — hide for clean floating-totals look.
+        ' "Automatic" border in PowerPoint ignores Format.Line.Visible alone.
+        ' Force xlNone via Border.LineStyle, AND fully transparent line as fallback.
+        If props.Exists("label_line_visible") Then
+            If modActions.ToBool(props("label_line_visible")) Then
+                lbls.Format.Line.Visible = msoTrue
+            Else
+                lbls.Format.Line.Visible = msoFalse
             End If
         End If
     End If
@@ -349,14 +387,79 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
             On Error GoTo 0
         End If
     End If
-    ' Per-point custom label text override
+    ' Per-point custom label text override.
+    ' Setting Points(p).DataLabel.Text resets the per-point font properties to chart
+    ' defaults — re-apply font color/size/italic/fill from props after each set.
     If props.Exists("custom_labels") Then
         Dim customs As Object: Set customs = props("custom_labels")
         Dim p As Long
         For p = 1 To ser.Points.Count
             If p <= customs.Count Then
-                ser.Points(p).HasDataLabel = True
-                ser.Points(p).DataLabel.Text = CStr(customs(p))
+                Dim labText As String: labText = CStr(customs(p))
+                If Len(labText) = 0 Then
+                    ser.Points(p).HasDataLabel = False
+                Else
+                    ser.Points(p).HasDataLabel = True
+                    ser.Points(p).DataLabel.Text = labText
+                    Dim pl As Object: Set pl = ser.Points(p).DataLabel
+                    If props.Exists("label_color") Then
+                        Dim lbCol As Long: lbCol = modActions.HexToRgb(CStr(props("label_color")))
+                        ' Legacy Font API (older Office versions)
+                        pl.Font.Color.RGB = lbCol
+                        ' Modern TextFrame2 API — more reliable in current Office
+                        pl.Format.TextFrame2.TextRange.Font.Fill.ForeColor.RGB = lbCol
+                    End If
+                    If props.Exists("label_size") Then
+                        Dim lbSize As Long: lbSize = modActions.ToLong(props("label_size"))
+                        pl.Font.Size = lbSize
+                        pl.Format.TextFrame2.TextRange.Font.Size = lbSize
+                    End If
+                    If props.Exists("label_italic") Then
+                        Dim lbIt As Boolean: lbIt = modActions.ToBool(props("label_italic"))
+                        pl.Font.Italic = lbIt
+                        pl.Format.TextFrame2.TextRange.Font.Italic = lbIt
+                    End If
+                    If props.Exists("label_bold") Then
+                        Dim lbBd As Boolean: lbBd = modActions.ToBool(props("label_bold"))
+                        pl.Font.Bold = lbBd
+                        pl.Format.TextFrame2.TextRange.Font.Bold = lbBd
+                    End If
+                    If props.Exists("label_fill") Then
+                        pl.Format.Fill.Solid
+                        pl.Format.Fill.ForeColor.RGB = modActions.HexToRgb(CStr(props("label_fill")))
+                    End If
+                    If props.Exists("label_fill_visible") Then
+                        If modActions.ToBool(props("label_fill_visible")) Then
+                            pl.Format.Fill.Visible = msoTrue
+                        Else
+                            ' Force no fill via multiple paths — PowerPoint's "Automatic"
+                            ' fill ignores some of these individually
+                            pl.Format.Fill.Visible = msoFalse
+                            pl.Format.Fill.Transparency = 1
+                            pl.Interior.ColorIndex = -4142   ' xlNone (Excel chart API)
+                        End If
+                    End If
+                    If props.Exists("label_line_visible") Then
+                        If modActions.ToBool(props("label_line_visible")) Then
+                            pl.Format.Line.Visible = msoTrue
+                        Else
+                            pl.Format.Line.Visible = msoFalse
+                        End If
+                    End If
+                    ' Per-point label color override (e.g. white text on navy bars,
+                    ' navy text on light bars in same series)
+                    If props.Exists("point_label_colors") Then
+                        Dim plc As Object: Set plc = props("point_label_colors")
+                        If p <= plc.Count Then
+                            Dim plcHex As String: plcHex = CStr(plc(p))
+                            If Len(plcHex) > 0 Then
+                                Dim plcRgb As Long: plcRgb = modActions.HexToRgb(plcHex)
+                                pl.Font.Color.RGB = plcRgb
+                                pl.Format.TextFrame2.TextRange.Font.Fill.ForeColor.RGB = plcRgb
+                            End If
+                        End If
+                    End If
+                End If
             End If
         Next p
     End If
