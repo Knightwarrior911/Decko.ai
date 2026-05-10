@@ -425,6 +425,19 @@ Public Sub Do_set_chart_axis(slideNum As Long, shapeId As Long, _
         ax.HasTitle = True
         ax.AxisTitle.Text = CStr(props("title"))
     End If
+    ' Tick label rotation in degrees (-90 to 90)
+    If props.Exists("label_rotation") Then
+        ax.TickLabels.Orientation = modActions.ToLong(props("label_rotation"))
+    End If
+    ' Major tick mark style: "outside" | "inside" | "cross" | "none"
+    If props.Exists("major_tick_mark") Then
+        Select Case LCase(CStr(props("major_tick_mark")))
+            Case "outside": ax.MajorTickMark = 4   ' xlTickMarkOutside
+            Case "inside":  ax.MajorTickMark = 2   ' xlTickMarkInside
+            Case "cross":   ax.MajorTickMark = 3   ' xlTickMarkCross
+            Case "none":    ax.MajorTickMark = -4142 ' xlTickMarkNone
+        End Select
+    End If
     On Error GoTo 0
 End Sub
 

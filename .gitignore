@@ -31,3 +31,7 @@ tests/build_revenue_momentum_slide.py
 tests/export_deck_pngs.py
 tests/zoom_left_charts.py
 tests/zoom_rotce.py
+
+# P0/P1 chart capability test artifacts (binary outputs)
+test_decks/p0_chart_tests*
+test_decks/p1_chart_tests*
