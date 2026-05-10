@@ -40,34 +40,40 @@ Public Sub Do_add_chart(slideNum As Long, chartType As String, _
         catArr(r) = CStr(categories(r))
     Next r
 
-    ' Adjust SeriesCollection size to match requested series count.
-    ' AddChart2 creates a default chart with N existing series (varies by type).
-    Dim existingCount As Long: existingCount = ch.SeriesCollection.Count
-    Dim s As Long
-    ' Delete extras
-    Do While ch.SeriesCollection.Count > seriesCount
-        ch.SeriesCollection(ch.SeriesCollection.Count).Delete
-    Loop
-    ' Add missing
-    Do While ch.SeriesCollection.Count < seriesCount
-        ch.SeriesCollection.NewSeries
-    Loop
+    ' Detect chart types that don't support standard SeriesCollection writes:
+    ' waterfall (119), histogram (118), pareto (122), boxwhisker (121),
+    ' treemap (117), sunburst (120), funnel (123). For these, the chart is
+    ' created with AddChart2 default placeholder data and series isn't manipulated.
+    ' Caller can supply data via ChartData approach or live with placeholders.
+    Dim isSpecial As Boolean
+    isSpecial = (chartTypeNum = 117 Or chartTypeNum = 118 Or chartTypeNum = 119 Or _
+                 chartTypeNum = 120 Or chartTypeNum = 121 Or chartTypeNum = 122 Or _
+                 chartTypeNum = 123)
 
-    ' Populate each series
-    For s = 1 To seriesCount
-        Dim si As Object: Set si = series(s)
-        Dim valsCol As Object: Set valsCol = si("values")
-        Dim valArr() As Variant
-        ReDim valArr(1 To catCount)
-        For r = 1 To catCount
-            valArr(r) = CDbl(valsCol(r))
-        Next r
-        With ch.SeriesCollection(s)
-            .Name = CStr(si("name"))
-            .Values = valArr
-            .XValues = catArr
-        End With
-    Next s
+    Dim s As Long
+    If Not isSpecial Then
+        Dim existingCount As Long: existingCount = ch.SeriesCollection.Count
+        Do While ch.SeriesCollection.Count > seriesCount
+            ch.SeriesCollection(ch.SeriesCollection.Count).Delete
+        Loop
+        Do While ch.SeriesCollection.Count < seriesCount
+            ch.SeriesCollection.NewSeries
+        Loop
+        For s = 1 To seriesCount
+            Dim si As Object: Set si = series(s)
+            Dim valsCol As Object: Set valsCol = si("values")
+            Dim valArr() As Variant
+            ReDim valArr(1 To catCount)
+            For r = 1 To catCount
+                valArr(r) = CDbl(valsCol(r))
+            Next r
+            With ch.SeriesCollection(s)
+                .Name = CStr(si("name"))
+                .Values = valArr
+                .XValues = catArr
+            End With
+        Next s
+    End If
 
     ch.HasLegend = showLegend
     If Len(titleText) > 0 Then
@@ -187,6 +193,12 @@ Public Sub Do_set_chart_format(slideNum As Long, shapeId As Long, ByVal props As
             Case "logarithmic": ch.Axes(2).ScaleType = -4133    ' xlScaleLogarithmic
         End Select
     End If
+    ' Drop lines (line charts) - vertical line from each marker to category axis
+    If props.Exists("drop_lines") Then cg.HasDropLines = modActions.ToBool(props("drop_lines"))
+    ' Hi-lo lines (line charts with multiple series) - vertical line between max/min markers
+    If props.Exists("hi_lo_lines") Then cg.HasHiLoLines = modActions.ToBool(props("hi_lo_lines"))
+    ' Up-down bars (line charts with 2 series) - boxes showing diff between series
+    If props.Exists("up_down_bars") Then cg.HasUpDownBars = modActions.ToBool(props("up_down_bars"))
     On Error GoTo 0
 End Sub
 
@@ -444,6 +456,28 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
     If props.Exists("fill") Then
         ser.Format.Fill.Solid
         ser.Format.Fill.ForeColor.RGB = modActions.HexToRgb(CStr(props("fill")))
+    End If
+    ' Gradient fill — props.gradient_fill = { from, to, direction }
+    If props.Exists("gradient_fill") Then
+        Dim gf As Object: Set gf = props("gradient_fill")
+        Dim gfDir As Long: gfDir = 1   ' msoGradientHorizontal default
+        If gf.Exists("direction") Then
+            Select Case LCase(CStr(gf("direction")))
+                Case "horizontal":    gfDir = 1   ' msoGradientHorizontal
+                Case "vertical":      gfDir = 2   ' msoGradientVertical
+                Case "diagonal_up":   gfDir = 3   ' msoGradientDiagonalUp
+                Case "diagonal_down": gfDir = 4   ' msoGradientDiagonalDown
+                Case "from_corner":   gfDir = 5   ' msoGradientFromCorner
+                Case "from_center":   gfDir = 7   ' msoGradientFromCenter
+            End Select
+        End If
+        ser.Format.Fill.TwoColorGradient gfDir, 1
+        If gf.Exists("from") Then
+            ser.Format.Fill.ForeColor.RGB = modActions.HexToRgb(CStr(gf("from")))
+        End If
+        If gf.Exists("to") Then
+            ser.Format.Fill.BackColor.RGB = modActions.HexToRgb(CStr(gf("to")))
+        End If
     End If
     If props.Exists("fill_visible") Then
         If modActions.ToBool(props("fill_visible")) Then
@@ -734,6 +768,22 @@ Public Function ChartTypeFromName(chartName As String) As Long
         Case "columnstacked":                         ChartTypeFromName = 52
         Case "line", "xlline":                        ChartTypeFromName = 4
         Case "linemarkers", "line_markers":           ChartTypeFromName = 65
+        Case "linestacked", "line_stacked":           ChartTypeFromName = 63
+        Case "linestackedmarkers", "line_stacked_markers": ChartTypeFromName = 66
+        Case "areastacked", "area_stacked":           ChartTypeFromName = 76
+        Case "areapercent", "area_100pct":            ChartTypeFromName = 78
+        Case "barstackedpercent", "bar_100pct":       ChartTypeFromName = 59
+        Case "columnstackedpercent", "column_100pct": ChartTypeFromName = 53
+        Case "waterfall":                             ChartTypeFromName = 119  ' xlWaterfall (Office 2016+)
+        Case "pareto":                                ChartTypeFromName = 122  ' xlPareto
+        Case "funnel":                                ChartTypeFromName = 123  ' xlFunnel (Office 2019+)
+        Case "histogram":                             ChartTypeFromName = 118
+        Case "boxwhisker", "box_whisker":             ChartTypeFromName = 121
+        Case "treemap":                               ChartTypeFromName = 117
+        Case "sunburst":                              ChartTypeFromName = 120
+        Case "radar":                                 ChartTypeFromName = -4151
+        Case "radarmarkers", "radar_markers":         ChartTypeFromName = 81
+        Case "radarfilled", "radar_filled":           ChartTypeFromName = 82
         Case "pie", "xlpie":                          ChartTypeFromName = 5
         Case "barclustered", "xlbarclustered":        ChartTypeFromName = 57
         Case "barstacked":                            ChartTypeFromName = 58
@@ -746,17 +796,47 @@ Public Function ChartTypeFromName(chartName As String) As Long
 End Function
 
 Public Sub Do_set_chart_title(slideNum As Long, shapeId As Long, _
-                              value As String, enabled As Boolean)
+                              value As String, enabled As Boolean, _
+                              Optional ByVal props As Object = Nothing)
     Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 11001, "Do_set_chart_title", "shape not found"
     If Not sh.HasChart Then Err.Raise vbObjectError + 11002, "Do_set_chart_title", "not_a_native_chart"
     Dim ch As Object: Set ch = sh.Chart
-    If enabled Then
-        ch.HasTitle = True
-        ch.ChartTitle.Text = value
-    Else
+    If Not enabled Then
         ch.HasTitle = False
+        Exit Sub
     End If
+    ch.HasTitle = True
+    ch.ChartTitle.Text = value
+    If props Is Nothing Then Exit Sub
+    On Error Resume Next
+    Dim t As Object: Set t = ch.ChartTitle
+    If props.Exists("font_size") Then
+        t.Font.Size = modActions.ToLong(props("font_size"))
+        t.Format.TextFrame2.TextRange.Font.Size = modActions.ToLong(props("font_size"))
+    End If
+    If props.Exists("font_color") Then
+        Dim tc As Long: tc = modActions.HexToRgb(CStr(props("font_color")))
+        t.Font.Color.RGB = tc
+        t.Format.TextFrame2.TextRange.Font.Fill.ForeColor.RGB = tc
+    End If
+    If props.Exists("font_bold") Then
+        t.Font.Bold = modActions.ToBool(props("font_bold"))
+        t.Format.TextFrame2.TextRange.Font.Bold = modActions.ToBool(props("font_bold"))
+    End If
+    If props.Exists("font_italic") Then
+        t.Font.Italic = modActions.ToBool(props("font_italic"))
+        t.Format.TextFrame2.TextRange.Font.Italic = modActions.ToBool(props("font_italic"))
+    End If
+    If props.Exists("position") Then
+        Select Case LCase(CStr(props("position")))
+            Case "above":   t.Position = -4160     ' xlChartTitlePositionAbove
+            Case "overlay": t.Position = 0          ' overlaid on plot
+            Case "left":    t.Position = -4131
+            Case "right":   t.Position = -4152
+        End Select
+    End If
+    On Error GoTo 0
 End Sub
 
 Public Sub Do_set_chart_axis_title(slideNum As Long, shapeId As Long, _
