@@ -190,7 +190,7 @@ Private Function ValidateAction(act As Object) As String
             ' folder optional - falls back to last fetch
             ValidateAction = ""
         Case "build_image_picker_slide"
-            ValidateAction = RequireFields(act, Array("folder"))
+            ValidateAction = ""   ' folder optional - falls back to g_LastFetchFolder
         Case "download_image"
             ValidateAction = RequireFields(act, Array("url", "dest_path"))
         Case "build_image_grid_table"
@@ -894,7 +894,9 @@ Private Sub DispatchAction(act As Object)
             If act.Exists("cols") Then bipCols = CLng(act("cols"))
             If act.Exists("insert_at") Then bipAt = CLng(act("insert_at"))
             If act.Exists("max_per_slide") Then bipMax = CLng(act("max_per_slide"))
-            modActionsImage.Do_build_image_picker_slide CStr(act("folder")), bipCols, bipAt, bipMax
+            Dim bipFolder As String: bipFolder = ""
+            If act.Exists("folder") Then bipFolder = CStr(act("folder"))
+            modActionsImage.Do_build_image_picker_slide bipFolder, bipCols, bipAt, bipMax
         Case "download_image"
             modActionsWeb.Do_download_image CStr(act("url")), CStr(act("dest_path"))
         Case "build_image_grid_table"

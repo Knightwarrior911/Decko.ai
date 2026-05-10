@@ -57,6 +57,7 @@ Public Sub Do_build_image_picker_slide(folder As String, _
                                         Optional ByVal cols As Long = 4, _
                                         Optional ByVal insertAt As Long = 0, _
                                         Optional ByVal maxPerSlide As Long = 24)
+    If Len(Trim(folder)) = 0 Then folder = modActionsWeb.g_LastFetchFolder
     Dim fso As Object: Set fso = CreateObject("Scripting.FileSystemObject")
     If Not fso.FolderExists(folder) Then
         Err.Raise vbObjectError + 6010, "Do_build_image_picker_slide", "folder not found: " & folder
