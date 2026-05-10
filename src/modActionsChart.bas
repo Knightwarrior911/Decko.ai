@@ -106,12 +106,15 @@ Public Sub Do_add_chart(slideNum As Long, chartType As String, _
         On Error GoTo 0
     End If
 
-    ' Clean style: hide y-axis, hide gridlines, hide chart/plot borders & fills
+    ' Clean style: hide y-axis (both primary + secondary), hide gridlines,
+    ' hide chart/plot borders & fills
     If cleanStyle Then
         On Error Resume Next
         ch.HasAxis(2, 1) = False                ' xlValue=2, xlPrimary=1
+        ch.HasAxis(2, 2) = False                ' xlValue=2, xlSecondary=2
         ch.Axes(1).MajorGridlines.Delete         ' xlCategory=1
-        ch.Axes(2).MajorGridlines.Delete         ' xlValue=2
+        ch.Axes(2).MajorGridlines.Delete         ' xlValue=2 primary
+        ch.Axes(2, 2).MajorGridlines.Delete      ' xlValue=2 secondary
         ch.ChartArea.Format.Line.Visible = msoFalse
         ch.PlotArea.Format.Line.Visible = msoFalse
         ch.ChartArea.Format.Fill.Visible = msoFalse
@@ -151,18 +154,23 @@ Public Sub Do_set_chart_axis(slideNum As Long, shapeId As Long, _
     Dim ch As Object: Set ch = sh.Chart
 
     Dim axNum As Long
+    Dim axGroup As Long: axGroup = 1   ' default xlPrimary
     Select Case LCase(Trim(axis))
         Case "x", "category", "xlcategory":  axNum = 1   ' xlCategory
-        Case "y", "value", "xlvalue":        axNum = 2   ' xlValue
+        Case "y", "value", "xlvalue":        axNum = 2   ' xlValue (primary)
+        Case "y2", "value_secondary", "secondary":
+            axNum = 2: axGroup = 2                       ' xlValue secondary
+        Case "x2", "category_secondary":
+            axNum = 1: axGroup = 2
         Case Else: Err.Raise vbObjectError + 11022, "Do_set_chart_axis", _
-                              "axis must be x/y/category/value, got: " & axis
+                              "axis must be x/y/category/value/y2/secondary, got: " & axis
     End Select
 
     On Error Resume Next
     If props.Exists("visible") Then
-        ch.HasAxis(axNum, 1) = modActions.ToBool(props("visible"))
+        ch.HasAxis(axNum, axGroup) = modActions.ToBool(props("visible"))
     End If
-    Dim ax As Object: Set ax = ch.Axes(axNum)
+    Dim ax As Object: Set ax = ch.Axes(axNum, axGroup)
     If ax Is Nothing Then Exit Sub
 
     If props.Exists("line_visible") Then
@@ -245,11 +253,40 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
         ser.Format.Fill.Solid
         ser.Format.Fill.ForeColor.RGB = modActions.HexToRgb(CStr(props("fill")))
     End If
+    If props.Exists("fill_visible") Then
+        If modActions.ToBool(props("fill_visible")) Then
+            ser.Format.Fill.Visible = msoTrue
+        Else
+            ser.Format.Fill.Visible = msoFalse
+        End If
+    End If
     If props.Exists("line_color") Then
         ser.Format.Line.ForeColor.RGB = modActions.HexToRgb(CStr(props("line_color")))
     End If
     If props.Exists("line_weight") Then
         ser.Format.Line.Weight = CDbl(props("line_weight"))
+    End If
+    If props.Exists("line_dash") Then
+        Select Case LCase(CStr(props("line_dash")))
+            Case "solid":          ser.Format.Line.DashStyle = msoLineSolid
+            Case "dash":           ser.Format.Line.DashStyle = msoLineDash
+            Case "dot":            ser.Format.Line.DashStyle = msoLineSquareDot
+            Case "round_dot":      ser.Format.Line.DashStyle = msoLineRoundDot
+            Case "dash_dot":       ser.Format.Line.DashStyle = msoLineDashDot
+            Case "long_dash":      ser.Format.Line.DashStyle = msoLineLongDash
+            Case "long_dash_dot":  ser.Format.Line.DashStyle = msoLineLongDashDot
+        End Select
+    End If
+    ' Per-series chart type (for combo charts) — line/column/bar/area
+    If props.Exists("chart_type") Then
+        ser.ChartType = ChartTypeFromName(CStr(props("chart_type")))
+    End If
+    ' Axis group: 1 = primary (default), 2 = secondary (creates secondary y-axis)
+    If props.Exists("axis_group") Then
+        Select Case LCase(CStr(props("axis_group")))
+            Case "primary":   ser.AxisGroup = 1
+            Case "secondary": ser.AxisGroup = 2
+        End Select
     End If
     If props.Exists("marker_style") Then
         ' xlMarkerStyle: Circle=8, Square=1, Triangle=3, Diamond=2, X=-4168, None=-4142
@@ -290,6 +327,18 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
         If props.Exists("label_italic") Then lbls.Font.Italic = modActions.ToBool(props("label_italic"))
         If props.Exists("label_color") Then
             lbls.Font.Color.RGB = modActions.HexToRgb(CStr(props("label_color")))
+        End If
+        ' Label background fill (for tile-style labels in tight stacked segments)
+        If props.Exists("label_fill") Then
+            lbls.Format.Fill.Solid
+            lbls.Format.Fill.ForeColor.RGB = modActions.HexToRgb(CStr(props("label_fill")))
+        End If
+        If props.Exists("label_fill_visible") Then
+            If modActions.ToBool(props("label_fill_visible")) Then
+                lbls.Format.Fill.Visible = msoTrue
+            Else
+                lbls.Format.Fill.Visible = msoFalse
+            End If
         End If
     End If
     ' Hide this series' entry from the legend (series stays in chart)

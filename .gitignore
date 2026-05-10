@@ -27,4 +27,5 @@ tests/build_citi_deck.py
 tests/build_dashboard_slide.py
 tests/build_pie_slide.py
 tests/build_returns_slide.py
+tests/build_revenue_momentum_slide.py
 tests/export_deck_pngs.py
