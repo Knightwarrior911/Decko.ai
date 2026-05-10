@@ -250,9 +250,7 @@ Public Sub Do_build_image_grid_table_act(act As Object)
 
     Dim slideNum As Long: slideNum = CLng(act("slide"))
     Dim pres As Presentation: Set pres = ActivePresentation
-    If slideNum < 1 Or slideNum > pres.Slides.Count Then
-        Err.Raise vbObjectError + 8032, "Do_build_image_grid_table", "slide_out_of_range"
-    End If
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then slideNum = pres.Slides.Count
 
     Dim posD As Object: Set posD = act("pos")
     Dim totalLeft As Single: totalLeft = CSng(posD("left"))
