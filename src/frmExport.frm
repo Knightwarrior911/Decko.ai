@@ -374,13 +374,20 @@ End Function
 ' sibling data files. Falls back to empty string if not found.
 Private Function CarrierPath() As String
     Dim p As Presentation
+    Dim comp As Object
     For Each p In Application.Presentations
-        If LCase(p.Name) = "ppt_ai_editor.pptm" Then
+        On Error Resume Next
+        Set comp = Nothing
+        Set comp = p.VBProject.VBComponents("modExecuteInstructions")
+        On Error GoTo 0
+        If Not comp Is Nothing Then
             CarrierPath = p.Path
             Exit Function
         End If
     Next p
-    CarrierPath = ""
+    On Error Resume Next
+    CarrierPath = Application.ActivePresentation.Path
+    On Error GoTo 0
 End Function
 
 ' Load the Fluent UI icon allow-list manifest (produced by tools/build_icon_index.py).
