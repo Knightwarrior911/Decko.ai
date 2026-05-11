@@ -117,6 +117,7 @@ Public Function HttpGetText(url As String) As String
     ' Resolve / connect / send / receive timeouts in ms
     http.SetTimeouts 15000, 30000, 60000, 90000
     On Error GoTo 0
+    http.SetProxy 4   ' HTTPREQUEST_PROXYSETTING_PRECONFIG - use system/IE proxy (required on corp networks)
     http.Open "GET", url, False
     http.SetRequestHeader "User-Agent", USER_AGENT
     http.SetRequestHeader "Accept", "text/html,application/xhtml+xml,*/*"
@@ -148,6 +149,7 @@ Private Function DownloadBinary(url As String, destPath As String) As Boolean
     On Error GoTo 0
 
     On Error Resume Next
+    http.SetProxy 4   ' HTTPREQUEST_PROXYSETTING_PRECONFIG - use system/IE proxy (required on corp networks)
     http.Open "GET", url, False
     http.SetRequestHeader "User-Agent", USER_AGENT
     http.SetRequestHeader "Accept", "image/*,*/*"
