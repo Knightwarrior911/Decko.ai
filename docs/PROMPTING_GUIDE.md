@@ -197,13 +197,19 @@ then insert it on slide 1 at position left=820, top=20, width=80, height=40.
 
 ### 6. Icons (Microsoft Fluent UI)
 
-Icons are sourced from [fluenticons.co](https://fluenticons.co). Search for
-a concept there to find the icon name, then use it in lowercase with
-underscores (e.g., `building_factory`).
+The prompt template embeds a curated allow-list of **~664 IB-relevant Fluent UI
+icon names** at export time. You do **not** need to look up icon names manually
+— just describe the concept you want and the LLM picks the closest valid name
+from the list. If no exact match exists (e.g., "oil barrel"), the LLM falls
+back to the nearest semantic equivalent from the allow-list (e.g., `drop`).
+
+Icon names are in `lowercase_underscore` format (e.g., `building_factory`).
+The allow-list covers business, finance, technology, infrastructure, and
+industry concepts used in IB pitch books.
 
 **Insert a single icon:**
 ```
-On slide 3, insert a filled "building_factory" Fluent UI icon at
+On slide 3, add a filled "factory" icon at
 left=100, top=200, width=60, height=60, color #15283C.
 ```
 
@@ -211,9 +217,9 @@ left=100, top=200, width=60, height=60, color #15283C.
 ```
 On slide 5, add a Fluent UI icon to the top-left corner of each of the
 three feature cards (shapes 8, 12, 16):
-- Shape 8 (Growth): "arrow_trending" icon, filled, 48px, color #1F4E79
-- Shape 12 (Innovation): "lightbulb" icon, filled, 48px, color #1F4E79
-- Shape 16 (Global): "globe" icon, filled, 48px, color #1F4E79
+- Shape 8 (Growth): growth/trending icon, filled, 48px, color #1F4E79
+- Shape 12 (Innovation): lightbulb icon, filled, 48px, color #1F4E79
+- Shape 16 (Global): globe icon, filled, 48px, color #1F4E79
 Place each icon at top=110 and left= the card's left edge + 10pt.
 ```
 
@@ -729,10 +735,13 @@ phrasing for any task.
 #### Icons (Microsoft Fluent UI)
 | Action | When |
 |--------|------|
-| `insert_icon` | Add a Fluent UI SVG icon. Find names at fluenticons.co. |
+| `insert_icon` | Add a Fluent UI SVG icon. Describe the concept — the LLM picks from the ~664-icon IB allow-list in the prompt. |
 
-Params: `slide`, `icon` (lowercase_underscore name), `style` (filled/regular),
+Params: `slide`, `icon` (lowercase_underscore name from allow-list), `style` (filled/regular),
 `size` (16/20/24/28/32/48), `color` (#RRGGBB), `left`, `top`, `width`, `height` (all in pt).
+
+Note: the allow-list is injected at export time. LLM must use only names from that list;
+if no exact match exists it picks the nearest semantic equivalent.
 
 #### Visual Effects
 | Action | When |
@@ -806,7 +815,7 @@ can use directly.
 | "Rebuild this slide for Company X" | `clear_slide` + `add_shape`/`add_text_box` sequence + latest public data |
 | "Add a logo / image" | `insert_picture` (local path) |
 | "Get images from their website" | `fetch_page_images` → `build_image_picker_slide` → `build_image_grid_table` |
-| "Add an icon / pictogram" | `insert_icon` — look up name at fluenticons.co |
+| "Add an icon / pictogram" | `insert_icon` — describe the concept; LLM picks from the IB allow-list in the prompt |
 | "Recolor the whole deck" | `recolor_fill_match` / `recolor_font_match` / `recolor_palette_deck_wide` |
 | "Align / space out these shapes" | `align_shapes` + `distribute_horizontal` / `distribute_vertical` |
 | "Create a table" | `add_table` + `set_cell_text` + `apply_table_style` |

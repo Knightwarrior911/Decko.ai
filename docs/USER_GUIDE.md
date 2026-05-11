@@ -244,18 +244,21 @@ Insert scalable vector icons from Microsoft's Fluent UI icon set — the same
 icon library used in Microsoft 365. Icons are fetched directly from the CDN
 at render time (no manual download needed).
 
-- **3,000+ icons** covering business, tech, industry, and UI concepts
+- **~664 IB-curated icons** — business, finance, tech, infrastructure, and
+  industry concepts relevant to investment banking pitch books
 - **Styles:** filled (default) or regular (outline)
 - **Sizes:** 16 / 20 / 24 / 28 / 32 / 48 pt
 - **Color:** any hex color — or omit for default dark grey
 - **Position:** same left/top/width/height system as shapes
 
-How to find an icon name: go to [fluenticons.co](https://fluenticons.co),
-search for a concept (e.g., "factory", "globe", "chart"), and use the icon
-name in `lowercase_underscore` format.
+**You do not need to look up icon names.** The prompt template includes the
+full allow-list at export time. Just describe what you want in plain English
+— "factory icon", "globe", "trending up arrow" — and the LLM picks the
+closest valid name from the list. If no exact match exists, the LLM falls
+back to the nearest semantic equivalent.
 
 Example prompt:
-> "On slide 3, add a filled 'building_factory' icon in our brand navy
+> "On slide 3, add a filled factory icon in our brand navy
 > (#15283C) at the top-left of each industry card, 48pt."
 
 ### 16. Speaker Notes
