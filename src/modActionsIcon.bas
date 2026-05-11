@@ -7,13 +7,16 @@ Option Explicit
 ' Action schema:
 '   {"type":"insert_icon",
 '    "slide": 1,
-'    "icon": "factory",          -- icon name, e.g. factory / airplane / people / globe
+'    "icon": "building_factory", -- exact Fluent name e.g. building_factory / airplane / people / globe
 '    "style": "filled",          -- "filled" (default) or "regular"
 '    "size": 48,                 -- 16|20|24|28|32|48 (default 48)
 '    "color": "#15283C",         -- hex color applied to SVG fill (optional)
 '    "left": 100, "top": 200,    -- position in points
 '    "width": 48, "height": 48,  -- size in points
 '    "ref_name": "icon_factory"} -- optional shape name
+'
+' Verify names exist at desired size at:
+'   https://unpkg.com/browse/@fluentui/svg-icons/icons/
 
 Private Const UNPKG_BASE As String = "https://unpkg.com/@fluentui/svg-icons/icons/"
 Private Const CACHE_DIR_NAME As String = "decko_icons"
@@ -86,7 +89,7 @@ Private Function GetOrDownloadIcon(iconName As String, sz As Long, _
     If Len(Trim(svgText)) = 0 Then
         Err.Raise vbObjectError + 7001, "Do_insert_icon", _
             "Icon not found on CDN: " & iconName & " (tried: " & url & ")" & vbCrLf & _
-            "Check name at: https://icon.fluentui.dev"
+            "Check name at: https://unpkg.com/browse/@fluentui/svg-icons/icons/"
     End If
 
     If Len(color) > 0 Then svgText = RecolorSvg(svgText, color)
@@ -94,12 +97,17 @@ Private Function GetOrDownloadIcon(iconName As String, sz As Long, _
     GetOrDownloadIcon = cachedPath
 End Function
 
-' Fluent icons use fill="currentColor". Replace with the target hex color.
+' Fluent icons: some use fill="currentColor", others have no explicit fill (inherits from SVG root).
+' Handle both cases.
 Private Function RecolorSvg(svgText As String, hexColor As String) As String
     Dim s As String: s = svgText
     s = Replace(s, "fill=""currentColor""", "fill=""" & hexColor & """")
     s = Replace(s, "fill:currentColor", "fill:" & hexColor)
     s = Replace(s, "fill: currentColor", "fill: " & hexColor)
+    ' If color still not injected (implicit default fill), set it on the SVG root element
+    If InStr(s, hexColor) = 0 Then
+        s = Replace(s, "<svg ", "<svg fill=""" & hexColor & """ ", 1, 1)
+    End If
     RecolorSvg = s
 End Function
 

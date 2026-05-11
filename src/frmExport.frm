@@ -15,7 +15,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
 
-Private Function PromptTemplate() As String
+Public Function PromptTemplate() As String
     Dim s As String
 
     s = "You are editing a PowerPoint presentation. Below is the current state as JSON:" & vbCrLf & vbCrLf
@@ -342,12 +342,16 @@ Private Function PromptTemplate() As String
 
     s = s & vbCrLf & "ICON ACTION (Microsoft Fluent UI icons, fetched from unpkg CDN):" & vbCrLf
     s = s & "  Use when user asks for an icon/pictogram on a slide." & vbCrLf
-    s = s & "  Find icon names at https://fluenticons.co (search concept, use name in lowercase_underscores)." & vbCrLf
-    s = s & "  style: ""filled"" (default) or ""regular"". size: 16|20|24|28|32|48 (default 48)." & vbCrLf
-    s = s & "  color: hex string e.g. ""#15283C"". Omit color to keep default dark grey." & vbCrLf
+    s = s & "  HARD RULE: the ""icon"" field MUST be picked verbatim from the allow-list" & vbCrLf
+    s = s & "  at the bottom of this prompt. NEVER invent or guess names." & vbCrLf
+    s = s & "  If the user's concept has no exact match, do a semantic search of the" & vbCrLf
+    s = s & "  allow-list and pick the closest meaning (e.g. 'oil' -> 'drop'," & vbCrLf
+    s = s & "  'traffic' -> 'directions', 'ship' -> 'vehicle_truck_profile')." & vbCrLf
+    s = s & "  Default size=32, style=""regular"" for every icon unless user says otherwise." & vbCrLf
+    s = s & "  color: hex string e.g. ""#15283C"". Omit to keep default dark grey." & vbCrLf
     s = s & "  left/top/width/height all in points." & vbCrLf
     s = s & "    {""type"":""insert_icon"",""slide"":1,""icon"":""building_factory""," & vbCrLf
-    s = s & "     ""style"":""filled"",""size"":48,""color"":""#15283C""," & vbCrLf
+    s = s & "     ""style"":""regular"",""size"":32,""color"":""#15283C""," & vbCrLf
     s = s & "     ""left"":100,""top"":200,""width"":60,""height"":60}" & vbCrLf
 
     s = s & vbCrLf & "ADDITIONAL ACTIONS (use as needed):" & vbCrLf
@@ -355,7 +359,49 @@ Private Function PromptTemplate() As String
     s = s & "  {""type"":""enable_text_shrink_for_overflow"",""scope"":""slide:1""}" & vbCrLf
     s = s & "  {""type"":""enable_text_shrink_for_overflow"",""scope"":""deck"",""include_titles"":""false""}" & vbCrLf
 
+    Dim iconList As String: iconList = LoadIconAllowList()
+    If Len(iconList) > 0 Then
+        s = s & vbCrLf & "==== FLUENT UI ICON ALLOW-LIST (size=32 regular only) ====" & vbCrLf
+        s = s & "All 830 names below are guaranteed to exist at size=32 style=regular on CDN." & vbCrLf
+        s = s & "Pick verbatim. If no exact match, use closest semantic name from this list." & vbCrLf & vbCrLf
+        s = s & iconList & vbCrLf
+    End If
+
     PromptTemplate = s
+End Function
+
+' Locate the carrier .pptm (this file) among open presentations so we can read
+' sibling data files. Falls back to empty string if not found.
+Private Function CarrierPath() As String
+    Dim p As Presentation
+    For Each p In Application.Presentations
+        If LCase(p.Name) = "ppt_ai_editor.pptm" Then
+            CarrierPath = p.Path
+            Exit Function
+        End If
+    Next p
+    CarrierPath = ""
+End Function
+
+' Load the Fluent UI icon allow-list manifest (produced by tools/build_icon_index.py).
+' Returns empty string with a warning header if the file is missing -- the prompt
+' still works for non-icon actions in that case.
+Private Function LoadIconAllowList() As String
+    Dim baseDir As String: baseDir = CarrierPath()
+    If Len(baseDir) = 0 Then
+        LoadIconAllowList = ""
+        Exit Function
+    End If
+    Dim path As String: path = baseDir & "\data\icons_allowed.txt"
+    If Dir(path) = "" Then
+        LoadIconAllowList = "# WARNING: icons_allowed.txt missing. Run tools/build_icon_index.py."
+        Exit Function
+    End If
+    Dim fnum As Integer: fnum = FreeFile
+    Open path For Input As #fnum
+    Dim contents As String: contents = Input(LOF(fnum), fnum)
+    Close #fnum
+    LoadIconAllowList = contents
 End Function
 
 Private Sub UserForm_Initialize()
