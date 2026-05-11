@@ -117,7 +117,7 @@ Public Function HttpGetText(url As String) As String
     ' Resolve / connect / send / receive timeouts in ms
     http.SetTimeouts 15000, 30000, 60000, 90000
     On Error GoTo 0
-    http.SetProxy 4   ' HTTPREQUEST_PROXYSETTING_PRECONFIG - use system/IE proxy (required on corp networks)
+    ApplySystemProxy http
     http.Open "GET", url, False
     http.SetRequestHeader "User-Agent", USER_AGENT
     http.SetRequestHeader "Accept", "text/html,application/xhtml+xml,*/*"
@@ -149,7 +149,7 @@ Private Function DownloadBinary(url As String, destPath As String) As Boolean
     On Error GoTo 0
 
     On Error Resume Next
-    http.SetProxy 4   ' HTTPREQUEST_PROXYSETTING_PRECONFIG - use system/IE proxy (required on corp networks)
+    ApplySystemProxy http
     http.Open "GET", url, False
     http.SetRequestHeader "User-Agent", USER_AGENT
     http.SetRequestHeader "Accept", "image/*,*/*"
@@ -184,6 +184,47 @@ Private Function DownloadBinary(url As String, destPath As String) As Boolean
 
     DownloadBinary = (FileLen(destPath) > 200)   ' reject empties / 1px gifs
 End Function
+
+' Applies the best available proxy to a WinHttpRequest object before Open.
+' Reads IE/browser proxy from registry (HKCU Internet Settings) so requests
+' route correctly on corporate networks. All errors suppressed — worst case
+' the request goes direct and may fail at the firewall.
+Private Sub ApplySystemProxy(http As Object)
+    Dim proxyEnabled As Long
+    Dim proxyServer As String
+    On Error Resume Next
+    proxyEnabled = CreateObject("WScript.Shell").RegRead( _
+        "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ProxyEnable")
+    proxyServer = CreateObject("WScript.Shell").RegRead( _
+        "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ProxyServer")
+    On Error GoTo 0
+
+    If proxyEnabled = 1 And Len(proxyServer) > 0 Then
+        ' Handle "http=host:port;https=host:port" format — extract http= value
+        If InStr(proxyServer, "=") > 0 Then
+            Dim parts() As String: parts = Split(proxyServer, ";")
+            Dim part As Variant
+            Dim extracted As String
+            For Each part In parts
+                If LCase(Left(CStr(part), 5)) = "http=" Then
+                    extracted = Mid(CStr(part), 6)
+                    Exit For
+                End If
+            Next part
+            If Len(extracted) > 0 Then proxyServer = extracted Else proxyServer = ""
+        End If
+    Else
+        proxyServer = ""
+    End If
+
+    On Error Resume Next
+    If Len(proxyServer) > 0 Then
+        http.SetProxy 2, proxyServer   ' HTTPREQUEST_PROXYSETTING_PROXY explicit
+    Else
+        http.SetProxy 4                ' HTTPREQUEST_PROXYSETTING_PRECONFIG fallback
+    End If
+    On Error GoTo 0
+End Sub
 
 ' ---------- HTML scraping ----------------------------------------------------
 
