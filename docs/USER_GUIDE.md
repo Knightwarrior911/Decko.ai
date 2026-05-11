@@ -56,7 +56,7 @@ Done. Hit `Ctrl+S` if you like the result.
 
 ## What Decko Can Do — A Tour by Use Case
 
-Think of these as the things you used to ask an analyst to do at midnight.
+Think of these as the things you used to ask an analyst to do at midnight. (16 categories, ~109 actions total.)
 
 ### 1. Edit Existing Text (without breaking formatting)
 
@@ -213,7 +213,52 @@ When a sentence has a bold drug name in the middle, you don't want to lose that.
 - **Replace** an existing picture (perfect for logo swaps)
 - **Crop, recolor, brightness, contrast** as listed above
 
-### 14. Speaker Notes
+### 14. Web Images — Scrape, Pick, and Build a Grid Table
+
+When you want a slide that shows images pulled from a company's website
+(product photos, industry applications, use-case imagery), Decko uses a
+3-step workflow:
+
+1. **Scrape** — download all images from a URL into a local folder
+2. **Pick** — drop thumbnails onto a new slide (4 per row) so you can
+   identify which filenames match which images
+3. **Build** — assemble a polished 2-column image + description table on
+   the target slide, with image overlay, name strip, and bullet text per row
+
+Example prompt flow:
+
+*Step 1 (you ask):*
+> "Fetch all images from https://www.stanley.com/industries and show me a
+> picker slide so I can identify filenames."
+
+*Step 2 (after you see the picker and note filenames — you ask):*
+> "Build the industry applications table on slide 6 using img_003.jpg for
+> Aerospace, img_007.jpg for Automotive, img_012.jpg for Construction."
+
+You can also **download a single image on the fly** by URL and insert it
+at a specific position without the full scrape workflow.
+
+### 15. Icons (Microsoft Fluent UI)
+
+Insert scalable vector icons from Microsoft's Fluent UI icon set — the same
+icon library used in Microsoft 365. Icons are fetched directly from the CDN
+at render time (no manual download needed).
+
+- **3,000+ icons** covering business, tech, industry, and UI concepts
+- **Styles:** filled (default) or regular (outline)
+- **Sizes:** 16 / 20 / 24 / 28 / 32 / 48 pt
+- **Color:** any hex color — or omit for default dark grey
+- **Position:** same left/top/width/height system as shapes
+
+How to find an icon name: go to [fluenticons.co](https://fluenticons.co),
+search for a concept (e.g., "factory", "globe", "chart"), and use the icon
+name in `lowercase_underscore` format.
+
+Example prompt:
+> "On slide 3, add a filled 'building_factory' icon in our brand navy
+> (#15283C) at the top-left of each industry card, 48pt."
+
+### 16. Speaker Notes
 
 - **Set speaker notes** (replace)
 - **Append** to existing notes
@@ -368,7 +413,40 @@ Two lines, full deck refresh.
 - 4 `delete_paragraph` (high-to-low order) on the original bullet shape — or `delete_shape` if it's a standalone text frame
 - 4 `add_shape` with `kind: chevron`, evenly spaced
 
-### Example 10 — Force-fit overflowing text after a content swap
+### Example 10 — Industry applications slide from a company website
+
+**Prompt (part 1):**
+> "Fetch all images from https://www.stanley.com/industries and show me a
+> picker slide so I can identify which filenames I want."
+
+*(After seeing the picker slide, you note img_003 = Aerospace, img_007 = Automotive, img_012 = Construction)*
+
+**Prompt (part 2):**
+> "On slide 6, build a 2-column image+description table using those images:
+> Row 1: Aerospace, img_003, bullets = Lightweight fasteners / FAA compliant
+> Row 2: Automotive, img_007, bullets = High-volume assembly / Vibration-resistant
+> Row 3: Construction, img_012, bullets = Heavy-duty anchors / Code compliant
+> Table at left=30, top=60, width=900, height=480. Name font 12pt bold navy. Desc font 10pt grey."
+
+**What you get back:**
+- `fetch_page_images` → `build_image_picker_slide` (part 1)
+- `build_image_grid_table` with 3 fully styled rows (part 2)
+
+### Example 11 — Icons on a feature card slide
+
+**Prompt:**
+> "On slide 5 I have three feature cards side by side. Add a filled Fluent UI
+> icon above the headline on each card:
+> - Card 1 (Growth): 'arrow_trending' icon, navy #1F4E79, 48pt
+> - Card 2 (Innovation): 'lightbulb' icon, navy #1F4E79, 48pt
+> - Card 3 (Global): 'globe' icon, navy #1F4E79, 48pt
+> Use the snapshot to find each card's left edge and place the icon 10pt from
+> the left, 10pt from the card top."
+
+**What you get back:**
+- 3 `insert_icon` actions, each with exact position derived from snapshot coordinates
+
+### Example 12 — Force-fit overflowing text after a content swap
 
 **Prompt:**
 > "Replace 'Q4 results' with 'fourth-quarter results across all major operating segments' wherever it appears, then make sure no text overflows."
@@ -470,6 +548,10 @@ This is the full list of what Decko understands. Use these names when reviewing 
 **Connectors:** `add_connector`, `add_line`
 
 **Pictures:** `insert_picture`, `replace_picture`, `crop_picture`, `recolor_picture`, `set_brightness`, `set_contrast`
+
+**Web images:** `fetch_page_images`, `build_image_picker_slide`, `build_image_grid_table`, `download_image`
+
+**Icons:** `insert_icon`
 
 **Effects:** `rotate_shape`, `flip_shape`, `set_line_color`, `set_line_weight`, `set_line_style`, `set_shadow`, `set_glow`, `set_reflection`, `set_transparency`, `set_gradient_fill`, `set_3d_bevel`, `apply_preset_effect`
 
