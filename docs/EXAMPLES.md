@@ -285,6 +285,40 @@ Slide 7
 ]}
 ```
 
+### 6.6 Re-flow a slide into a two-column layout
+
+Converting a layout = a batch of `move_shape` + `resize_shape`, one pair per shape. Target each shape by `shape_name` if it has a `ref_name`, otherwise by numeric `shape_id` (icons / connectors usually need the id). Don't touch text or colors unless asked. Finish with `enable_text_shrink_for_overflow` so anything that got narrower auto-shrinks.
+
+*Snapshot excerpt:* `Slide 1, 960×540pt. Top band (financial): hdr_fin, chart_rev, chart_nps, kpi_table. Bottom band (execution): hdr_strat, box_p1/p2/p3, flow_1/flow_2/flow_3, badge_okr, icons id 17/20/23/26 + captions ic_cap1..4. Plus title (id 2), divider (id 3), footnote.`
+*VP prompt:* `Re-flow slide 1 into two columns. Put the financial content — the two charts, the KPI table, and its header — into the left 66% as a vertical stack. Take the execution content — the three priority boxes, the Discover/Build/Scale chevrons, the OKR badge, and the four icon callouts with their captions, plus the "Strategic Priorities" header — and re-stack it vertically into the right 33% as a narrow column. Keep the title across the top and the footnote across the bottom. Add a thin vertical rule between the columns. Don't recreate the slide or change any text or colors.`
+*Actions (excerpt — the full batch is ~48 actions, two per shape):*
+```json
+{"actions":[
+  {"type":"move_shape","slide":1,"shape_id":"title","left":40,"top":16},
+  {"type":"resize_shape","slide":1,"shape_id":"title","width":880,"height":34},
+
+  {"type":"move_shape","slide":1,"shape_id":"chart_rev","left":40,"top":82},
+  {"type":"resize_shape","slide":1,"shape_id":"chart_rev","width":560,"height":206},
+  {"type":"move_shape","slide":1,"shape_id":"chart_nps","left":40,"top":296},
+  {"type":"resize_shape","slide":1,"shape_id":"chart_nps","width":272,"height":118},
+  {"type":"move_shape","slide":1,"shape_id":"kpi_table","left":328,"top":296},
+  {"type":"resize_shape","slide":1,"shape_id":"kpi_table","width":272,"height":118},
+
+  {"type":"move_shape","slide":1,"shape_id":"box_p1","left":636,"top":82},
+  {"type":"resize_shape","slide":1,"shape_id":"box_p1","width":284,"height":52},
+  {"type":"move_shape","slide":1,"shape_id":"flow_1","left":636,"top":258},
+  {"type":"resize_shape","slide":1,"shape_id":"flow_1","width":284,"height":26},
+  {"type":"move_shape","slide":1,"shape_id":17,"left":636,"top":392},
+  {"type":"resize_shape","slide":1,"shape_id":17,"width":22,"height":22},
+  {"type":"move_shape","slide":1,"shape_id":"ic_cap1","left":664,"top":392},
+  {"type":"resize_shape","slide":1,"shape_id":"ic_cap1","width":256,"height":22},
+
+  {"type":"add_line","slide":1,"x1":624,"y1":60,"x2":624,"y2":516,"color":"#BFBFBF","weight_pt":1.0},
+  {"type":"enable_text_shrink_for_overflow","scope":"slide:1"}
+]}
+```
+Note: tables auto-grow their row heights, so a table may end a few pt taller than the `height` you set — leave slack below it.
+
 ---
 
 ## 7. Connectors, groups, diagrams
@@ -366,6 +400,31 @@ Slide 7
   {"type":"set_table_col_width","slide":16,"shape_id":7,"col":1,"width_pt":280}
 ]}
 ```
+
+### 8.3 Convert a table into a chart (and back)
+
+There's no single "table→chart" action — the model reads the table's cells out of the snapshot, deletes the table, and adds a chart with that data in the same `pos`. Give the new chart a `ref_name` so the styling follow-ups can target it.
+
+*Snapshot excerpt:* `Slide 1  shape_id=7  kind=table  rows=4 cols=3  cells: [["Metric","FY24","FY25"],["Gross %","61.2%","63.8%"],["FCF ($M)","88","121"],["Headcount","2,140","2,387"]]  pos: L328 T296 W272 H138`
+*VP prompt:* `On slide 1, turn that KPI table into a small clustered-column chart in the same spot — categories are the metric names, two series FY24 and FY25. Headcount is on a totally different scale from the % and the $ figure, so leave it out; just chart Gross Margin % and FCF ($M). Title it "FY24 vs FY25 — Key Financials", legend at the bottom, show data labels, hide the gridlines, keep it compact.`
+*Actions:*
+```json
+{"actions":[
+  {"type":"delete_shape","slide":1,"shape_id":7},
+  {"type":"add_chart","slide":1,"chart_type":"columnclustered","pos":{"left":328,"top":296,"width":272,"height":118},
+     "categories":["Gross Margin %","FCF ($M)"],
+     "series":[{"name":"FY24","values":[61.2,88],"color":"#1F3864"},
+               {"name":"FY25","values":[63.8,121],"color":"#9DC3E6"}],
+     "title":"FY24 vs FY25 — Key Financials","show_legend":true,"clean_style":true,"ref_name":"kpi_chart"},
+  {"type":"set_chart_legend","slide":1,"shape_id":"kpi_chart","props":{"position":"bottom","font_size":8}},
+  {"type":"set_chart_series","slide":1,"shape_id":"kpi_chart","series_index":1,"props":{"show_labels":true,"label_format":"#,##0.0","label_size":8}},
+  {"type":"set_chart_series","slide":1,"shape_id":"kpi_chart","series_index":2,"props":{"show_labels":true,"label_format":"#,##0.0","label_size":8}},
+  {"type":"set_chart_gridlines","slide":1,"shape_id":"kpi_chart","props":{"major":false}},
+  {"type":"set_chart_format","slide":1,"shape_id":"kpi_chart","props":{"gap_width":80}},
+  {"type":"enable_text_shrink_for_overflow","scope":"slide:1"}
+]}
+```
+Reverse direction (chart → table): `delete_shape` the chart, then `add_table` + `set_cell_text` per cell in the same `pos`. Note: `clean_style:true` on `add_chart` already hides the value axis + gridlines; the explicit `set_chart_gridlines` here is belt-and-suspenders. If the auto title wraps to two lines in a small chart, add `set_chart_title` with a smaller `font_size` or drop the title.
 
 ---
 

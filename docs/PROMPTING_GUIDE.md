@@ -765,10 +765,14 @@ any model.
 | Action | When |
 |--------|------|
 | `set_chart_type` | barClustered / columnClustered / line / pie / area / scatter / etc. |
-| `set_chart_title` | Title text + enabled flag. |
+| `set_chart_title` | Title text + enabled flag (+ font props). |
 | `set_chart_axis_title` | x or y axis title. |
-| `set_chart_legend_position` | top / right / bottom / left. |
-| `set_series_color` | Color by series index. |
+| `set_chart_axis` | Fine axis control: `visible`/`line_visible` (hide the axis — value-axis also drops its gridlines), `min`/`max`/`major_unit`, `number_format`, `tick_label_position`, scale type. |
+| `set_chart_gridlines` | Show / hide / style major & minor gridlines per axis (`x`/`y`/`both`) — color, weight, dash. Use `{"props":{"major":false}}` to kill the horizontal lines. |
+| `set_chart_legend_position` / `set_chart_legend` | top / right / bottom / left; or `props` for position + visible + font. |
+| `set_series_color` | Color a *series* by 1-based index. (For per-bar color in a single-series chart use `set_chart_series` `props.point_fills`.) |
+| `set_chart_series` | Per-series props: `show_labels`, `label_format` (the data-label number format — e.g. `#,##0;(#,##0)`), `label_position`, `fill_color`, `point_fills` (array, per-point color), markers, etc. |
+| `set_chart_format` | Chart-group props: `gap_width`, `overlap`, `bar_shape`, `doughnut_hole_size`, reverse cats/series. |
 | `set_series_values` | Array of data values. |
 | `set_chart_categories` | Array of category labels. |
 | `set_series_name` | Series label. |
@@ -1008,6 +1012,10 @@ Calibri to Arial."
 | "Change the font everywhere" | `swap_font_deck_wide` (or `set_theme_font` for theme-driven decks) |
 | "Align / space out these shapes" | `align_shapes` + `distribute_horizontal` / `distribute_vertical` (or `tile_grid`, `smart_spacing`, `uniform_size`) |
 | "Make a table" | `add_table` → `set_cell_text` per cell → `apply_table_style` |
+| "Remove the gridlines / hide the axis on this chart" | `set_chart_gridlines` `{"props":{"major":false}}` (kills the horizontal lines); `set_chart_axis` `axis:"y"` `{"props":{"visible":false}}` to drop the vertical value axis (that also removes its gridlines) |
+| "Format the data labels (thousands separator, negatives in parens)" | `set_chart_series` `{"props":{"show_labels":true,"label_format":"#,##0;(#,##0)"}}` — `label_format`, **not** the axis `number_format` |
+| "Turn this table into a chart" | Read the table cells from the snapshot → `delete_shape` (the table) → `add_chart` with that data in the *same* `pos` (give it a `ref_name`, then `set_chart_*` follow-ups). If the rows are on incompatible scales (%, $, counts), pick a subset or normalize — say so. Reverse direction: `delete_shape` (chart) → `add_table` + `set_cell_text`. |
+| "Re-flow / convert the layout of this slide" | A batch of `move_shape` + `resize_shape` (target each shape by `shape_name` if it has a `ref_name`, else `shape_id`). E.g. two-column re-flow: financial block → left N%, supporting block re-stacked vertically → right (100-N)%; add an `add_line` rule between. Don't change text/colors unless asked. End with `enable_text_shrink_for_overflow`. |
 | "Add shadow / glow / gradient / 3-D" | `set_shadow` / `set_glow` / `set_gradient_fill` / `set_3d_bevel` |
 | "Build an org chart / process flow" | `add_shape` (each box with a `ref_name`) + `add_connector` (by `from_shape_name`/`to_shape_name`) |
 | "Reorder / extract / merge slides" | `move_slide` / `extract_slides` / `import_slides_from_deck` |
