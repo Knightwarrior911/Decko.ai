@@ -249,6 +249,9 @@ Private Function ValidateAction(act As Object) As String
         Case "set_chart_axis"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "axis", "props"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_chart_gridlines"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "props"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "set_chart_format"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "props"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
@@ -1003,6 +1006,12 @@ Private Sub DispatchAction(act As Object)
             Dim caxProps As Object: Set caxProps = act("props")
             modActionsChart.Do_set_chart_axis CLng(act("slide")), CLng(act("shape_id")), _
                                                CStr(act("axis")), caxProps
+        Case "set_chart_gridlines"
+            Dim cglProps As Object: Set cglProps = act("props")
+            Dim cglAxis As String: cglAxis = "y"
+            If act.Exists("axis") Then cglAxis = CStr(act("axis"))
+            modActionsChart.Do_set_chart_gridlines CLng(act("slide")), CLng(act("shape_id")), _
+                                                   cglAxis, cglProps
         Case "set_chart_format"
             Dim cfmtProps As Object: Set cfmtProps = act("props")
             modActionsChart.Do_set_chart_format CLng(act("slide")), CLng(act("shape_id")), cfmtProps

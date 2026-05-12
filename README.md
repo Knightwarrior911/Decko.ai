@@ -181,6 +181,7 @@ data (a host automation limitation) — the user edits their data manually.
 | `set_chart_categories` / `set_series_values` / `set_series_name` | Replace category labels / a series' values / a series' name. |
 | `set_series_color` | Color a series by 1-based index. |
 | `set_chart_axis` / `set_chart_format` / `set_chart_series` | Fine axis / chart-group / per-series props (min/max/units, gap width, bar shape, markers, etc.). |
+| `set_chart_gridlines` | Show / hide / style major & minor gridlines per axis. |
 | `add_chart_trendline` / `set_chart_error_bars` | Add a trendline / error bars to a series. |
 
 ### Images & web (`modActionsImage.bas`, `modActionsWeb.bas`)

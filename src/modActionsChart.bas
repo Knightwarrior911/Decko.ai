@@ -548,6 +548,75 @@ Public Sub Do_set_chart_axis(slideNum As Long, shapeId As Long, _
     On Error GoTo 0
 End Sub
 
+' Show / hide / style chart gridlines.
+'   axis: "x" / "category" / "y" / "value" / "both"  (default "y")
+'   props (Object): any subset of:
+'     major (bool)        — show/hide major gridlines on the selected axis(es)
+'     minor (bool)        — show/hide minor gridlines
+'     major_color (hex), major_weight (number), major_dash (string)
+'     minor_color (hex), minor_weight (number), minor_dash (string)
+'   dash vocab: solid | dash | dot | round_dot | dash_dot | long_dash | long_dash_dot
+Public Sub Do_set_chart_gridlines(slideNum As Long, shapeId As Long, _
+                                  axis As String, ByVal props As Object)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 11050, "Do_set_chart_gridlines", "shape not found"
+    If Not sh.HasChart Then Err.Raise vbObjectError + 11051, "Do_set_chart_gridlines", "not a chart"
+    Dim ch As Object: Set ch = sh.Chart
+
+    Dim axList() As Long, n As Long
+    ReDim axList(1 To 2)
+    Select Case LCase(Trim(axis))
+        Case "x", "category", "xlcategory": axList(1) = 1: n = 1
+        Case "", "y", "value", "xlvalue":   axList(1) = 2: n = 1
+        Case "both":                        axList(1) = 1: axList(2) = 2: n = 2
+        Case Else: Err.Raise vbObjectError + 11052, "Do_set_chart_gridlines", _
+                              "axis must be x/y/category/value/both, got: " & axis
+    End Select
+
+    On Error Resume Next
+    Dim i As Long, axNum As Long, ax As Object
+    For i = 1 To n
+        axNum = axList(i)
+        Set ax = ch.Axes(axNum, 1)   ' xlPrimary
+        If ax Is Nothing Then GoTo NextAxis
+
+        If props.Exists("major") Then ax.HasMajorGridlines = modActions.ToBool(props("major"))
+        If props.Exists("minor") Then ax.HasMinorGridlines = modActions.ToBool(props("minor"))
+
+        If ax.HasMajorGridlines Then
+            If props.Exists("major_color") Then _
+                ax.MajorGridlines.Format.Line.ForeColor.RGB = modActions.HexToRgb(CStr(props("major_color")))
+            If props.Exists("major_weight") Then _
+                ax.MajorGridlines.Format.Line.Weight = CDbl(props("major_weight"))
+            If props.Exists("major_dash") Then _
+                ax.MajorGridlines.Format.Line.DashStyle = DashStyleFromName(CStr(props("major_dash")))
+        End If
+        If ax.HasMinorGridlines Then
+            If props.Exists("minor_color") Then _
+                ax.MinorGridlines.Format.Line.ForeColor.RGB = modActions.HexToRgb(CStr(props("minor_color")))
+            If props.Exists("minor_weight") Then _
+                ax.MinorGridlines.Format.Line.Weight = CDbl(props("minor_weight"))
+            If props.Exists("minor_dash") Then _
+                ax.MinorGridlines.Format.Line.DashStyle = DashStyleFromName(CStr(props("minor_dash")))
+        End If
+NextAxis:
+    Next i
+    On Error GoTo 0
+End Sub
+
+' Map a dash-style name to the msoLineDashStyle enum (shared helper).
+Private Function DashStyleFromName(ByVal name As String) As Long
+    Select Case LCase(Trim(name))
+        Case "dash":          DashStyleFromName = msoLineDash
+        Case "dot":           DashStyleFromName = msoLineSquareDot
+        Case "round_dot":     DashStyleFromName = msoLineRoundDot
+        Case "dash_dot":      DashStyleFromName = msoLineDashDot
+        Case "long_dash":     DashStyleFromName = msoLineLongDash
+        Case "long_dash_dot": DashStyleFromName = msoLineLongDashDot
+        Case Else:            DashStyleFromName = msoLineSolid
+    End Select
+End Function
+
 ' Set properties on a single series within a chart.
 '   series_index: 1-based
 '   props (Object): any subset of:

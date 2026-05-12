@@ -452,6 +452,24 @@ Slide 7
 ]}
 ```
 
+### 9.7b Clean up an EBITDA-bridge chart: kill gridlines, hide vertical axis, format data labels, recolor specific bars
+
+*Snapshot excerpt:* `Slide 1  shape_id=2  kind=chart  type=type_119 (waterfall)  series: ["Series1"]` — note: a waterfall is **one** series with N points; recolor *points*, not series.
+*VP prompt:* `Slide 1, the bridge chart (shape 2): remove the horizontal gridlines, hide the vertical value axis, add a page title "EBITDA Bridge", format the data labels with a thousands separator and negatives in parentheses like (40), and make bars 1/5/8 black and bars 4/6 yellow. Resize the chart to fill the slide better. Don't recreate the slide.`
+*Actions:*
+```json
+{"actions":[
+  {"type":"add_text_box","slide":1,"text":"EBITDA Bridge","pos":{"left":40,"top":18,"width":600,"height":44},"font_size":24,"font_bold":true,"font_color":"#000000","h_align":"left","ref_name":"slide_title"},
+  {"type":"move_shape","slide":1,"shape_id":2,"left":40,"top":74},
+  {"type":"resize_shape","slide":1,"shape_id":2,"width":880,"height":426},
+  {"type":"set_chart_gridlines","slide":1,"shape_id":2,"props":{"major":false}},
+  {"type":"set_chart_axis","slide":1,"shape_id":2,"axis":"y","props":{"visible":false}},
+  {"type":"set_chart_series","slide":1,"shape_id":2,"series_index":1,"props":{"show_labels":true,"label_format":"#,##0;(#,##0)","point_fills":["#000000","","","#FFFF00","#000000","#FFFF00","","#000000"]}},
+  {"type":"enable_text_shrink_for_overflow","scope":"slide:1"}
+]}
+```
+Notes: (1) `set_chart_gridlines {major:false}` defaults to the value (y) axis — the horizontal lines. (2) Hiding the value axis (`set_chart_axis y {visible:false}`) also drops its gridlines, so on a normal column chart either action alone clears the horizontal lines. (3) Data-label format goes on `set_chart_series` (`label_format`), **not** the axis `number_format`. (4) Native waterfall (`type_119`) charts auto-color points by Increase/Decrease/Total — per-point `point_fills` usually sticks, but if it doesn't, set the colors in the PowerPoint UI (click a bar twice → Format Data Point → Fill).
+
 ### 9.7 Update existing chart data + add a trendline
 
 *VP prompt:* `On slide 18, chart (shape 9): replace the categories with 2019, 2020, 2021, 2022, 2023; set series 1 ("Sales") to 410, 388, 502, 631, 770; rename series 1 to "Net Sales ($M)"; add a linear trendline on series 1 showing the R² value.`
