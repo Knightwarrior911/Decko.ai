@@ -319,6 +319,25 @@ Converting a layout = a batch of `move_shape` + `resize_shape`, one pair per sha
 ```
 Note: tables auto-grow their row heights, so a table may end a few pt taller than the `height` you set — leave slack below it.
 
+### 6.7 Explode a bullet box into visual cards
+
+The most common "make it visual" ask. Read the box's `paragraphs` out of the snapshot, delete the box (keep the title), and add one card per bullet positioned per a region preset chosen by bullet count (see `LAYOUT_RECIPES.md`). Vary the card fills for rhythm; finish with `enable_text_shrink_for_overflow`.
+
+*Snapshot excerpt:* `Slide 1: shape_id=2 = title "Our FY26 Operating Plan"; shape_id=3 = text box, 4 paragraphs: ["Accelerate enterprise ARR — focused land-and-expand in the top 200 named accounts", "Ship the AI copilot to GA and drive attach across the installed base", "Expand gross margin +200 bps via the multi-cloud cost-optimization program", "Deepen the partner channel — ecosystem pipeline reaches one third of new bookings"]`
+*VP prompt:* `On slide 1, take those four bullets out of the text box and lay them out as a 2x2 grid of rounded cards, dark to light, numbered. Keep the title.`
+*Actions:*
+```json
+{"actions":[
+  {"type":"delete_shape","slide":1,"shape_id":3},
+  {"type":"add_shape","slide":1,"kind":"rrect","pos":{"left":40,"top":64,"width":432,"height":218},"fill":"#1F3864","text":"1   Accelerate enterprise ARR — focused land-and-expand in the top 200 named accounts","font_color":"#FFFFFF","font_size":15,"h_align":"left","v_align":"middle","ref_name":"q1"},
+  {"type":"add_shape","slide":1,"kind":"rrect","pos":{"left":488,"top":64,"width":432,"height":218},"fill":"#2F5597","text":"2   Ship the AI copilot to GA and drive attach across the installed base","font_color":"#FFFFFF","font_size":15,"h_align":"left","v_align":"middle","ref_name":"q2"},
+  {"type":"add_shape","slide":1,"kind":"rrect","pos":{"left":40,"top":298,"width":432,"height":218},"fill":"#8FAADC","text":"3   Expand gross margin +200 bps via the multi-cloud cost-optimization program","font_color":"#FFFFFF","font_size":15,"h_align":"left","v_align":"middle","ref_name":"q3"},
+  {"type":"add_shape","slide":1,"kind":"rrect","pos":{"left":488,"top":298,"width":432,"height":218},"fill":"#D9E2F3","text":"4   Deepen the partner channel — ecosystem pipeline reaches one third of new bookings","font_color":"#1F3864","font_size":15,"h_align":"left","v_align":"middle","ref_name":"q4"},
+  {"type":"enable_text_shrink_for_overflow","scope":"slide:1"}
+]}
+```
+For 3 bullets → 1 big left card + 2 stacked right cards; sequential steps → `add_shape kind:"chevron"` in a left-to-right row; 6 bullets → a 2×3 grid. See `LAYOUT_RECIPES.md` for the region rectangles.
+
 ---
 
 ## 7. Connectors, groups, diagrams

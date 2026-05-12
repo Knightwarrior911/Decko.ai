@@ -18,6 +18,10 @@ clicks Apply. Three macros, three UserForms, no API calls from PowerPoint.
 - **[`docs/EXAMPLES.md`](docs/EXAMPLES.md)** — a corpus of paired examples
   (VP prompt → exact `actions` JSON), ~45 worked cases across every action
   category. Best place for an agent to learn the request→actions mapping.
+- **[`docs/LAYOUT_RECIPES.md`](docs/LAYOUT_RECIPES.md)** — redesigning a slide's
+  whole layout: a catalog of region presets (67/33, 50/50, quad, 3-/4-column,
+  2-stacked-left + 1-right, etc., with exact pt coordinates for 960×540), the
+  "explode a bullet box into visual cards" recipe, and mixed-object re-flow.
 - **[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)** — practical guide for VPs/MDs.
 - Design specs: `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1),
   `docs/specs/2026-05-08-ppt-ai-editor-phase2-design.md` (Phase 2).
