@@ -6,8 +6,18 @@ The user copies a JSON snapshot of the active deck into their LLM tool,
 describes a desired change, copies the LLM's instructions JSON back, and
 clicks Apply. Three macros, three UserForms, no API calls from PowerPoint.
 
-See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
-`docs/specs/2026-05-08-ppt-ai-editor-phase2-design.md` (Phase 2 design).
+## Documentation
+
+- **[`docs/PROMPTING_GUIDE.md`](docs/PROMPTING_GUIDE.md)** — how to phrase
+  requests, worked examples, and a section for AI assistants (Hermes, OpenClaw,
+  GPT/Claude-class) on turning a VP request into the `actions` JSON.
+- **[`docs/ACTIONS_REFERENCE.md`](docs/ACTIONS_REFERENCE.md)** — the complete,
+  machine-precise schema for all ~130 actions (required/optional fields, value
+  vocabularies, examples). Read this literally; you don't need to have built
+  Decko to use it.
+- **[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)** — practical guide for VPs/MDs.
+- Design specs: `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1),
+  `docs/specs/2026-05-08-ppt-ai-editor-phase2-design.md` (Phase 2).
 
 ## One-time developer setup
 
@@ -29,15 +39,18 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 4. Paste into your LLM tool. Replace the placeholder line with what you want
    changed in the deck. Submit.
 5. The LLM returns an instructions JSON. Copy it.
-6. Press Alt+F8 → run `ExecuteInstructions`. Paste into the textbox, click
-   **Parse**. Review the action list — invalid rows are tagged.
+6. Press Alt+F8 → run `ExecuteInstructions`. Paste the JSON and click
+   **Parse**, or — for a large batch — click **"Load from file..."** and pick
+   the `.json` file (the text box corrupts big pastes; the file path doesn't).
+   Review the action list — invalid rows are tagged.
 7. Click **Apply**. The deck is backed up first, then valid actions are
    executed in order. A summary line shows applied / skipped counts and the
    paths to the backup file and JSONL action log.
 
 ## Action types
 
-108 actions total across 12 modules.
+~130 actions across 14 modules. The tables below are a summary; the **complete
+per-action schema** is in [`docs/ACTIONS_REFERENCE.md`](docs/ACTIONS_REFERENCE.md).
 
 ### Core shape + slide (`modActions.bas`, 17)
 
@@ -134,22 +147,50 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 | `delete_table_col` | Remove column N. |
 | `merge_cells` | Merge cell range `(r1,c1)-(r2,c2)`. |
 
-### Charts (`modActionsChart.bas`, 5)
+### Tables — build & cell formatting (`modActionsTable.bas`, more)
 
 | Action | Effect |
 |---|---|
-| `set_chart_type` | Change chart type (column/bar/line/pie/etc.). |
-| `set_chart_title` | Set chart title text. |
-| `set_chart_axis_title` | Set axis title (category/value). |
-| `set_chart_legend_position` | Position legend (top/right/bottom/left/none). |
-| `set_series_color` | Color a chart series by index. |
+| `add_table` | Create a new table (`rows`×`cols`) at `pos`. |
+| `set_cell_text` | Set text of cell `(row, col)`. |
+| `set_table_col_width` / `set_table_row_height` | Resize a column / row (pt). |
+| `set_cell_border` | Border on one cell side (color/weight/visible). |
+| `set_cell_text_align` | h/v align inside a cell. |
+| `set_cell_fill` | Cell background color. |
+| `apply_table_style` | Apply a named/GUID Office table style. |
+| `build_image_grid_table` | 2-col image+caption table from a row spec. |
 
-### Images (`modActionsImage.bas`, 2)
+### Charts — native chart objects (`modActionsChart.bas`, more)
+
+Decko creates **real native PowerPoint charts** (editable, with an embedded data
+sheet), not images. **All 39 PowerPoint chart types are supported** (2-D/3-D
+column & bar, line, area, pie/doughnut, scatter, radar, surface, and the modern
+types: waterfall, pareto, funnel, histogram, box-and-whisker, treemap, sunburst).
+The 7 modern types are created with the correct type but PowerPoint's placeholder
+data (a host automation limitation) — the user edits their data manually.
 
 | Action | Effect |
 |---|---|
-| `insert_picture` | Insert image at position. |
+| `add_chart` | Insert a new chart: `chart_type`, `pos`, `categories`, `series` (`[{name,values,color?}]`), optional `title`/`show_legend`/`show_values`/`clean_style`/`value_format`/`ref_name`. |
+| `set_chart_type` | Change an existing chart's type. |
+| `set_chart_title` / `set_chart_axis_title` | Title / axis title text. |
+| `set_chart_legend_position` / `set_chart_legend` | Legend position / props. |
+| `set_chart_categories` / `set_series_values` / `set_series_name` | Replace category labels / a series' values / a series' name. |
+| `set_series_color` | Color a series by 1-based index. |
+| `set_chart_axis` / `set_chart_format` / `set_chart_series` | Fine axis / chart-group / per-series props (min/max/units, gap width, bar shape, markers, etc.). |
+| `add_chart_trendline` / `set_chart_error_bars` | Add a trendline / error bars to a series. |
+
+### Images & web (`modActionsImage.bas`, `modActionsWeb.bas`)
+
+| Action | Effect |
+|---|---|
+| `insert_picture` | Insert a local image at position. |
 | `replace_picture` | Replace existing picture, preserving frame. |
+| `insert_icon` | Insert a Microsoft Fluent UI SVG icon (concept name → CDN fetch + recolor). |
+| `fetch_page_images` | Scrape all images from a URL into a folder. |
+| `download_image` | Download one image URL to a local path. |
+| `open_image_picker` / `build_image_picker_slide` | Visual thumbnail-grid picker / build a grid slide from a folder. |
+| `bulk_insert_image` | Same image, same box, across multiple slides. |
 
 ### Connectors + groups (`modActionsConnector.bas`, `modActionsGroup.bas`, 3)
 
@@ -194,13 +235,34 @@ See `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1 design) and
 | `bulk_insert_text_box` | Insert same text box across listed slides. |
 | `apply_layout_to_slides` | Force layout index N on listed slides. |
 
-### Slide structure (`modActionsSlide.bas`, 3)
+### Slide structure (`modActionsSlide.bas`)
 
 | Action | Effect |
 |---|---|
 | `move_slide` | Reorder slide from index A to B. |
 | `extract_slides` | Export selected slides to a new .pptx file. |
 | `import_slides_from_deck` | Import slides from another deck at position. |
+| `set_slide_background_color` | Solid background color on a slide. |
+| `insert_slide_number` | Add a slide-number text placeholder (pos/font/color). |
+
+### Misc shape/text ops
+
+| Action | Effect |
+|---|---|
+| `add_text_box` | New plain text box at `pos` (text/font/align/fill/stroke optional). |
+| `add_shape` | New autoshape (`kind` + `pos`; fill/stroke/text/ref_name optional). |
+| `add_line` | Straight line/divider between two points (arrows/dash optional). |
+| `z_order` | Bring to front / send to back / forward / backward. |
+| `duplicate_shape` | Clone a shape at a new position. |
+| `copy_formatting` | Copy fill/line/font/effects from one shape to another. |
+| `set_shape_adjustment` | Drag a shape's yellow adjustment handle. |
+| `flip_shape` | Flip horizontal / vertical. |
+| `set_run_strikethrough` | Strikethrough on a single run. |
+| `set_speaker_notes` / `append_speaker_notes` | Replace / append slide speaker notes. |
+
+> The tables in this README are a curated summary. The **complete list with
+> every field, default, and value vocabulary** is
+> [`docs/ACTIONS_REFERENCE.md`](docs/ACTIONS_REFERENCE.md).
 
 ## Safety
 

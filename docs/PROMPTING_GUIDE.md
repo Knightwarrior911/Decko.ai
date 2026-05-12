@@ -2,8 +2,17 @@
 
 This guide shows how to tell the LLM what to do with your PowerPoint deck.
 It covers every capability Decko currently supports, with real example prompts
-you can paste or adapt. The last section is a technical reference for AI
-assistants helping VPs compose prompts.
+you can paste or adapt.
+
+**Two audiences:**
+- **VPs / users** — read [§ Example Prompts](#example-prompts-by-use-case) and
+  [§ Pro Tips](#pro-tips-for-better-prompts).
+- **AI assistants** (Hermes, OpenClaw, GPT/Claude-class — any model) helping a
+  VP — read [§ For AI Assistants](#for-ai-assistants-turning-a-vp-request-into-actions)
+  and the companion **[`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md)** (the
+  exhaustive, machine-precise schema for all ~130 actions). You do **not** need
+  to have built Decko to use it correctly — follow the Hard Rules and the schema
+  literally.
 
 ---
 
@@ -16,9 +25,30 @@ assistants helping VPs compose prompts.
 4. Paste into your LLM (Claude, ChatGPT, Gemini, Hermes, etc.).
 5. Replace the placeholder line with your request. Hit send.
 6. Copy the LLM's JSON response.
-7. **Alt+F8 → ExecuteInstructions** — paste JSON, click **Apply**.
+7. **Alt+F8 → ExecuteInstructions** — paste JSON, click **Parse** then **Apply**.
+   For a large batch, click **"Load from file..."** instead of pasting (see the
+   warning). Then **Apply**.
 8. **Ctrl+S** to save. (Decko edits the open deck in memory — close without
    saving and you lose the changes.)
+
+> ⚠️ **Large pastes get corrupted.** The Execute window's text box is a Windows
+> MSForms control; pasting a big block (more than ~2 KB, or one very long line)
+> can silently inject whitespace into numbers and keys (`"left":50` →
+> `"left":5  0`), making the JSON invalid or making actions get skipped. For
+> anything substantial, **save the LLM's JSON to a `.json` file and use the
+> "Load from file..." button** — that path bypasses the text box entirely. If
+> you must paste, ask the LLM to emit **one action per line**.
+
+### What Decko can do (current surface)
+
+~130 actions across 14 modules: text at whole-shape, paragraph, and run level;
+layout & alignment; shapes, lines, connectors, groups; tables (build + cell
+formatting); **native charts — all 39 PowerPoint chart types create real chart
+objects, not images**; images (local insert, web scrape, picker grid); Fluent UI
+icons; deck-wide font/color/theme swaps; slide add/delete/move/extract/import;
+speaker notes; slide backgrounds & numbers; visual effects (shadow, glow,
+gradient, 3-D bevel, picture recolor/crop/brightness). Full per-action schema:
+**[`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md)**.
 
 ---
 
@@ -380,32 +410,50 @@ to create a full-width header spanning all columns.
 
 ### 11. Charts
 
-**Change chart type:**
+Decko creates **real native PowerPoint chart objects** (editable, with an
+embedded data sheet) — not pictures of charts. All **39** PowerPoint chart types
+work: 2-D/3-D column & bar, line, area, pie/doughnut, scatter, radar, surface,
+and the modern types (waterfall, pareto, funnel, histogram, box-and-whisker,
+treemap, sunburst). See [`ACTIONS_REFERENCE.md` § chart types](ACTIONS_REFERENCE.md#chart-types-add_chart-chart_type-set_chart_type-value) for the full name list.
+
+**Add a new chart:**
 ```
-On slide 8, change the chart (shape 4) from a clustered bar to a
-clustered column chart.
+On slide 4, add a clustered column chart at left 60, top 120, width 560,
+height 340:
+- Categories: FY21, FY22, FY23, FY24
+- Series "Revenue ($M)": 120, 138, 151, 170
+- Series "EBITDA ($M)": 22, 28, 33, 41
+- Title: "Revenue & EBITDA"
+- Show the legend, format values as "$#,##0M".
 ```
 
-**Update chart data:**
+**Change an existing chart's type:**
+```
+On slide 8, change the chart (shape 4) from clustered bar to clustered column.
+```
+
+**Update an existing chart's data:**
 ```
 On slide 8, update the chart (shape 4):
-- Categories: "2021", "2022", "2023", "2024"
+- Categories: 2021, 2022, 2023, 2024
 - Series "Revenue": 24.0, 26.8, 28.5, 33.4
 - Series "Net Income": 5.9, 6.1, 7.0, 8.8
 - Chart title: "Eli Lilly Financial Performance ($B)"
-- X-axis title: "Year"
-- Y-axis title: "USD Billions"
+- X-axis title: "Year"; Y-axis title: "USD Billions"
 ```
 
-**Recolor chart series:**
+**Recolor series / move legend:**
 ```
-On slide 8, set series 1 color to #1F4E79 and series 2 color to #2E75B6.
+On slide 8, set series 1 color to #1F4E79 and series 2 to #2E75B6, and move
+the legend to the bottom.
 ```
 
-**Move chart legend:**
-```
-On slide 8, move the chart legend to the bottom.
-```
+> **Heads-up on 7 chart types:** `waterfall`, `pareto`, `funnel`, `histogram`,
+> `boxwhisker`, `treemap`, `sunburst` are created with the correct chart type
+> but with PowerPoint's **placeholder data** — Decko cannot write your
+> categories/series/title into them (a PowerPoint automation limitation). You
+> double-click the chart and edit its data manually after insertion. The other
+> 32 types take your data normally.
 
 ---
 
@@ -584,29 +632,30 @@ without saving = all changes lost. Ctrl+S right after every Apply.
 
 ## Full Action Reference (for AI Assistants)
 
-This section is a complete map of every action Decko supports. AI assistants
-(openclaw, hermes, etc.) should use this to guide VPs toward the right prompt
-phrasing for any task.
+This section is a quick map of every action Decko supports. For the **complete,
+machine-precise schema** (every required/optional field, every value vocabulary,
+a minimal example per action), use **[`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md)**
+— that file is the single source of truth and is meant to be read literally by
+any model.
 
-### Action Categories & Counts
+### Action Categories & Counts (~130 total, 14 modules)
 
-| Module | Count | Actions |
-|--------|-------|---------|
-| `modActions.bas` | 17 | Core shape/slide/notes/table |
-| `modActionsText.bas` | 14 | Granular text, paragraph-level, find/replace |
-| `modActionsRun.bas` | 10 | Run-level formatting (bold/italic/color/hyperlink) |
-| `modActionsLayout.bas` | 24 | Align, distribute, grid, recolor batch, clear slide |
-| `modActionsTable.bas` | 5 | Table row/col/merge |
-| `modActionsChart.bas` | 5 | Chart type/title/axis/series |
-| `modActionsImage.bas` | 2 | Insert/replace picture |
-| `modActionsConnector.bas` | 1 | Add connector |
-| `modActionsGroup.bas` | 2 | Group/ungroup |
-| `modActionsSlide.bas` | 3 | Move/extract/import slides |
-| `modActionsDeck.bas` | 9 | Regex, font swap, theme, recolor palette, bulk insert |
-| `modActionsEffects.bas` | 16 | Shadow, glow, gradient, 3D, crop, recolor picture |
-| `modActionsIcon.bas` | 1 | Insert Fluent UI SVG icon |
-| `modActionsWeb.bas` | helper | fetch_page_images, download_image |
-| **Total** | **~109** | |
+| Module | Count | What it does |
+|--------|-------|--------------|
+| `modActions.bas` | ~17 | Core shape/slide/notes/table-cell ops |
+| `modActionsText.bas` | ~17 | Paragraph text, bullets, alignment, autofit, find/replace |
+| `modActionsRun.bas` | ~11 | Run-level formatting (bold/italic/color/size/font/hyperlink/strikethrough) |
+| `modActionsLayout.bas` | ~30 | Align, distribute, grid, spacing, match size/pos, add_shape, add_text_box, add_line, clear_slide, z_order, duplicate, recolor batch |
+| `modActionsTable.bas` | ~13 | add_table, add/del row/col, merge, col/row size, cell border/fill/align, table style, image grid table |
+| `modActionsChart.bas` | ~18 | add_chart (39 types), set type/title/axis/legend/series/categories/values/colors, trendlines, error bars, chart format |
+| `modActionsImage.bas` | ~4 | Insert/replace picture, image picker grid |
+| `modActionsConnector.bas` | 1 | add_connector |
+| `modActionsGroup.bas` | 2 | group/ungroup |
+| `modActionsSlide.bas` | ~6 | move/extract/import slides, slide background, slide number |
+| `modActionsDeck.bas` | ~10 | Regex find/replace, font swap, theme, recolor palette, slide size, bulk insert, layout apply |
+| `modActionsEffects.bas` | ~17 | Rotate/flip, line color/weight/style, shadow, glow, reflection, transparency, gradient, 3-D bevel, preset effect, crop/recolor/brightness/contrast picture, shape adjustment |
+| `modActionsIcon.bas` | 1 | insert_icon (Fluent UI SVG) |
+| `modActionsWeb.bas` | ~3 | fetch_page_images, download_image, open_image_picker |
 
 ### Action Quick-Reference
 
@@ -799,39 +848,180 @@ if no exact match exists it picks the nearest semantic equivalent.
 
 ---
 
-## Guidance for AI Assistants (openclaw / hermes)
+## For AI Assistants — turning a VP request into actions
 
-When a VP describes what they want to do with a presentation, your job is to
-suggest the right Decko prompt they should paste into the LLM. Use the table
-above to match their intent to the action type, then write a clear prompt they
-can use directly.
+This section is for any model (Hermes, OpenClaw, GPT-class, Claude-class) acting
+as the VP's assistant. **You have two jobs:**
 
-**Key translation rules:**
+1. **Help the VP phrase a request** — turn a vague business ask into a precise,
+   unambiguous instruction (the "VP prompt") that a model can act on.
+2. **Emit the `actions` JSON** — given the snapshot + the VP's request, output
+   the exact `{"actions":[ ... ]}` array Decko will execute.
 
-| VP says | Suggest |
-|---------|---------|
-| "Change the company throughout the deck" | `find_replace_text` with `scope: deck` |
-| "Update the financials / data points" | `find_replace_text` (surgical) or `set_run_text` (mixed-format) |
-| "Rebuild this slide for Company X" | `clear_slide` + `add_shape`/`add_text_box` sequence + latest public data |
-| "Add a logo / image" | `insert_picture` (local path) |
-| "Get images from their website" | `fetch_page_images` → `build_image_picker_slide` → `build_image_grid_table` |
-| "Add an icon / pictogram" | `insert_icon` — describe the concept; LLM picks from the IB allow-list in the prompt |
-| "Recolor the whole deck" | `recolor_fill_match` / `recolor_font_match` / `recolor_palette_deck_wide` |
-| "Align / space out these shapes" | `align_shapes` + `distribute_horizontal` / `distribute_vertical` |
-| "Create a table" | `add_table` + `set_cell_text` + `apply_table_style` |
-| "Add a shadow / gradient / effect" | `set_shadow` / `set_gradient_fill` / `set_glow` |
-| "Build an org chart / process flow" | `add_shape` (with ref_name) + `add_connector` |
-| "Extract these slides to send" | `extract_slides` |
-| "Merge this slide from another file" | `import_slides_from_deck` |
-| "Add speaker notes" | `set_speaker_notes` or `append_speaker_notes` |
-| "Some text is getting cut off" | `enable_text_shrink_for_overflow` |
+You can do both even though you didn't build Decko. Just follow the Hard Rules
+and the schema in [`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md) **literally**.
 
-**Remind VPs of the workflow every time:**
-1. Export snapshot (Alt+F8 → ExportSnapshot → Copy snapshot + prompt template)
-2. Paste into LLM and replace the placeholder line
-3. Execute (Alt+F8 → ExecuteInstructions → Apply)
-4. **Ctrl+S to save**
+### Hard Rules (memorize — breaking any one fails the batch)
 
-**Always remind:** The LLM must see the snapshot — it contains shape IDs, slide
-numbers, and existing text that the LLM needs to write correct actions.
-Never send a prompt without the snapshot attached.
+1. Output is **one JSON object: `{"actions":[ ... ]}`**. Never a bare array.
+2. Every item has a **`"type"`** plus that action's fields. Actions run **in order, top to bottom**.
+3. **`slide` = 1-based slide number.**
+4. **`shape_id` = the number from the snapshot** — never the shape's name, never its list position. (Exception: a shape created earlier in the same batch via `ref_name` may be referenced by that `ref_name` string.)
+5. **All sizes/distances are points (pt).** 1 inch = 72 pt. 16:9 slide = 960 × 540 pt (the snapshot reports the actual size).
+6. **Colors are `"#RRGGBB"`.** **Booleans are `true`/`false`.**
+7. **`pos` is `{"left":N,"top":N,"width":N,"height":N}`** for `add_shape`, `add_text_box`, `add_chart`, `add_table`, `insert_picture`, `insert_slide_number`.
+8. **Scope strings are `"deck"` or `"slide:N"`.**
+9. **Create before you reference.** `add_slide` before charts on it; `add_table` before `set_cell_text` on it; `add_shape` (with `ref_name`) before `add_connector` to it.
+10. **Don't guess.** Missing required field / unknown type / out-of-range ID → that action is skipped (batch continues). Malformed JSON → whole batch fails. When unsure, omit.
+11. **Never invent data.** Facts come from the VP or public sources they approve.
+12. **Need the snapshot.** You cannot reference existing shapes without it. If the VP gave you a request that touches existing content but no snapshot, ask for it first.
+13. **Big batches: tell the VP to use "Load from file...", or emit one action per line.** The Execute text box corrupts large pastes.
+
+### Step-by-step: VP request → actions JSON
+
+1. **Read the snapshot.** Note slide count, slide size, and for each shape its
+   `shape_id`, kind, position, and current text (with paragraph/run indices).
+2. **Restate the request as concrete edits.** "Make it look cleaner" → which
+   slides? which shapes? remove what / align what / recolor to what? If the VP
+   was vague, ask one clarifying question rather than guessing.
+3. **Pick the smallest action for each edit.** Prefer `find_replace_text` over
+   `set_text`; `set_run_text` over `set_paragraph_text` when formatting is mixed.
+   Use the [Quick-Reference](#action-quick-reference) and
+   [`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md) to match intent → action.
+4. **Order the actions.** Creates first, then edits/format on the created
+   things, then layout/alignment last (alignment needs final sizes).
+5. **Fill every required field; add optional fields only when the request asks
+   for them.** Copy field names exactly from the schema.
+6. **For new layouts, compute coordinates.** 16:9 = 960 × 540 pt. Leave ~40 pt
+   margins. A 3-up row at top 120: boxes at left 60 / 360 / 660, width ~240.
+7. **Wrap in `{"actions":[ ... ]}` and output ONLY that JSON** — no prose, no
+   markdown fences. (Decko's sanitizer tolerates fences/prose, but clean output
+   is safer, especially for weaker models.)
+8. **If the batch is large, output one action object per line** so the VP can
+   paste it without the text box mangling it (or tell them to save it to a
+   `.json` file and use "Load from file...").
+
+### How to write a good "VP prompt"
+
+When the VP is going to paste a prompt into a model themselves, help them write
+one that any model can execute. A good VP prompt:
+
+- **Names the target.** "On slide 3, the title text box (top-left)" beats "the title".
+- **States the change concretely.** "Change to 'Q3 FY24 Results'" beats "update the title".
+- **Gives the data inline.** Numbers, labels, colors, fonts — spelled out, not "use the latest figures".
+- **Specifies position/size in points** when adding things ("at left 60, top 120, width 560, height 340").
+- **One slide at a time** for complex rebuilds; batch only simple repeated edits.
+- **Ends with a reminder** that the model must output only the `{"actions":[...]}` JSON.
+
+Template you can hand the VP:
+
+```
+[Using the snapshot above.]
+On slide <N>, <do X to shape <id>/the <description>>:
+- <concrete change 1, with exact text/numbers/colors>
+- <concrete change 2>
+Output only the Decko actions JSON ({"actions":[ ... ]}).
+```
+
+### Worked examples
+
+**Example A — surgical text + color edit.**
+*Snapshot excerpt:*
+```
+Slide 2  (layout: Title and Content, 960x540)
+  shape_id=3  kind=placeholder(title)  box=(48,30,864,90)   text: "Company Overview"
+  shape_id=7  kind=textbox              box=(60,140,500,40)  text: "Revenue: $1.2B (FY23)"
+```
+*VP request:* "On slide 2, change the title to 'Acme — Company Overview', and
+make the revenue line bold and dark blue (#1F3864)."
+*Output:*
+```json
+{"actions":[
+  {"type":"set_text","slide":2,"shape_id":3,"value":"Acme — Company Overview"},
+  {"type":"set_font_bold","slide":2,"shape_id":7,"value":true},
+  {"type":"set_font_color","slide":2,"shape_id":7,"value":"#1F3864"}
+]}
+```
+
+**Example B — add a chart to a new slide.**
+*VP request:* "Add a new blank slide after slide 5 with a clustered column chart
+of revenue by year — FY21 120, FY22 138, FY23 151, FY24 170 (in $M) — titled
+'Revenue Trend', legend on, values labeled."
+*Output:*
+```json
+{"actions":[
+  {"type":"add_slide","position":6,"layout_index":6},
+  {"type":"add_chart","slide":6,"chart_type":"columnclustered",
+   "pos":{"left":80,"top":90,"width":800,"height":380},
+   "categories":["FY21","FY22","FY23","FY24"],
+   "series":[{"name":"Revenue ($M)","values":[120,138,151,170]}],
+   "title":"Revenue Trend","show_legend":true,"show_values":true,
+   "value_format":"$#,##0\"M\""}
+]}
+```
+(Note: `add_slide` is action 1 so slide 6 exists when `add_chart` runs.)
+
+**Example C — build a 3-step process flow on slide 4.**
+*VP request:* "On slide 4, clear everything except the title and build a
+3-step process flow left-to-right: 'Source', 'Refine', 'Deliver', dark navy
+boxes (#15283C) with white text, arrows between them." *(Snapshot says the title
+on slide 4 is shape_id=2.)*
+*Output:*
+```json
+{"actions":[
+  {"type":"clear_slide","slide":4,"keep_shape_ids":[2]},
+  {"type":"add_shape","slide":4,"kind":"rrect","pos":{"left":60,"top":230,"width":240,"height":90},"fill":"#15283C","text":"Source","font_color":"#FFFFFF","font_size":20,"font_bold":true,"ref_name":"step1"},
+  {"type":"add_shape","slide":4,"kind":"rrect","pos":{"left":360,"top":230,"width":240,"height":90},"fill":"#15283C","text":"Refine","font_color":"#FFFFFF","font_size":20,"font_bold":true,"ref_name":"step2"},
+  {"type":"add_shape","slide":4,"kind":"rrect","pos":{"left":660,"top":230,"width":240,"height":90},"fill":"#15283C","text":"Deliver","font_color":"#FFFFFF","font_size":20,"font_bold":true,"ref_name":"step3"},
+  {"type":"add_connector","slide":4,"kind":"elbow","from_shape_name":"step1","to_shape_name":"step2","arrow_end":"filled","color":"#15283C","weight_pt":2},
+  {"type":"add_connector","slide":4,"kind":"elbow","from_shape_name":"step2","to_shape_name":"step3","arrow_end":"filled","color":"#15283C","weight_pt":2}
+]}
+```
+
+**Example D — deck-wide rebrand.**
+*VP request:* "Rebrand the whole deck from 'Globex' to 'Initech', swap the
+accent color #C00000 → #0B5394 everywhere, and change the body font from
+Calibri to Arial."
+*Output:*
+```json
+{"actions":[
+  {"type":"find_replace_text","scope":"deck","find":"Globex","replace":"Initech"},
+  {"type":"recolor_palette_deck_wide","from_hex":"#C00000","to_hex":"#0B5394","target":"both"},
+  {"type":"swap_font_deck_wide","from_name":"Calibri","to_name":"Arial"}
+]}
+```
+
+### Intent → action cheat-sheet
+
+| VP says | Use |
+|---------|-----|
+| "Change the company name throughout" | `find_replace_text`, `scope:"deck"` |
+| "Fix this one number / phrase" | `find_replace_text` (literal) or `set_run_text` (if it's one run in a mixed paragraph) |
+| "Rebuild this slide for Company X" | `clear_slide` (keep the title) → `add_text_box` / `add_shape` / `add_table` / `add_chart` |
+| "Add a chart" | `add_chart` (39 types; data inline for the 32 standard ones) |
+| "Add a logo / picture" | `insert_picture` (local path) or `replace_picture` |
+| "Pull images from their website" | `fetch_page_images` → `build_image_picker_slide` and/or `build_image_grid_table` |
+| "Add an icon / pictogram" | `insert_icon` — give the concept; use a name from the Fluent UI set / the allow-list in the export prompt |
+| "Recolor the deck / rebrand colors" | `recolor_palette_deck_wide` (and `recolor_fill_match` / `recolor_font_match` for finer scopes) |
+| "Change the font everywhere" | `swap_font_deck_wide` (or `set_theme_font` for theme-driven decks) |
+| "Align / space out these shapes" | `align_shapes` + `distribute_horizontal` / `distribute_vertical` (or `tile_grid`, `smart_spacing`, `uniform_size`) |
+| "Make a table" | `add_table` → `set_cell_text` per cell → `apply_table_style` |
+| "Add shadow / glow / gradient / 3-D" | `set_shadow` / `set_glow` / `set_gradient_fill` / `set_3d_bevel` |
+| "Build an org chart / process flow" | `add_shape` (each box with a `ref_name`) + `add_connector` (by `from_shape_name`/`to_shape_name`) |
+| "Reorder / extract / merge slides" | `move_slide` / `extract_slides` / `import_slides_from_deck` |
+| "Add speaker notes" | `set_speaker_notes` / `append_speaker_notes` |
+| "Text is overflowing / getting cut off" | `enable_text_shrink_for_overflow` (slide or deck) |
+| "Change slide size to 16:9" | `set_slide_size`, `preset:"16:9"` |
+| "Add slide numbers" | `insert_slide_number` per slide (or via the template's master) |
+| "Color the slide background" | `set_slide_background_color` |
+
+### Always remind the VP
+
+1. **The model must see the snapshot** — it has the shape IDs / slide numbers /
+   current text needed to write correct actions. Never send a request without it.
+2. **Workflow:** Alt+F8 → ExportSnapshot → Copy snapshot+template → paste into
+   model → replace the placeholder line → Alt+F8 → ExecuteInstructions →
+   Parse → (large batch: "Load from file...") → Apply → **Ctrl+S to save**.
+3. **Decko auto-backs-up before every Apply** (`<deck>_backup_<timestamp>`) and
+   logs every action to `<deck>.action_log.jsonl` — if something looks wrong,
+   the log says which actions ran, were skipped, or errored, and why.
