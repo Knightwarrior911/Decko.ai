@@ -406,9 +406,60 @@ Option Explicit
 
 Private mParsed As Object
 Private mValid() As Boolean
+' When the user loads actions from a file, the full uncorrupted JSON is held
+' here and takes precedence over the textbox. MSForms textboxes can mangle
+' large pastes (whitespace injected into numbers/keys); the file path avoids
+' the textbox entirely. Cleared the moment the user types in the textbox.
+Private mLoadedJson As String
 
 Private Sub UserForm_Initialize()
     lblStatus.Caption = ""
+    mLoadedJson = ""
+End Sub
+
+' The JSON to parse/apply: a file loaded via btnLoadFile if one is held,
+' otherwise the textbox contents.
+Private Function CurrentJson() As String
+    If Len(mLoadedJson) > 0 Then
+        CurrentJson = mLoadedJson
+    Else
+        CurrentJson = txtInstructions.Text
+    End If
+End Function
+
+Private Sub txtInstructions_Change()
+    ' Hand-editing the textbox supersedes any previously loaded file.
+    mLoadedJson = ""
+End Sub
+
+Private Sub btnLoadFile_Click()
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    fd.Title = "Select an actions JSON file"
+    fd.AllowMultiSelect = False
+    fd.Filters.Clear
+    fd.Filters.Add "JSON / JSONL / text", "*.json;*.jsonl;*.txt"
+    fd.Filters.Add "All files", "*.*"
+    If fd.Show <> -1 Then Exit Sub
+
+    Dim path As String: path = fd.SelectedItems(1)
+    Dim s As String
+    On Error GoTo IOFail
+    Dim fnum As Integer: fnum = FreeFile
+    Open path For Input As #fnum
+    If LOF(fnum) > 0 Then s = Input$(LOF(fnum), fnum)
+    Close #fnum
+    On Error GoTo 0
+
+    txtInstructions.Text = s          ' raises txtInstructions_Change -> clears mLoadedJson
+    mLoadedJson = s                   ' ...so set it AFTER the assignment above
+    lstActions.Clear
+    Set mParsed = Nothing
+    lblStatus.Caption = "Loaded " & Len(s) & " chars from " & path & " -- click Parse."
+    Exit Sub
+IOFail:
+    On Error GoTo 0
+    lblStatus.Caption = "Could not read file: " & Err.Description
 End Sub
 
 Private Sub btnParse_Click()
@@ -416,16 +467,17 @@ Private Sub btnParse_Click()
     lstActions.Clear
 
     On Error Resume Next
-    Set mParsed = modJSON.ParseJson(txtInstructions.Text)
+    Set mParsed = modJSON.ParseJson(modExecuteInstructions.SanitizeJsonInput(CurrentJson()))
     If Err.Number <> 0 Then
-        lblStatus.Caption = "Invalid JSON: " & Err.Description
+        lblStatus.Caption = "Invalid JSON: " & Err.Description & _
+            "  (large textbox pastes can corrupt -- use 'Load from file' for big batches)"
         Err.Clear
         Exit Sub
     End If
     On Error GoTo 0
 
     If Not mParsed.Exists("actions") Then
-        lblStatus.Caption = "Missing top-level \'actions\' array."
+        lblStatus.Caption = "Missing top-level 'actions' array."
         Exit Sub
     End If
 
@@ -463,7 +515,7 @@ Private Sub btnApply_Click()
         Exit Sub
     End If
     Dim summary As String
-    summary = modExecuteInstructions.ExecuteFromString(txtInstructions.Text)
+    summary = modExecuteInstructions.ExecuteFromString(CurrentJson())
     lblStatus.Caption = summary
 End Sub
 
@@ -617,43 +669,52 @@ def build_frm_execute(components):
 
     style_form(designer)
     clear_controls(designer)
-    size_form(comp, outer_width=600, outer_height=480)
+    size_form(comp, outer_width=600, outer_height=520)
     controls = designer.Controls
 
-    # txtInstructions
+    # txtInstructions — large, scrollable both ways. Note: MSForms textboxes
+    # still mangle very large pastes; btnLoadFile is the reliable path for those.
     txt = controls.Add(TEXTBOX, "txtInstructions", True)
-    set_control_props(txt, Top=12, Left=12, Width=570, Height=120,
-                      MultiLine=True, ScrollBars=3)
+    set_control_props(txt, Top=12, Left=12, Width=570, Height=160,
+                      MultiLine=True, ScrollBars=3, WordWrap=True,
+                      MaxLength=0, EnterKeyBehavior=True, AutoTab=False)
     style_input(txt)
 
     # btnParse (primary)
     btn_parse = controls.Add(CMDBTN, "btnParse", True)
     set_control_props(btn_parse, Caption="Parse",
-                      Top=144, Left=12, Width=80, Height=24)
+                      Top=180, Left=12, Width=80, Height=24)
     style_button_primary(btn_parse)
+
+    # btnLoadFile (secondary) — load actions JSON straight from a file,
+    # bypassing the textbox so large batches are not corrupted.
+    btn_load = controls.Add(CMDBTN, "btnLoadFile", True)
+    set_control_props(btn_load, Caption="Load from file...",
+                      Top=180, Left=100, Width=150, Height=24)
+    style_button_secondary(btn_load)
 
     # lstActions
     lst = controls.Add(LISTBOX, "lstActions", True)
-    set_control_props(lst, Top=180, Left=12, Width=570, Height=180)
+    set_control_props(lst, Top=214, Left=12, Width=570, Height=160)
     style_listbox(lst)
 
     # btnApply (primary). Enabled=True at design-time so the screenshot is
     # crisp; UserForm_Initialize disables it at runtime until Parse succeeds.
     btn_apply = controls.Add(CMDBTN, "btnApply", True)
     set_control_props(btn_apply, Caption="Apply",
-                      Top=372, Left=12, Width=80, Height=24)
+                      Top=384, Left=12, Width=80, Height=24)
     style_button_primary(btn_apply)
 
     # btnCancel (secondary)
     btn_cancel = controls.Add(CMDBTN, "btnCancel", True)
     set_control_props(btn_cancel, Caption="Cancel",
-                      Top=372, Left=102, Width=80, Height=24)
+                      Top=384, Left=102, Width=80, Height=24)
     style_button_secondary(btn_cancel)
 
     # lblStatus
     lbl = controls.Add(LABEL, "lblStatus", True)
     set_control_props(lbl, Caption="",
-                      Top=408, Left=12, Width=570, Height=36)
+                      Top=416, Left=12, Width=570, Height=60)
     style_label(lbl)
 
     # Set VBA code
@@ -879,7 +940,7 @@ def main() -> int:
                         client_height=7200)   # 360pt * 20
     _fix_frm_dimensions(SRC / "frmExecute.frm",
                         client_width=12000,   # 600pt * 20
-                        client_height=9600)   # 480pt * 20
+                        client_height=10400)  # 520pt * 20
     _fix_frm_dimensions(SRC / "frmImportSlides.frm",
                         client_width=9600,    # 480pt * 20
                         client_height=6400)   # 320pt * 20

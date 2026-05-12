@@ -24,10 +24,41 @@ Public Sub Do_add_chart(slideNum As Long, chartType As String, _
     Dim sl As Slide: Set sl = pres.Slides(slideNum)
     Dim chartTypeNum As Long: chartTypeNum = ChartTypeFromName(chartType)
 
+    ' Detect "modern" chart types (Office 2016+) that have a broken automation
+    ' surface in PowerPoint: waterfall (119), histogram (118), pareto (122),
+    ' boxwhisker (121), treemap (117), sunburst (120), funnel (123).
+    ' AddChart2 creates the shape, but ANY access to .ChartData (e.g.
+    ' .ChartData.Workbook.Close) raises 0x80004005 AND corrupts the presentation
+    ' state, wedging every later chart op. SeriesCollection writes also fail.
+    ' So for these: create the shape, set title/legend (those work), and return
+    ' WITHOUT touching ChartData or the data grid. Placeholder data only —
+    ' the user edits the data manually after insertion.
+    Dim isSpecial As Boolean
+    isSpecial = (chartTypeNum = 117 Or chartTypeNum = 118 Or chartTypeNum = 119 Or _
+                 chartTypeNum = 120 Or chartTypeNum = 121 Or chartTypeNum = 122 Or _
+                 chartTypeNum = 123)
+
     Dim sh As Shape
     Set sh = sl.Shapes.AddChart2(-1, chartTypeNum, leftPt, topPt, widthPt, heightPt, True)
     If Len(refName) > 0 Then sh.Name = refName
     Dim ch As Chart: Set ch = sh.Chart
+
+    If isSpecial Then
+        On Error Resume Next
+        ch.HasLegend = showLegend
+        If Len(titleText) > 0 Then
+            ch.HasTitle = True
+            ch.ChartTitle.Text = titleText
+        End If
+        On Error GoTo 0
+        Exit Sub
+    End If
+
+    ' AddChart2 opens the chart's embedded-data editing grid. If it is left open,
+    ' the next chart operation (this call or a later one) fails with
+    ' "The chart data grid is already open ... close it first". Close it now;
+    ' SeriesCollection writes below still update the cached data without it.
+    CloseChartData ch
 
     Dim catCount As Long: catCount = categories.Count
     Dim seriesCount As Long: seriesCount = series.Count
@@ -40,47 +71,27 @@ Public Sub Do_add_chart(slideNum As Long, chartType As String, _
         catArr(r) = CStr(categories(r))
     Next r
 
-    ' Detect chart types that don't support standard SeriesCollection writes:
-    ' waterfall (119), histogram (118), pareto (122), boxwhisker (121),
-    ' treemap (117), sunburst (120), funnel (123). For these, the chart is
-    ' created with AddChart2 default placeholder data and series isn't manipulated.
-    ' Caller can supply data via ChartData approach or live with placeholders.
-    Dim isSpecial As Boolean
-    isSpecial = (chartTypeNum = 117 Or chartTypeNum = 118 Or chartTypeNum = 119 Or _
-                 chartTypeNum = 120 Or chartTypeNum = 121 Or chartTypeNum = 122 Or _
-                 chartTypeNum = 123)
-
     Dim s As Long
-    If isSpecial Then
-        ' Special chart types (waterfall, sunburst, treemap, funnel, histogram,
-        ' pareto, boxwhisker) reject SeriesCollection.Values writes. Custom data
-        ' would need ChartData.Workbook write, but PowerPoint embedded chart
-        ' workbooks don't persist programmatic writes reliably (chart re-renders
-        ' from cached defaults). KNOWN LIMITATION — chart created with AddChart2
-        ' default placeholder data; user must edit data manually post-creation.
-    Else
-        Dim existingCount As Long: existingCount = ch.SeriesCollection.Count
-        Do While ch.SeriesCollection.Count > seriesCount
-            ch.SeriesCollection(ch.SeriesCollection.Count).Delete
-        Loop
-        Do While ch.SeriesCollection.Count < seriesCount
-            ch.SeriesCollection.NewSeries
-        Loop
-        For s = 1 To seriesCount
-            Dim si As Object: Set si = series(s)
-            Dim valsCol As Object: Set valsCol = si("values")
-            Dim valArr() As Variant
-            ReDim valArr(1 To catCount)
-            For r = 1 To catCount
-                valArr(r) = CDbl(valsCol(r))
-            Next r
-            With ch.SeriesCollection(s)
-                .Name = CStr(si("name"))
-                .Values = valArr
-                .XValues = catArr
-            End With
-        Next s
-    End If
+    Do While ch.SeriesCollection.Count > seriesCount
+        ch.SeriesCollection(ch.SeriesCollection.Count).Delete
+    Loop
+    Do While ch.SeriesCollection.Count < seriesCount
+        ch.SeriesCollection.NewSeries
+    Loop
+    For s = 1 To seriesCount
+        Dim si As Object: Set si = series(s)
+        Dim valsCol As Object: Set valsCol = si("values")
+        Dim valArr() As Variant
+        ReDim valArr(1 To catCount)
+        For r = 1 To catCount
+            valArr(r) = CDbl(valsCol(r))
+        Next r
+        With ch.SeriesCollection(s)
+            .Name = CStr(si("name"))
+            .Values = valArr
+            .XValues = catArr
+        End With
+    Next s
 
     ch.HasLegend = showLegend
     If Len(titleText) > 0 Then
@@ -142,6 +153,20 @@ Public Sub Do_add_chart(slideNum As Long, chartType As String, _
         ch.PlotArea.Format.Fill.Visible = msoFalse
         On Error GoTo 0
     End If
+
+    ' Series writes (and some property sets) can re-open the embedded data grid.
+    ' Close it again so the deck is left in a clean state and the next chart op
+    ' does not collide with an open grid.
+    CloseChartData ch
+End Sub
+
+' Close a chart's embedded-data editing workbook if it is open. Accessing
+' .Workbook activates it if closed, so the open/close is a safe no-op when
+' already closed. Errors are swallowed: some chart types have no editable grid.
+Private Sub CloseChartData(ByVal ch As Chart)
+    On Error Resume Next
+    ch.ChartData.Workbook.Close
+    On Error GoTo 0
 End Sub
 
 ' Convert 1-based column number to Excel letter (1=A, 2=B, ..., 27=AA)
@@ -969,7 +994,9 @@ Public Function ChartTypeFromName(chartName As String) As Long
         Case "column3d", "column_3d":                 ChartTypeFromName = -4100
         Case "columnclustered3d", "column_clustered_3d": ChartTypeFromName = 54
         Case "columnstacked3d", "column_stacked_3d":  ChartTypeFromName = 55
-        Case "bar3d", "bar_3d":                       ChartTypeFromName = -4099
+        ' xl3DBar (-4099) is silently downgraded to 2-D clustered column by
+        ' Shapes.AddChart2; xlBar3DClustered (60) is the usable 3-D bar type.
+        Case "bar3d", "bar_3d":                       ChartTypeFromName = 60
         Case "barclustered3d", "bar_clustered_3d":    ChartTypeFromName = 60
         Case "barstacked3d", "bar_stacked_3d":        ChartTypeFromName = 61
         Case "line3d", "line_3d":                     ChartTypeFromName = -4101

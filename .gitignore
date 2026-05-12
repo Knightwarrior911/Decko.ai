@@ -32,6 +32,18 @@ tests/export_deck_pngs.py
 tests/zoom_left_charts.py
 tests/zoom_rotce.py
 
-# P0/P1 chart capability test artifacts (binary outputs)
+# P0/P1/P2 chart capability test artifacts (binary outputs)
 test_decks/p0_chart_tests*
 test_decks/p1_chart_tests*
+test_decks/p2_chart_tests*
+test_decks/p2b_chart_tests*
+test_decks/p_finish_chart_tests*
+test_decks/picker_only_test*
+test_decks/web_image_test*
+
+# Office lock files
+~$*
+
+# Ad-hoc chart-verification decks (created by tools/test_charts.py etc.)
+decko_chart_test.pptx
+decko_loadfile_test.pptx

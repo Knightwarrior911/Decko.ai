@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmExecute 
-   Caption         =   "Decko.ai ï¿½ Execute Instructions"
-   ClientHeight    =   9600
+   Caption         =   "Decko.ai • Execute Instructions"
+   ClientHeight    =   10400
    ClientLeft      =   91
    ClientTop       =   406
    ClientWidth     =   12000
@@ -17,9 +17,60 @@ Option Explicit
 
 Private mParsed As Object
 Private mValid() As Boolean
+' When the user loads actions from a file, the full uncorrupted JSON is held
+' here and takes precedence over the textbox. MSForms textboxes can mangle
+' large pastes (whitespace injected into numbers/keys); the file path avoids
+' the textbox entirely. Cleared the moment the user types in the textbox.
+Private mLoadedJson As String
 
 Private Sub UserForm_Initialize()
     lblStatus.Caption = ""
+    mLoadedJson = ""
+End Sub
+
+' The JSON to parse/apply: a file loaded via btnLoadFile if one is held,
+' otherwise the textbox contents.
+Private Function CurrentJson() As String
+    If Len(mLoadedJson) > 0 Then
+        CurrentJson = mLoadedJson
+    Else
+        CurrentJson = txtInstructions.text
+    End If
+End Function
+
+Private Sub txtInstructions_Change()
+    ' Hand-editing the textbox supersedes any previously loaded file.
+    mLoadedJson = ""
+End Sub
+
+Private Sub btnLoadFile_Click()
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    fd.Title = "Select an actions JSON file"
+    fd.AllowMultiSelect = False
+    fd.Filters.Clear
+    fd.Filters.Add "JSON / JSONL / text", "*.json;*.jsonl;*.txt"
+    fd.Filters.Add "All files", "*.*"
+    If fd.Show <> -1 Then Exit Sub
+
+    Dim path As String: path = fd.SelectedItems(1)
+    Dim s As String
+    On Error GoTo IOFail
+    Dim fnum As Integer: fnum = FreeFile
+    Open path For Input As #fnum
+    If LOF(fnum) > 0 Then s = Input$(LOF(fnum), fnum)
+    Close #fnum
+    On Error GoTo 0
+
+    txtInstructions.text = s          ' raises txtInstructions_Change -> clears mLoadedJson
+    mLoadedJson = s                   ' ...so set it AFTER the assignment above
+    lstActions.Clear
+    Set mParsed = Nothing
+    lblStatus.Caption = "Loaded " & Len(s) & " chars from " & path & " -- click Parse."
+    Exit Sub
+IOFail:
+    On Error GoTo 0
+    lblStatus.Caption = "Could not read file: " & Err.Description
 End Sub
 
 Private Sub btnParse_Click()
@@ -27,9 +78,10 @@ Private Sub btnParse_Click()
     lstActions.Clear
 
     On Error Resume Next
-    Set mParsed = modJSON.ParseJson(modExecuteInstructions.SanitizeJsonInput(txtInstructions.Text))
+    Set mParsed = modJSON.ParseJson(modExecuteInstructions.SanitizeJsonInput(CurrentJson()))
     If Err.Number <> 0 Then
-        lblStatus.Caption = "Invalid JSON: " & Err.Description
+        lblStatus.Caption = "Invalid JSON: " & Err.Description & _
+            "  (large textbox pastes can corrupt -- use 'Load from file' for big batches)"
         Err.Clear
         Exit Sub
     End If
@@ -41,10 +93,10 @@ Private Sub btnParse_Click()
     End If
 
     Dim actions As Object: Set actions = mParsed("actions")
-    ReDim mValid(1 To actions.Count)
+    ReDim mValid(1 To actions.count)
 
     Dim i As Long, anyValid As Boolean: anyValid = False
-    For i = 1 To actions.Count
+    For i = 1 To actions.count
         Dim act As Object: Set act = actions(i)
         Dim reason As String
         reason = modExecuteInstructions.PreviewValidate(act)
@@ -63,7 +115,7 @@ Private Sub btnParse_Click()
         lstActions.AddItem row
     Next i
 
-    lblStatus.Caption = actions.Count & " actions parsed. " & _
+    lblStatus.Caption = actions.count & " actions parsed. " & _
                         IIf(anyValid, "Click Apply to run valid actions.", _
                                       "No valid actions; nothing to apply.")
 End Sub
@@ -74,7 +126,7 @@ Private Sub btnApply_Click()
         Exit Sub
     End If
     Dim summary As String
-    summary = modExecuteInstructions.ExecuteFromString(txtInstructions.Text)
+    summary = modExecuteInstructions.ExecuteFromString(CurrentJson())
     lblStatus.Caption = summary
 End Sub
 
