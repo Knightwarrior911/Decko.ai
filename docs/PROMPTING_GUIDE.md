@@ -8,11 +8,13 @@ you can paste or adapt.
 - **VPs / users** — read [§ Example Prompts](#example-prompts-by-use-case) and
   [§ Pro Tips](#pro-tips-for-better-prompts).
 - **AI assistants** (Hermes, OpenClaw, GPT/Claude-class — any model) helping a
-  VP — read [§ For AI Assistants](#for-ai-assistants-turning-a-vp-request-into-actions)
-  and the companion **[`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md)** (the
-  exhaustive, machine-precise schema for all ~130 actions). You do **not** need
-  to have built Decko to use it correctly — follow the Hard Rules and the schema
-  literally.
+  VP — read [§ For AI Assistants](#for-ai-assistants-turning-a-vp-request-into-actions),
+  the companion **[`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md)** (the
+  exhaustive, machine-precise schema for all ~130 actions), and
+  **[`EXAMPLES.md`](EXAMPLES.md)** (~45 paired examples: VP prompt → exact
+  `actions` JSON, across every category — the best file to learn the mapping
+  from). You do **not** need to have built Decko to use it correctly — follow
+  the Hard Rules and the schema literally.
 
 ---
 

@@ -15,6 +15,9 @@ clicks Apply. Three macros, three UserForms, no API calls from PowerPoint.
   machine-precise schema for all ~130 actions (required/optional fields, value
   vocabularies, examples). Read this literally; you don't need to have built
   Decko to use it.
+- **[`docs/EXAMPLES.md`](docs/EXAMPLES.md)** — a corpus of paired examples
+  (VP prompt → exact `actions` JSON), ~45 worked cases across every action
+  category. Best place for an agent to learn the request→actions mapping.
 - **[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)** — practical guide for VPs/MDs.
 - Design specs: `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1),
   `docs/specs/2026-05-08-ppt-ai-editor-phase2-design.md` (Phase 2).
