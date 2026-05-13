@@ -117,11 +117,21 @@ def main() -> int:
         print(f"  placed at ({left}, {top}) size 90x24")
         return b
 
-    # Place both buttons on the bottom row, far left so they don't collide
-    # with btnApply / btnCancel (which usually sit on the right).
+    # Place both Fix buttons on the bottom row, FAR LEFT. Move Apply +
+    # Cancel to the FAR RIGHT of the same row so they don't get covered.
+    # Form is ~611pt wide; buttons are 80-90pt wide each.
     base_top = ref_btn.Top if ref_btn is not None else 384
     ensure_button("btnFixErrors", "Fix Errors", 10, base_top)
     ensure_button(BUTTON_NAME, "Fix This", 110, base_top)
+    # Reposition Apply + Cancel to the right so they remain visible.
+    for c in designer.Controls:
+        if c.Name == "btnApply":
+            c.Left = 410
+            c.Top = base_top
+        elif c.Name == "btnCancel":
+            c.Left = 500
+            c.Top = base_top
+    print(f"  repositioned btnApply -> (410, {base_top}), btnCancel -> (500, {base_top})")
 
     # Inject (or replace) the click handlers in the form's CodeModule.
     code = form_comp.CodeModule
