@@ -694,6 +694,192 @@ Public Sub Do_unmerge_cells(slideNum As Long, shapeId As Long, rowNum As Long, c
     On Error GoTo 0
 End Sub
 
+' =============================================================================
+' CELL-INTERNAL PARAGRAPH / BULLET ACTIONS — cells are TextFrame-bearing shapes,
+' so paragraphs inside them need addressable actions. Without these, multi-line
+' bulleted lists inside cells were unreachable.
+' =============================================================================
+
+' Resolve a cell's text-frame paragraph (0-based paragraph_index).
+Private Function FindCellParagraph(slideNum As Long, shapeId As Long, _
+                                    rowNum As Long, colNum As Long, _
+                                    paragraphIndex As Long) As TextRange
+    Set FindCellParagraph = Nothing
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "FindCellParagraph")
+    Dim tbl As Table: Set tbl = sh.Table
+    If rowNum < 1 Or rowNum > tbl.Rows.Count Or colNum < 1 Or colNum > tbl.Columns.Count Then Exit Function
+    Dim cs As Shape: Set cs = tbl.Cell(rowNum, colNum).Shape
+    If Not cs.HasTextFrame Then Exit Function
+    Dim n As Long: n = cs.TextFrame.TextRange.Paragraphs().Count
+    If paragraphIndex < 0 Or paragraphIndex >= n Then Exit Function
+    Set FindCellParagraph = cs.TextFrame.TextRange.Paragraphs(paragraphIndex + 1)
+End Function
+
+Public Sub Do_set_cell_paragraph_text(slideNum As Long, shapeId As Long, _
+                                       rowNum As Long, colNum As Long, _
+                                       paragraphIndex As Long, value As String)
+    Dim p As TextRange: Set p = FindCellParagraph(slideNum, shapeId, rowNum, colNum, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 8150, "Do_set_cell_paragraph_text", "cell paragraph not found"
+    p.Text = modActionsText.StripTrailingPara(value)
+End Sub
+
+Public Sub Do_set_cell_paragraph_font_size(slideNum As Long, shapeId As Long, _
+                                            rowNum As Long, colNum As Long, _
+                                            paragraphIndex As Long, value As Long)
+    If value <= 0 Then Err.Raise vbObjectError + 8151, "Do_set_cell_paragraph_font_size", "size must be > 0"
+    Dim p As TextRange: Set p = FindCellParagraph(slideNum, shapeId, rowNum, colNum, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 8151, "Do_set_cell_paragraph_font_size", "cell paragraph not found"
+    p.Font.Size = value
+End Sub
+
+Public Sub Do_set_cell_paragraph_font_color(slideNum As Long, shapeId As Long, _
+                                             rowNum As Long, colNum As Long, _
+                                             paragraphIndex As Long, hexValue As String)
+    Dim p As TextRange: Set p = FindCellParagraph(slideNum, shapeId, rowNum, colNum, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 8152, "Do_set_cell_paragraph_font_color", "cell paragraph not found"
+    p.Font.Color.RGB = modActions.HexToRgb(hexValue)
+End Sub
+
+Public Sub Do_set_cell_paragraph_bold(slideNum As Long, shapeId As Long, _
+                                       rowNum As Long, colNum As Long, _
+                                       paragraphIndex As Long, value As Boolean)
+    Dim p As TextRange: Set p = FindCellParagraph(slideNum, shapeId, rowNum, colNum, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 8153, "Do_set_cell_paragraph_bold", "cell paragraph not found"
+    p.Font.Bold = IIf(value, msoTrue, msoFalse)
+End Sub
+
+Public Sub Do_set_cell_paragraph_italic(slideNum As Long, shapeId As Long, _
+                                         rowNum As Long, colNum As Long, _
+                                         paragraphIndex As Long, value As Boolean)
+    Dim p As TextRange: Set p = FindCellParagraph(slideNum, shapeId, rowNum, colNum, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 8154, "Do_set_cell_paragraph_italic", "cell paragraph not found"
+    p.Font.Italic = IIf(value, msoTrue, msoFalse)
+End Sub
+
+Public Sub Do_set_cell_paragraph_alignment(slideNum As Long, shapeId As Long, _
+                                            rowNum As Long, colNum As Long, _
+                                            paragraphIndex As Long, align As String)
+    Dim p As TextRange: Set p = FindCellParagraph(slideNum, shapeId, rowNum, colNum, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 8155, "Do_set_cell_paragraph_alignment", "cell paragraph not found"
+    Select Case LCase(align)
+        Case "left":    p.ParagraphFormat.Alignment = ppAlignLeft
+        Case "center":  p.ParagraphFormat.Alignment = ppAlignCenter
+        Case "right":   p.ParagraphFormat.Alignment = ppAlignRight
+        Case "justify": p.ParagraphFormat.Alignment = ppAlignJustify
+        Case Else: Err.Raise vbObjectError + 8155, "Do_set_cell_paragraph_alignment", "bad alignment"
+    End Select
+End Sub
+
+Public Sub Do_set_cell_bullet_style(slideNum As Long, shapeId As Long, _
+                                     rowNum As Long, colNum As Long, _
+                                     paragraphIndex As Long, style As String)
+    Dim p As TextRange: Set p = FindCellParagraph(slideNum, shapeId, rowNum, colNum, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 8156, "Do_set_cell_bullet_style", "cell paragraph not found"
+    Dim b As Object: Set b = p.ParagraphFormat.Bullet
+    Select Case LCase(style)
+        Case "none":   b.Type = 0
+        Case "number": b.Type = 2
+        Case "letter": b.Type = 2: b.Style = 16
+        Case "disc", "bullet": b.Type = 1: b.Character = 8226
+        Case "square": b.Type = 1: b.Character = 9632
+        Case "dash":   b.Type = 1: b.Character = 8211
+        Case Else: Err.Raise vbObjectError + 8156, "Do_set_cell_bullet_style", "unknown bullet style: " & style
+    End Select
+End Sub
+
+' Add a paragraph inside a cell. after_paragraph_index = -1 prepends; >=count appends.
+Public Sub Do_add_cell_paragraph(slideNum As Long, shapeId As Long, _
+                                  rowNum As Long, colNum As Long, _
+                                  afterParagraphIndex As Long, value As String)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_add_cell_paragraph")
+    Dim cs As Shape: Set cs = sh.Table.Cell(rowNum, colNum).Shape
+    If Not cs.HasTextFrame Then Err.Raise vbObjectError + 8157, "Do_add_cell_paragraph", "cell has no text frame"
+    Dim tr As TextRange: Set tr = cs.TextFrame.TextRange
+    Dim n As Long: n = tr.Paragraphs().Count
+    If afterParagraphIndex < 0 Then
+        tr.Text = value & Chr(13) & tr.Text
+    ElseIf afterParagraphIndex >= n Then
+        tr.Text = tr.Text & Chr(13) & value
+    Else
+        Dim parts() As String
+        Dim i As Long
+        ReDim parts(n - 1)
+        For i = 1 To n
+            Dim pText As String: pText = tr.Paragraphs(i).Text
+            If Right(pText, 1) = Chr(13) Then pText = Left(pText, Len(pText) - 1)
+            parts(i - 1) = pText
+        Next i
+        Dim newText As String: newText = ""
+        For i = 0 To afterParagraphIndex
+            If i > 0 Then newText = newText & Chr(13)
+            newText = newText & parts(i)
+        Next i
+        newText = newText & Chr(13) & value
+        For i = afterParagraphIndex + 1 To n - 1
+            newText = newText & Chr(13) & parts(i)
+        Next i
+        tr.Text = newText
+    End If
+End Sub
+
+Public Sub Do_delete_cell_paragraph(slideNum As Long, shapeId As Long, _
+                                     rowNum As Long, colNum As Long, paragraphIndex As Long)
+    Dim p As TextRange: Set p = FindCellParagraph(slideNum, shapeId, rowNum, colNum, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 8158, "Do_delete_cell_paragraph", "cell paragraph not found"
+    p.Delete
+End Sub
+
+' Append a line to existing cell text. Each call adds a new paragraph break + value.
+Public Sub Do_append_cell_text(slideNum As Long, shapeId As Long, _
+                                rowNum As Long, colNum As Long, value As String)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_append_cell_text")
+    Dim cs As Shape: Set cs = sh.Table.Cell(rowNum, colNum).Shape
+    If Not cs.HasTextFrame Then Exit Sub
+    Dim tr As TextRange: Set tr = cs.TextFrame.TextRange
+    If Len(tr.Text) = 0 Then
+        tr.Text = value
+    Else
+        tr.Text = tr.Text & Chr(13) & value
+    End If
+End Sub
+
+' Mega-action: set a cell's text and any subset of formatting in one call.
+' Reduces a 5-action chain (set_cell_text + 4 formatting actions) to 1.
+' All fields except text are optional.
+Public Sub Do_set_cell_act(act As Object)
+    Dim slideNum As Long: slideNum = CLng(act("slide"))
+    Dim shapeId As Long: shapeId = CLng(act("shape_id"))
+    Dim rowNum As Long: rowNum = CLng(act("row"))
+    Dim colNum As Long: colNum = CLng(act("col"))
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_cell_act")
+    Dim cell As Object: Set cell = sh.Table.Cell(rowNum, colNum)
+    Dim cs As Shape: Set cs = cell.Shape
+    If act.Exists("text") Then
+        On Error Resume Next
+        cs.TextFrame.TextRange.Text = CStr(act("text"))
+        On Error GoTo 0
+    End If
+    If act.Exists("font_size") Then SetCellTextProp cell, "size", act("font_size")
+    If act.Exists("font_color") Then SetCellTextProp cell, "color", act("font_color")
+    If act.Exists("font_bold") Then SetCellTextProp cell, "bold", act("font_bold")
+    If act.Exists("font_italic") Then SetCellTextProp cell, "italic", act("font_italic")
+    If act.Exists("font_underline") Then SetCellTextProp cell, "underline", act("font_underline")
+    If act.Exists("font_name") Then SetCellTextProp cell, "name", act("font_name")
+    If act.Exists("fill") Then
+        On Error Resume Next
+        cs.Fill.Visible = msoTrue: cs.Fill.Solid
+        cs.Fill.ForeColor.RGB = modActions.HexToRgb(CStr(act("fill")))
+        On Error GoTo 0
+    End If
+    If act.Exists("h_align") Or act.Exists("v_align") Then
+        Dim ha As String: ha = ""
+        Dim va As String: va = ""
+        If act.Exists("h_align") Then ha = CStr(act("h_align"))
+        If act.Exists("v_align") Then va = CStr(act("v_align"))
+        Do_set_cell_text_align slideNum, shapeId, rowNum, colNum, ha, va
+    End If
+End Sub
+
 ' Build a 2-column "image + bullets" table populated from a rows array.
 ' Per-row layout in the image_col cell: an image overlay plus a name caption
 ' anchored at the cell's top or bottom. The desc_col cell receives bullet

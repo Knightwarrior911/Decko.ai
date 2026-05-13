@@ -405,3 +405,65 @@ Public Sub Do_lock_aspect_ratio(slideNum As Long, shapeId As Long, value As Bool
     sh.LockAspectRatio = IIf(value, msoTrue, msoFalse)
 End Sub
 
+' Remove a shape's fill entirely (no-fill / transparent through to background).
+' Different from set_transparency which keeps the color but makes it see-through.
+Public Sub Do_clear_fill(slideNum As Long, shapeId As Long)
+    Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 2014, "Do_clear_fill", "shape not found"
+    On Error Resume Next
+    sh.Fill.Visible = msoFalse
+    On Error GoTo 0
+End Sub
+
+' Remove a shape's outline entirely (no border).
+Public Sub Do_clear_line(slideNum As Long, shapeId As Long)
+    Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 2015, "Do_clear_line", "shape not found"
+    On Error Resume Next
+    sh.Line.Visible = msoFalse
+    On Error GoTo 0
+End Sub
+
+' Toggle fill visibility without changing the color.
+Public Sub Do_set_fill_visible(slideNum As Long, shapeId As Long, value As Boolean)
+    Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 2016, "Do_set_fill_visible", "shape not found"
+    sh.Fill.Visible = IIf(value, msoTrue, msoFalse)
+End Sub
+
+' Toggle line visibility without changing the line color/weight.
+Public Sub Do_set_line_visible(slideNum As Long, shapeId As Long, value As Boolean)
+    Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 2017, "Do_set_line_visible", "shape not found"
+    sh.Line.Visible = IIf(value, msoTrue, msoFalse)
+End Sub
+
+' Attach a click-action hyperlink to the whole shape (vs set_run_hyperlink
+' which targets one run inside the text). URL prefixes: http://, https://,
+' mailto:, #slide:N. Pass "" to clear.
+Public Sub Do_set_shape_hyperlink(slideNum As Long, shapeId As Long, url As String)
+    Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 2018, "Do_set_shape_hyperlink", "shape not found"
+    On Error Resume Next
+    If Len(url) = 0 Then
+        sh.ActionSettings(1).Action = 0   ' ppActionNone
+        sh.ActionSettings(1).Hyperlink.Address = ""
+    Else
+        sh.ActionSettings(1).Hyperlink.Address = url
+    End If
+    On Error GoTo 0
+End Sub
+
+' Fill an arbitrary shape with a picture from disk. Lets you make a circle,
+' parallelogram, or callout that "contains" an image — common in financial
+' decks for team-profile photos in rounded shapes.
+Public Sub Do_set_shape_picture_fill(slideNum As Long, shapeId As Long, picturePath As String)
+    Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 2019, "Do_set_shape_picture_fill", "shape not found"
+    If Len(Trim(picturePath)) = 0 Then Err.Raise vbObjectError + 2019, "Do_set_shape_picture_fill", "picture_path empty"
+    On Error Resume Next
+    sh.Fill.UserPicture picturePath
+    sh.Fill.Visible = msoTrue
+    On Error GoTo 0
+End Sub
+

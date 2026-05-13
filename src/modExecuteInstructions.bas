@@ -772,6 +772,81 @@ Private Function ValidateAction(act As Object) As String
         Case "unmerge_cells"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        ' --- CELL PARAGRAPH ACTIONS ---------------------------------------
+        Case "set_cell_paragraph_text"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_cell_paragraph_font_size"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then
+                If Not IsNumeric(act("value")) Or CLng(act("value")) <= 0 Then _
+                    ValidateAction = "value: must be a positive integer"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_cell_paragraph_font_color"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_cell_paragraph_bold", "set_cell_paragraph_italic"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_cell_paragraph_alignment"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then
+                Dim cpaVal As String: cpaVal = LCase(CStr(act("value")))
+                If cpaVal <> "left" And cpaVal <> "center" And cpaVal <> "right" And cpaVal <> "justify" Then _
+                    ValidateAction = "value: must be left/center/right/justify"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_cell_bullet_style"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "add_cell_paragraph"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "after_paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "delete_cell_paragraph"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "paragraph_index"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "append_cell_text"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_cell"
+            ' Mega-action: at least one of text/font_*/fill/h_align/v_align must be present
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col"))
+            If Len(ValidateAction) = 0 Then
+                If Not (act.Exists("text") Or act.Exists("font_size") Or act.Exists("font_color") _
+                    Or act.Exists("font_bold") Or act.Exists("font_italic") Or act.Exists("font_underline") _
+                    Or act.Exists("font_name") Or act.Exists("fill") _
+                    Or act.Exists("h_align") Or act.Exists("v_align")) Then
+                    ValidateAction = "set_cell: pass at least one of text/font_*/fill/h_align/v_align"
+                End If
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        ' --- Shape fill / line / hyperlink / picture-fill ----------------
+        Case "clear_fill", "clear_line"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_fill_visible", "set_line_visible"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_shape_hyperlink"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If Len(ValidateAction) = 0 Then
+                Dim shu As String: shu = CStr(act("value"))
+                If Len(shu) > 0 _
+                    And Not (LCase(Left(shu, 7)) = "http://") _
+                    And Not (LCase(Left(shu, 8)) = "https://") _
+                    And Not (LCase(Left(shu, 7)) = "mailto:") _
+                    And Not (Left(shu, 7) = "#slide:") Then
+                    ValidateAction = "value: invalid hyperlink URL"
+                End If
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_shape_picture_fill"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "picture_path"))
+            If Len(ValidateAction) = 0 Then
+                If Len(Trim(CStr(act("picture_path")))) = 0 Then ValidateAction = "picture_path: empty"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -1711,6 +1786,52 @@ Private Sub DispatchAction(act As Object)
         Case "unmerge_cells"
             modActionsTable.Do_unmerge_cells CLng(act("slide")), CLng(act("shape_id")), _
                 CLng(act("row")), CLng(act("col"))
+        ' --- Cell paragraph actions ---------------------------------------
+        Case "set_cell_paragraph_text"
+            modActionsTable.Do_set_cell_paragraph_text CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CLng(act("paragraph_index")), CStr(act("value"))
+        Case "set_cell_paragraph_font_size"
+            modActionsTable.Do_set_cell_paragraph_font_size CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CLng(act("paragraph_index")), CLng(act("value"))
+        Case "set_cell_paragraph_font_color"
+            modActionsTable.Do_set_cell_paragraph_font_color CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CLng(act("paragraph_index")), CStr(act("value"))
+        Case "set_cell_paragraph_bold"
+            modActionsTable.Do_set_cell_paragraph_bold CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CLng(act("paragraph_index")), modActions.ToBool(act("value"))
+        Case "set_cell_paragraph_italic"
+            modActionsTable.Do_set_cell_paragraph_italic CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CLng(act("paragraph_index")), modActions.ToBool(act("value"))
+        Case "set_cell_paragraph_alignment"
+            modActionsTable.Do_set_cell_paragraph_alignment CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CLng(act("paragraph_index")), CStr(act("value"))
+        Case "set_cell_bullet_style"
+            modActionsTable.Do_set_cell_bullet_style CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CLng(act("paragraph_index")), CStr(act("value"))
+        Case "add_cell_paragraph"
+            modActionsTable.Do_add_cell_paragraph CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CLng(act("after_paragraph_index")), CStr(act("value"))
+        Case "delete_cell_paragraph"
+            modActionsTable.Do_delete_cell_paragraph CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CLng(act("paragraph_index"))
+        Case "append_cell_text"
+            modActionsTable.Do_append_cell_text CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CStr(act("value"))
+        Case "set_cell"
+            modActionsTable.Do_set_cell_act act
+        ' --- Shape fill / line / hyperlink / picture-fill ----------------
+        Case "clear_fill"
+            modActions.Do_clear_fill CLng(act("slide")), CLng(act("shape_id"))
+        Case "clear_line"
+            modActions.Do_clear_line CLng(act("slide")), CLng(act("shape_id"))
+        Case "set_fill_visible"
+            modActions.Do_set_fill_visible CLng(act("slide")), CLng(act("shape_id")), modActions.ToBool(act("value"))
+        Case "set_line_visible"
+            modActions.Do_set_line_visible CLng(act("slide")), CLng(act("shape_id")), modActions.ToBool(act("value"))
+        Case "set_shape_hyperlink"
+            modActions.Do_set_shape_hyperlink CLng(act("slide")), CLng(act("shape_id")), CStr(act("value"))
+        Case "set_shape_picture_fill"
+            modActions.Do_set_shape_picture_fill CLng(act("slide")), CLng(act("shape_id")), CStr(act("picture_path"))
     End Select
 End Sub
 
