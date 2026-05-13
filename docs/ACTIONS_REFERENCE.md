@@ -200,7 +200,7 @@ Format: **`action_name`** — what it does.
 - **`rotate_shape`** — `req:` `slide`, `shape_id`, `degrees`(num).
 - **`flip_shape`** — `req:` `slide`, `shape_id`, `axis`(`h`|`v`).
 - **`set_shape_adjustment`** — drag a shape's yellow adjustment handle.
-  `req:` `slide`, `shape_id`, `index`(int, 0-based handle), `value`(num, 0.0–1.0-ish).
+  `req:` `slide`, `shape_id`, `index`(int, **1-based** — first handle = 1), `value`(num, 0.0–1.0-ish).
 - **`z_order`** — `req:` `slide`, `shape_id`, `order`(`front`|`back`|`forward`|`backward`).
 - **`copy_formatting`** — copy fill/line/font/effects from one shape to another.
   `req:` `slide`, `source_shape_id`, `target_shape_id`.
@@ -318,11 +318,13 @@ string is also accepted per element).
 - **`merge_cells`** — `req:` `slide`, `shape_id`, `row_a`,`col_a`,`row_b`,`col_b`(int).
 - **`set_table_col_width`** — `req:` `slide`, `shape_id`, `col`(int), `width_pt`(num).
 - **`set_table_row_height`** — `req:` `slide`, `shape_id`, `row`(int), `height_pt`(num).
-- **`set_cell_border`** — `req:` `slide`, `shape_id`, `row`, `col`, `side`(`left`|`right`|`top`|`bottom`). `opt:` `color`(`#RRGGBB`), `weight_pt`(num), `visible`(bool)=true.
+- **`set_cell_border`** — `req:` `slide`, `shape_id`, `row`, `col`, `side`(`top`|`left`|`bottom`|`right`|`diag_down`|`diag_up`|`all`). `opt:` `color`(`#RRGGBB`), `weight_pt`(num), `visible`(bool)=true. (`all` sets all 4 outer edges; `diag_down`/`diag_up` add diagonal slash lines through the cell.)
 - **`set_cell_text_align`** — `req:` `slide`, `shape_id`, `row`, `col`. `opt:` `h_align`(string), `v_align`(string) — at least one.
 - **`set_cell_fill`** — `req:` `slide`, `shape_id`, `row`, `col`, `color`(`#RRGGBB`).
-- **`apply_table_style`** — `req:` `slide`, `shape_id`, `style_id`(string — an Office table style GUID or name; common: `"NoStyleNoGrid"`, `"MediumStyle2Accent1"`).
-- **`build_image_grid_table`** — build a 2-column image+caption table from a row spec (see §3.12).
+- **`apply_table_style`** — `req:` `slide`, `shape_id`, `style_id`(string — an Office table style GUID `{...}` **or** one of the named style keys below; keys are `lowercase_underscore`):
+  `no_style_no_grid`, `no_style_with_grid`, `themed_style_1`, `themed_style_1_accent1`, `themed_style_1_accent2`, `themed_style_2`, `themed_style_2_accent1`, `medium_style_2`, `medium_style_2_accent1`, `medium_style_2_accent2`, `dark_style_2`, `dark_style_2_accent1`, `light_style_1`, `light_style_1_accent1`, `light_style_2`, `light_style_2_accent1`.
+  `ex:` `{"type":"apply_table_style","slide":2,"shape_id":7,"style_id":"medium_style_2_accent1"}`
+- **`build_image_grid_table`** — build a 2-column image+caption table from a row spec. See full schema in §3.12.
 
 ### 3.11 Charts
 
@@ -375,7 +377,40 @@ string is also accepted per element).
 - **`download_image`** — download one image URL to a local path. `req:` `url`(string), `dest_path`(string).
 - **`open_image_picker`** — open Decko's visual image-picker UI on a folder. `req:` (none); `opt:` `folder`(string).
 - **`build_image_picker_slide`** — build a thumbnail-grid slide from a folder of images. `opt:` `folder`(string), `cols`(int)=4, `insert_at`(int)=0 (0 = append), `max_per_slide`(int)=24.
-- **`build_image_grid_table`** — build a 2-column (image | caption) table from a spec; pass `rows` as an array of `{ "image_path": string, "text": string }` plus `slide`, `pos`. (See `modActionsTable.Do_build_image_grid_table_act` for exact keys.)
+- **`build_image_grid_table`** — build a 2-column (image | description) table from a row-spec array. Full schema:
+  `req:` `slide`, `pos`({left,top,width,height}), `rows`(array — see below).
+  `opt:`
+  - `ref_name`(string)
+  - `image_col`(int)=1, `desc_col`(int)=2 — which column holds images vs captions
+  - `name_position`(`top`|`bottom`)=`bottom` — where the caption sits inside the image cell
+  - `name_strip_pt`(num)=30 — height of the caption strip in the image cell
+  - `image_pad_pt`(num)=6 — padding around the image inside the cell
+  - `image_fit`(`contain`|`stretch`)=`contain` — `contain` preserves aspect ratio (letterbox); `stretch` fills exactly
+  - `header_row`(bool)=false — add a header row at the top
+  - `header_text_image`(string)=`""`, `header_text_desc`(string)=`""` — header cell text
+  - `col1_width_pt`(num), `col2_width_pt`(num) — explicit column widths
+  - `name_font`(object: `size`, `bold`, `color`) — caption strip font
+  - `desc_font`(object: `size`, `color`) — description column font
+
+  Each element of `rows` is an object:
+  - `name`(string) — caption text shown in the image cell's label strip
+  - `image_path`(string) — absolute local file path  *(use this OR `image_url`)*
+  - `image_url`(string) — URL; Decko downloads it automatically
+  - `bullets`(array of strings) — text lines in the description cell
+
+  `ex:`
+  ```json
+  {"type":"build_image_grid_table","slide":3,
+   "pos":{"left":30,"top":80,"width":900,"height":420},
+   "col1_width_pt":280,"col2_width_pt":620,
+   "image_fit":"contain","name_position":"bottom","name_strip_pt":28,
+   "name_font":{"size":11,"bold":true,"color":"#15283C"},
+   "desc_font":{"size":10,"color":"#333333"},
+   "rows":[
+     {"name":"Aerospace","image_path":"C:\\images\\aero.jpg","bullets":["Leader in propulsion","3 platforms"]},
+     {"name":"Defence","image_url":"https://example.com/def.jpg","bullets":["NATO-certified","$2B backlog"]}
+   ]}
+  ```
 - **`bulk_insert_image`** — same image, same box, on multiple slides. `req:` `slide_indices`(array of ints), `picture_path`(string), `left`,`top`,`width`,`height`(num).
 
 ### 3.13 Slides & deck-wide
@@ -454,10 +489,18 @@ snapshot excerpt → exact `actions` JSON) and a step-by-step recipe.
 These are the most frequent errors from LLMs — each one causes silent skips or
 formatting destruction that is hard to debug.
 
-### Mistake 1 — Wrong field name: `"text"` instead of `"value"`
+### Mistake 1 — Wrong payload field name for text content
 
-The payload field for ALL text-setting actions is `"value"`, never `"text"`,
-`"content"`, `"color"`, `"size"`, or `"fill"`.
+Most text-setting actions use `"value"` — never `"text"`, `"content"`, `"color"`, `"size"`, or `"fill"`.
+
+**Exception — `add_text_box` and `bulk_insert_text_box` use `"text"` (not `"value"`):**
+```json
+// RIGHT for add_text_box / bulk_insert_text_box
+{"type":"add_text_box","slide":1,"text":"Label","pos":{"left":60,"top":80,"width":200,"height":40}}
+{"type":"bulk_insert_text_box","slide_indices":[1,2,3],"text":"Confidential","left":800,"top":510,"width":120,"height":20}
+```
+
+For all other text actions (`set_text`, `set_paragraph_text`, `add_paragraph`, `set_run_text`, `set_font_color`, `set_font_size`, …) use `"value"`:
 
 ```json
 // WRONG
