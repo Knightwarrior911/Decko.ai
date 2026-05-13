@@ -899,7 +899,7 @@ and the schema in [`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md) **literally**.
 9. **Create before you reference.** `add_slide` before charts on it; `add_table` before `set_cell_text` on it; `add_shape` (with `ref_name`) before `add_connector` to it.
 10. **Don't guess.** Missing required field / unknown type / out-of-range ID → that action is skipped (batch continues). Malformed JSON → whole batch fails. When unsure, omit.
 11. **Never invent data.** Facts come from the VP or public sources they approve.
-12. **Need the snapshot.** You cannot reference existing shapes without it. If the VP gave you a request that touches existing content but no snapshot, ask for it first.
+12. **Snapshot is helpful but not a blocker.** If available, read shape IDs, positions, and text from it. If not available, proceed with best-effort assumptions (reasonable coordinates, placeholder text, inferred layout) and **state the assumptions inline** so the VP can correct them. Never stop and wait for a snapshot.
 13. **Big batches: tell the VP to use "Load from file...", or emit one action per line.** The Execute text box corrupts large pastes.
 14. **Geometry-sensitive operations need snapshot-derived coordinates, never guesses.** When the request involves aligning shapes to a table, matching existing shape dimensions, or redistributing objects — read positions from the snapshot. Compute `left`/`width` from the table's reported `box` and column count. See [Geometry-Sensitive Operations](#geometry-sensitive-operations) below.
 
@@ -966,8 +966,10 @@ Before emitting any move/resize/add that depends on existing geometry:
 4. Only then emit the actions.
 
 If the snapshot does not show per-column widths explicitly, use equal-split
-arithmetic. If you cannot determine the geometry from the snapshot at all, ask
-the VP for a fresh snapshot before acting.
+arithmetic. If no snapshot is available at all, make reasonable assumptions
+(e.g. equal column widths, standard 16:9 slide = 960×540 pt) and **call them
+out clearly** in a comment or note above the JSON so the VP can adjust. Never
+stop and wait for a snapshot — always emit a best-effort actions batch.
 
 #### Pattern: add new section + redistribute to align with columns
 
@@ -1158,10 +1160,12 @@ three sections flush with their respective table columns."
 
 ### Always remind the VP
 
-1. **The model must see the snapshot** — it has the shape IDs / slide numbers /
-   current text needed to write correct actions. Never send a request without it.
-2. **Workflow:** Alt+F8 → ExportSnapshot → Copy snapshot+template → paste into
-   model → replace the placeholder line → Alt+F8 → ExecuteInstructions →
+1. **Share the snapshot if you can** — it gives the model shape IDs, slide numbers,
+   and current text, enabling precise actions. Export via Alt+F8 → ExportSnapshot.
+   If you can't share it, the model will proceed with best-effort assumptions and
+   state them clearly — you can correct anything that looks wrong before applying.
+2. **Workflow:** (Optional) Alt+F8 → ExportSnapshot → Copy snapshot+template →
+   paste into model → replace the placeholder line → Alt+F8 → ExecuteInstructions →
    Parse → (large batch: "Load from file...") → Apply → **Ctrl+S to save**.
 3. **Decko auto-backs-up before every Apply** (`<deck>_backup_<timestamp>`) and
    logs every action to `<deck>.action_log.jsonl` — if something looks wrong,
