@@ -2116,10 +2116,164 @@ Public Function BuildErrorFixPrompt(jsonText As String) As String
         sb = sb & "--- ACTION " & ed("index") & " (type: " & ed("type") & ") ---" & vbCrLf
         sb = sb & "YOU SENT: " & ed("json") & vbCrLf
         sb = sb & "ERROR: " & ed("reason") & vbCrLf
+        ' If the error is unknown_type, suggest the closest known action
+        ' names so the LLM doesn't invent more nonsense or give up.
+        If LCase(Left(CStr(ed("reason")), 13)) = "unknown_type:" Then
+            Dim suggestions As String
+            suggestions = FindSimilarActions(CStr(ed("type")))
+            If Len(suggestions) > 0 Then
+                sb = sb & "DID YOU MEAN: " & suggestions & vbCrLf
+            End If
+        End If
         sb = sb & "CORRECT SHAPE:" & vbCrLf
         sb = sb & GetActionGuidance(CStr(ed("type"))) & vbCrLf & vbCrLf
     Next i
     BuildErrorFixPrompt = sb
+End Function
+
+' Score similarity between two action-type strings via word-stem overlap
+' (split on '_'). Higher = more similar.
+Private Function SimilarityScore(a As String, b As String) As Long
+    If LCase(a) = LCase(b) Then SimilarityScore = 1000: Exit Function
+    Dim aw() As String, bw() As String
+    aw = Split(LCase(a), "_")
+    bw = Split(LCase(b), "_")
+    Dim score As Long: score = 0
+    Dim i As Long, j As Long
+    For i = 0 To UBound(aw)
+        For j = 0 To UBound(bw)
+            If aw(i) = bw(j) Then
+                score = score + 10
+            ElseIf Len(aw(i)) >= 4 And Len(bw(j)) >= 4 Then
+                If InStr(aw(i), bw(j)) > 0 Or InStr(bw(j), aw(i)) > 0 Then _
+                    score = score + 3
+            End If
+        Next j
+    Next i
+    ' Penalty for length mismatch (one is much longer than the other)
+    Dim lenDelta As Long: lenDelta = Abs(Len(a) - Len(b))
+    SimilarityScore = score - (lenDelta \ 4)
+End Function
+
+' Return top-3 known action types whose name is most similar to badType,
+' comma-separated. Empty string if no match exceeds the noise floor.
+Public Function FindSimilarActions(badType As String) As String
+    Dim known As String: known = GetAllActionTypes()
+    Dim names() As String: names = Split(known, ",")
+    Dim n As Long: n = UBound(names) - LBound(names) + 1
+    Dim top1 As String, top2 As String, top3 As String
+    Dim s1 As Long, s2 As Long, s3 As Long
+    s1 = 0: s2 = 0: s3 = 0
+    Dim i As Long, score As Long
+    For i = LBound(names) To UBound(names)
+        Dim nm As String: nm = Trim(names(i))
+        If Len(nm) = 0 Then GoTo NextI
+        score = SimilarityScore(badType, nm)
+        If score > s1 Then
+            s3 = s2: top3 = top2
+            s2 = s1: top2 = top1
+            s1 = score: top1 = nm
+        ElseIf score > s2 Then
+            s3 = s2: top3 = top2
+            s2 = score: top2 = nm
+        ElseIf score > s3 Then
+            s3 = score: top3 = nm
+        End If
+NextI:
+    Next i
+    ' Require at least one shared word stem (score >= 10) to suggest anything.
+    Dim out As String: out = ""
+    If s1 >= 10 Then out = top1
+    If s2 >= 10 Then out = out & ", " & top2
+    If s3 >= 10 Then out = out & ", " & top3
+    FindSimilarActions = out
+End Function
+
+' Master list of every known action type. Used by FindSimilarActions for
+' "did you mean" suggestions when the LLM invents an action name. Update
+' when a new action is added to DispatchAction.
+Public Function GetAllActionTypes() As String
+    Dim s As String
+    ' Core shape (modActions)
+    s = "set_text,set_font_size,set_font_bold,set_font_italic,set_font_color,set_fill_color,"
+    s = s & "move_shape,resize_shape,delete_shape,duplicate_shape,rotate_shape,flip_shape,"
+    s = s & "set_shape_adjustment,z_order,copy_formatting,set_shape_name,set_pos,set_shape_alt_text,"
+    s = s & "lock_aspect_ratio,clear_fill,clear_line,set_fill_visible,set_line_visible,"
+    s = s & "set_shape_hyperlink,set_shape_picture_fill,set_shape_kind,set_shape_visible,"
+    s = s & "add_shape,add_text_box,add_line,"
+    ' Paragraph / run
+    s = s & "set_paragraph_text,add_paragraph,delete_paragraph,set_bullet_style,set_indent_level,"
+    s = s & "set_paragraph_font_size,set_paragraph_font_color,set_paragraph_alignment,"
+    s = s & "set_paragraph_line_spacing,set_paragraph_bold,set_paragraph_italic,"
+    s = s & "set_paragraph_underline,set_paragraph_font_name,set_paragraph_space_before,"
+    s = s & "set_paragraph_space_after,clear_paragraph_formatting,set_bullet_start_number,"
+    s = s & "set_run_bold,set_run_italic,set_run_underline,set_run_strikethrough,set_run_text,"
+    s = s & "set_run_subscript,set_run_superscript,set_run_font_color,set_run_font_size,"
+    s = s & "set_run_font_name,set_run_hyperlink,set_run_highlight,set_run_kerning,"
+    s = s & "set_run_baseline_offset,"
+    ' Text frame
+    s = s & "set_text_vertical_align,set_text_autofit,set_text_margin,fit_to_content,"
+    s = s & "enable_text_shrink_for_overflow,find_replace_text,find_replace_regex,"
+    ' Layout
+    s = s & "align_shapes,distribute_horizontal,distribute_vertical,tile_grid,smart_spacing,"
+    s = s & "equalize_spacing,uniform_size,match_size,match_position,swap_positions,"
+    s = s & "group_by_overlap,fit_to_slide_margins,move_shape_relative,nudge,snap_to_grid,"
+    s = s & "align_to_slide_center,clear_slide,recolor_fill_match,recolor_font_match,"
+    s = s & "delete_shapes_match,recolor_palette_deck_wide,swap_font_deck_wide,"
+    ' Connectors / groups
+    s = s & "add_connector,reconnect_connector,group_shapes,ungroup,"
+    GetAllActionTypes = s & GetAllActionTypes_Part2()
+End Function
+
+' Part 2 keeps each function under VBA's 24-continuation-line limit.
+Private Function GetAllActionTypes_Part2() As String
+    Dim s As String
+    ' Tables
+    s = "add_table,set_cell_text,add_table_row,delete_table_row,add_table_col,delete_table_col,"
+    s = s & "swap_table_columns,swap_table_rows,merge_cells,unmerge_cells,"
+    s = s & "set_table_col_width,set_table_row_height,set_cell_border,set_cell_text_align,"
+    s = s & "set_cell_fill,apply_table_style,build_image_grid_table,set_cell_padding,"
+    s = s & "clear_cell_text,set_table_style_options,populate_table_row,populate_table_column,"
+    s = s & "populate_table_cells,set_cell_font_size,set_cell_font_color,set_cell_font_bold,"
+    s = s & "set_cell_font_italic,set_cell_font_underline,set_cell_font_name,"
+    s = s & "set_cell_text_orientation,set_row_fill,set_column_fill,set_row_font_size,"
+    s = s & "set_column_font_size,set_row_font_color,set_column_font_color,set_row_font_bold,"
+    s = s & "set_column_font_bold,clear_row_text,clear_column_text,set_table_font_size,"
+    s = s & "set_table_font_name,set_table_font_color,auto_fit_table_text,set_table_borders,"
+    s = s & "set_row_borders,set_column_borders,fit_cell_to_content,set_cell_paragraph_text,"
+    s = s & "set_cell_paragraph_font_size,set_cell_paragraph_font_color,set_cell_paragraph_bold,"
+    s = s & "set_cell_paragraph_italic,set_cell_paragraph_alignment,set_cell_bullet_style,"
+    s = s & "add_cell_paragraph,delete_cell_paragraph,append_cell_text,set_cell,"
+    GetAllActionTypes_Part2 = s & GetAllActionTypes_Part3()
+End Function
+
+Private Function GetAllActionTypes_Part3() As String
+    Dim s As String
+    ' Charts
+    s = "add_chart,set_chart_type,set_chart_title,set_chart_axis_title,"
+    s = s & "set_chart_legend_position,set_chart_legend,set_series_color,set_series_values,"
+    s = s & "set_chart_categories,set_series_name,set_chart_axis,set_chart_gridlines,"
+    s = s & "set_chart_format,set_chart_series,add_chart_trendline,set_chart_error_bars,"
+    s = s & "set_chart_data_table,set_line_smoothing,delete_series,add_series,set_data_label_text,"
+    ' Images / web
+    s = s & "insert_picture,replace_picture,insert_icon,fetch_page_images,download_image,"
+    s = s & "open_image_picker,build_image_picker_slide,bulk_insert_image,"
+    ' Slides / deck
+    s = s & "add_slide,delete_slide,duplicate_slide,move_slide,extract_slides,"
+    s = s & "import_slides_from_deck,apply_layout_to_slides,change_slide_layout,apply_theme,"
+    s = s & "set_theme_font,set_slide_size,bulk_insert_text_box,set_slide_background_color,"
+    s = s & "insert_slide_number,set_slide_hidden,set_slide_name,set_slide_transition,"
+    s = s & "add_section,delete_section,rename_section,move_section,"
+    ' Notes
+    s = s & "set_speaker_notes,append_speaker_notes,clear_speaker_notes,set_notes_font_size,"
+    s = s & "set_notes_font_color,set_notes_font_bold,set_notes_font_italic,set_notes_font_name,"
+    ' Effects
+    s = s & "set_line_color,set_line_weight,set_line_style,set_shadow,set_glow,set_reflection,"
+    s = s & "set_transparency,set_gradient_fill,set_3d_bevel,set_3d_rotation,set_soft_edge,"
+    s = s & "apply_preset_effect,crop_picture,recolor_picture,set_brightness,set_contrast,"
+    s = s & "apply_picture_artistic_effect,reset_picture,clear_shadow,clear_glow,"
+    s = s & "clear_reflection,clear_all_effects,run_verification"
+    GetAllActionTypes_Part3 = s
 End Function
 
 ' Canonical signature + example for the most-misused action types. For types
