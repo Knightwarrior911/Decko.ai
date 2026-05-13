@@ -2917,7 +2917,9 @@ Public Function GetActionGuidance(actionType As String) As String
         Case "set_chart_series"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, series_index(1-based), props(object)" & vbCrLf & _
-                "  EXAMPLE:  {""type"":""set_chart_series"",""slide"":1,""shape_id"":2,""series_index"":1,""props"":{""fill"":""#15283C"",""show_labels"":true,""label_color"":""#FFFFFF""}}"
+                "  EXAMPLE:  {""type"":""set_chart_series"",""slide"":1,""shape_id"":2,""series_index"":1,""props"":{""fill"":""#15283C"",""show_labels"":true,""label_color"":""#FFFFFF"",""label_format"":""$#,##0""}}" & vbCrLf & _
+                "  NOTE: data-label number_format / label_format / show_labels DO NOT WORK on the 7 modern chart types (waterfall, pareto, funnel, histogram, boxwhisker, treemap, sunburst). " & _
+                "Those charts must be formatted by hand: right-click label > Format Data Labels > Number > Custom > enter format code."
         Case "add_chart_trendline"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, series_index(1-based), props(object: kind|order|period|forward|backward|display_equation|display_r_squared|color|dash|weight)" & vbCrLf & _

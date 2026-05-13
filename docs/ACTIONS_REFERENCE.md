@@ -213,6 +213,13 @@ All of these are supported and create a **real native PowerPoint chart object**
 > `categories`/`series`/`title` into them. The VP edits the data manually after
 > insertion. For all other 32 types, `categories`, `series`, and `title` are
 > applied normally.
+>
+> **The broken surface extends to data-label formatting on those 7 types.**
+> `set_chart_series` `props.label_format`, `show_labels`, `label_color`, etc.
+> all fail silently on waterfall/pareto/funnel/histogram/boxwhisker/treemap/
+> sunburst because every write to `Series.DataLabels` raises COM error
+> `0x80004001`. **Fix manually:** right-click a data label → Format Data
+> Labels → Number → Category: Custom → Format Code: `<your format>` → Add.
 
 ---
 
