@@ -8,9 +8,10 @@ JSON `actions` array a model should return.
 **If you only read one thing, read [§0 Hard Rules](#0-hard-rules).** Breaking
 any of them makes the whole batch fail.
 
-> **Counts:** ~130 action types across 14 VBA modules. The authoritative source
+> **Counts:** ~135 action types across 14 VBA modules. The authoritative source
 > of truth is `src/modExecuteInstructions.bas` (`ValidateAction` = required
 > fields, `DispatchAction` = how each field is read). This document mirrors it.
+> When in doubt, the dispatcher wins — file a doc fix.
 
 ---
 
@@ -25,6 +26,15 @@ any of them makes the whole batch fail.
    the shape's name and *not* its position in a list. Exception: a shape you
    create earlier in the *same* batch (via `ref_name`) can be referenced by that
    `ref_name` string anywhere a `shape_id` is expected.
+   - **Universal aliasing:** ANY field whose name ends in `_shape_id` or `shape_id`
+     also accepts the parallel `_shape_name` / `shape_name` form (string ref_name
+     or actual shape name). Same rule applies to plural `_shape_ids` ↔ `_shape_names`
+     arrays. So: `from_shape_id`↔`from_shape_name`, `to_shape_id`↔`to_shape_name`,
+     `ref_shape_id`↔`ref_shape_name`, `target_shape_id`↔`target_shape_name`,
+     `target_shape_ids`↔`target_shape_names`, `source_shape_id`↔`source_shape_name`,
+     `shape_a_id`↔`shape_a_name`, `shape_b_id`↔`shape_b_name`,
+     `keep_shape_ids`↔`keep_shape_names`. Pick whichever you have; do NOT pass
+     both for the same shape.
 5. **All distances/sizes are in points (pt).** 1 inch = 72 pt. A 16:9 slide is
    **960 × 540 pt** (PowerPoint's "Widescreen"); a 4:3 slide is 720 × 540 pt.
    The snapshot reports the actual slide size — use it.
@@ -52,6 +62,23 @@ any of them makes the whole batch fail.
     "Load from file..." button.** MSForms textboxes corrupt big/long-line
     pastes (they inject whitespace into numbers and keys). If you must paste,
     emit **one action per line** so no single line is more than ~1 KB.
+14. **Chart data shape:** in `add_chart`, every series's `values` array MUST have
+    the same length as `categories`. Mismatched lengths cause a runtime error.
+    `series_index` is **1-based** (first series = 1). `point_fills`, `custom_labels`,
+    `point_marker_styles`, `point_line_visible` arrays inside `set_chart_series`
+    `props` are also positionally aligned with the categories — pass one element
+    per category.
+15. **Hyperlink URL strict prefix:** `set_run_hyperlink` `value` MUST start with
+    one of `http://`, `https://`, `mailto:`, or `#slide:N` (internal jump to slide
+    N), OR be the empty string `""` (which clears the link). Anything else is
+    rejected with `value: invalid hyperlink URL`.
+16. **What Decko CANNOT do (don't ask):** no SmartArt creation/edit, no
+    animations or slide transitions, no comments/review tracking, no embedded
+    OLE objects (Excel/Word/audio/video insertion), no slide-show or kiosk
+    settings, no master-slide editing (only layout-level via `apply_theme` /
+    `apply_layout_to_slides`), no password/encryption, no slide-show pen/laser
+    actions, no morph transitions. If the VP asks for any of these, say so
+    instead of emitting fake actions.
 
 ---
 
@@ -91,7 +118,9 @@ A snapshot is a plain-text dump the VP exports from Decko (Alt+F8 →
 | Vertical align (`v_align`, `set_text_vertical_align`) | `top` `middle` `bottom` |
 | Bullet style (`set_bullet_style`) | `none` `disc` (a.k.a. `bullet`) `square` `dash` `number` `letter` |
 | Autofit mode (`set_text_autofit`) | `none` `shrink` `resize` |
-| Line/dash style | `solid` `dash` `dot` `round_dot` `dash_dot` (also `dashdot`) |
+| Shape line style (`set_line_style` `style`) | `solid` `dash` `dot` `dashdot` (strict — `round_dot`/`dash_dot` rejected here) |
+| Chart line/dash (`*_dash` props on charts) | `solid` `dash` `dot` `round_dot` `dash_dot` `long_dash` `long_dash_dot` |
+| Add-line `dash_style` (`add_line`/`add_connector`) | `solid` `dash` `dot` `round_dot` `dash_dot` `long_dash` `long_dash_dot` |
 | Arrowhead (`arrow_end`/`arrow_start`) | `none` `filled` (`triangle`) `open` `stealth` `diamond` `oval` |
 | Arrow size (`arrow_size`) | `small` `medium` `large` |
 | Connector kind (`add_connector` `kind`) | `straight` `elbow` `curved` |
@@ -101,9 +130,22 @@ A snapshot is a plain-text dump the VP exports from Decko (Alt+F8 →
 | Picture recolor (`recolor_picture` `color_type`) | `grayscale` `sepia` `washout` `bw` `auto` |
 | 3D bevel (`set_3d_bevel` `type`) | `circle` `slope` `cross` `angle` `softround` |
 | Nudge direction (`nudge` `direction`) | `l` `r` `u` `d` |
+| Flip / center axis | `h` `v` (`align_to_slide_center` also accepts `both`) |
 | Slide-size preset (`set_slide_size` `preset`) | `16:9` `4:3` |
-| Axis (`set_chart_axis_title` `axis`, `set_chart_axis` `axis`) | `category` (`x`) `value` (`y`) |
-| Legend position | `top` `right` `bottom` `left` `none` |
+| Chart axis name (`set_chart_axis` `axis`, `set_chart_gridlines` `axis`) | `x` (or `category`) · `y` (or `value`) · `y2` (or `secondary`) · `x2` · `both` (gridlines only) |
+| Chart axis title axis (`set_chart_axis_title` `axis`) | `category` (`x`) · `value` (`y`) |
+| Chart legend position (`set_chart_legend_position` `value`) | `top` `right` `bottom` `left` `none` |
+| Chart legend position (`set_chart_legend` `props.position`) | `top` `right` `bottom` `left` `corner` (5 values — adds `corner`, drops `none`) |
+| Label position (`set_chart_series` `props.label_position`) | `outside_end` `above` `inside_end` `inside_base` `center` `below` `left` `right` |
+| Bar shape (`set_chart_format` `props.bar_shape`) | `box` `cone` `cone_to_max` `cylinder` `pyramid` `pyramid_to_max` |
+| Marker style (`set_chart_series` `props.marker_style`) | `circle` `square` `triangle` `diamond` `x` `none` |
+| Trendline kind | `linear` `log` `polynomial` `power` `exponential` `moving_avg` |
+| Error-bar direction | `x` `y` `both` |
+| Error-bar include | `both` `plus` `minus` |
+| Error-bar type | `fixed` `percent` `stdev` `stderr` `custom` |
+| Cell border side (`set_cell_border` `side`) | `top` `left` `bottom` `right` `diag_down` `diag_up` `all` |
+| Edge (`match_position` `edge`) | `left` `right` `top` `bottom` `hcenter` `vcenter` |
+| Anchor (`align_shapes` `anchor`) | `left` `right` `top` `bottom` `hcenter` `vcenter` |
 
 ### Layout indices (`layout_index` for `add_slide`, `apply_layout_to_slides`)
 
@@ -214,11 +256,12 @@ Format: **`action_name`** — what it does.
   `font_bold`(bool)=false, `h_align`(string)=`center`, `v_align`(string)=`middle`,
   `super_suffix`(string), `sub_suffix`(string).
   `ex:` `{"type":"add_shape","slide":3,"kind":"rrect","pos":{"left":60,"top":120,"width":200,"height":80},"fill":"#15283C","text":"Phase 1","font_color":"#FFFFFF","font_size":18,"ref_name":"box_p1"}`
-- **`add_text_box`** — plain text box (no fill/stroke by default).
+- **`add_text_box`** — plain text box (no fill/stroke by default). Field for content is **`text`**, not `value`.
   `req:` `slide`, `text`(string), `pos`.
   `opt:` `ref_name`, `font_color`, `font_size`(int), `font_bold`(bool)=false,
-  `font_italic`(bool)=false, `h_align`, `fill`(`#RRGGBB`|null), `stroke`(`#RRGGBB`|null),
+  `font_italic`(bool)=false, `h_align`(string), `fill`(`#RRGGBB`|null), `stroke`(`#RRGGBB`|null),
   `stroke_weight_pt`(num)=1.0, `super_suffix`, `sub_suffix`.
+  > Note: `add_text_box` does **NOT** support `v_align` (use `set_text_vertical_align` afterwards via `ref_name`). Compare with `add_shape`, which DOES support both `h_align` and `v_align`.
 - **`add_line`** — straight line/divider between two points.
   `req:` `slide`, `x1`,`y1`,`x2`,`y2`(num), `color`(`#RRGGBB`), `weight_pt`(num).
   `opt:` `arrow_end`(string)=`none`, `arrow_start`(string)=`none`, `dash_style`(string)=`solid`.
@@ -248,7 +291,9 @@ description) — they touch only the named run.
 - **`set_run_font_color`** — `req:` … `value`(`#RRGGBB`).
 - **`set_run_font_size`** — `req:` … `value`(int).
 - **`set_run_font_name`** — `req:` … `value`(string font name).
-- **`set_run_hyperlink`** — `req:` … `value`(string URL; empty string `""` clears the link).
+- **`set_run_hyperlink`** — `req:` … `value`(string — MUST start with `http://`, `https://`, `mailto:`, or `#slide:N`; OR pass `""` to clear an existing link). Any other value is rejected at validation.
+  `ex:` external → `{"type":"set_run_hyperlink","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":"https://example.com"}`
+  `ex:` internal jump → `{"type":"set_run_hyperlink","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":"#slide:5"}`
 
 ### 3.5 Text-frame behaviour
 
@@ -334,6 +379,7 @@ string is also accepted per element).
   `req:` `slide`, `chart_type`(string, see list), `pos`({left,top,width,height}),
   `categories`(array of strings — the x-axis labels),
   `series`(array of `{ "name": string, "values": [numbers], "color"?: "#RRGGBB" }`).
+  > **Constraint:** every `series[i].values` array must have **exactly `categories.length` elements**. Mismatched lengths raise a runtime error. Use `0` for missing data points if you need to align; do not shorten/pad arbitrarily.
   `opt:` `ref_name`(string), `title`(string), `show_legend`(bool)=true,
   `show_values`(bool)=false (data labels), `clean_style`(bool)=false
   (hides y-axis labels/gridlines/borders for a minimalist look),
@@ -355,14 +401,40 @@ string is also accepted per element).
 - **`set_series_values`** — `req:` `slide`, `shape_id`, `series_index`, `values`(array of numbers).
 - **`set_chart_categories`** — `req:` `slide`, `shape_id`, `categories`(array of strings).
 - **`set_series_name`** — `req:` `slide`, `shape_id`, `series_index`, `value`(string).
-- **`set_chart_axis`** — fine axis control. `req:` `slide`, `shape_id`, `axis`(`x`|`y`|`y2`|`x2`), `props`(object — any of: `visible`(bool — show/hide the whole axis; hiding the value axis also removes its gridlines), `line_visible`(bool — hide just the axis line), `min`(num), `max`(num), `major_unit`(num), `title`(string), `number_format`(string), `tick_label_position`(`low`|`high`|`next_to_axis`|`none`), `scale_type`(`linear`|`logarithmic`), `major_tick_mark`(`outside`|`inside`|`cross`|`none`)).
+- **`set_chart_axis`** — fine axis control. `req:` `slide`, `shape_id`, `axis`(`x`|`category` / `y`|`value` / `y2`|`secondary` / `x2`|`category_secondary`), `props`(object — any of):
+  - **Visibility:** `visible`(bool — show/hide whole axis; hiding the value axis also removes its gridlines), `line_visible`(bool — hide just the axis line)
+  - **Scale:** `min`(num), `max`(num), `major_unit`(num — gap between major ticks), `minor_unit`(num), `scale_type`(`linear`|`logarithmic`)
+  - **Tick labels:** `tick_label_position`(`low`|`high`|`next_to_axis`|`none`), `number_format`(string — Excel format e.g. `"$#,##0"` or `"0.0%"`), `label_color`(`#RRGGBB`), `label_size`(int), `label_bold`(bool), `label_italic`(bool), `label_rotation`(int, -90..90)
+  - **Tick marks:** `major_tick_mark`(`outside`|`inside`|`cross`|`none`)
+  - **Axis title:** `title`(string — turning on `HasTitle`), `title_size`(int), `title_color`(`#RRGGBB`), `title_bold`(bool), `title_italic`(bool)
 - **`set_chart_gridlines`** — show / hide / style chart gridlines. `req:` `slide`, `shape_id`, `props`. `opt:` `axis`(`x`|`category`|`y`|`value`|`both`)=`y`. `props`(object — any of: `major`(bool — show/hide major gridlines), `minor`(bool), `major_color`(`#RRGGBB`), `major_weight`(num pt), `major_dash`(`solid`|`dash`|`dot`|`round_dot`|`dash_dot`|`long_dash`|`long_dash_dot`), `minor_color`, `minor_weight`, `minor_dash`).
   `ex:` remove horizontal gridlines → `{"type":"set_chart_gridlines","slide":1,"shape_id":2,"props":{"major":false}}`
   `ex:` faint dotted gridlines on both axes → `{"type":"set_chart_gridlines","slide":1,"shape_id":2,"axis":"both","props":{"major":true,"major_color":"#E0E0E0","major_dash":"dot","major_weight":0.75}}`
-- **`set_chart_format`** — chart-group props. `req:` `slide`, `shape_id`, `props`(object — any of: `gap_width`(0–500), `overlap`(-100–100), `bar_shape`(`box`|`cone`|`cone_to_max`|`cylinder`|`pyramid`|`pyramid_to_max`), `vary_by_categories`(bool), `reverse_categories`(bool), `reverse_series`(bool), `scale_type`(`linear`|`logarithmic`), `doughnut_hole_size`(10–90), **`plot_area_left`/`plot_area_top`/`plot_area_width`/`plot_area_height`**(num pt, pinning the plot rectangle inside the chart frame so caller-side overlays land on bars deterministically), `chart_area_fill`/`chart_area_border`/`plot_area_fill`/`plot_area_border`(`#RRGGBB`)).
-- **`set_chart_series`** — per-series props. `req:` `slide`, `shape_id`, `series_index`, `props`(object — any of: `chart_type`(string, for combo charts), `axis_group`(`primary`|`secondary`), `marker_style`(`circle`|`square`|`triangle`|`diamond`|`x`|`none`), `marker_size`(num), `marker_fill`/`marker_line`(`#RRGGBB`), `line_color`/`line_weight`/`line_dash`(`solid`|`dash`|`dot`|`round_dot`|`dash_dot`|`long_dash`|`long_dash_dot`), `fill`/`fill_color`(`#RRGGBB`), `fill_visible`(bool — set false to hide a series visually while keeping it in the data, e.g. waterfall base), `show_labels`(bool), `label_format`(string Excel format), `custom_labels`(array — per-point label text override, supersedes `label_format`), `label_position`(`outside_end`/`above`|`inside_end`|`inside_base`|`center`|`below`|`left`|`right`), `label_color`/`label_size`/`label_bold`/`label_italic`/`label_fill`/`label_fill_visible`/`label_line_visible`, `point_fills`(array of `#RRGGBB` — recolor each bar individually in a single-series chart), `point_marker_fills`(array — per-point marker fill on line/scatter), **`point_marker_styles`**(array — per-point marker style; pass `"none"` to hide a single point's marker, e.g. to clip the last point of a line series), **`point_line_visible`**(array of bools — per-point segment visibility on a line series; `false` hides the line segment ending at point i, useful to break the line before a sentinel last point), `hide_from_legend`(bool), `pattern`(`dotted_5`…`zig_zag`), `gradient_fill`(object), `gradient_direction`(`horizontal`|`vertical`|`diagonal_up`|`diagonal_down`|`from_corner`|`from_center`)).
+- **`set_chart_format`** — chart-group / chart-area / plot-area props. `req:` `slide`, `shape_id`, `props`(object — any of):
+  - **Bars/columns:** `gap_width`(0–500), `overlap`(-100–100), `bar_shape`(`box`|`cone`|`cone_to_max`|`cylinder`|`pyramid`|`pyramid_to_max`), `vary_by_categories`(bool)
+  - **Series order:** `reverse_categories`(bool), `reverse_series`(bool)
+  - **Scale:** `scale_type`(`linear`|`logarithmic`)
+  - **Doughnut:** `doughnut_hole_size`(10–90)
+  - **Line-chart extras:** `drop_lines`(bool — vertical lines from each marker to the category axis), `hi_lo_lines`(bool — vertical line between max/min of multiple series at each category), `up_down_bars`(bool — diff boxes between two series)
+  - **Chart area (outer frame):** `chart_area_fill`(`#RRGGBB`), `chart_area_fill_visible`(bool), `chart_area_border`(`#RRGGBB`), `chart_area_border_visible`(bool), `chart_area_image`(string — local file path; sets the chart-area background to a picture fill)
+  - **Plot area (inner data region):** `plot_area_fill`(`#RRGGBB`), `plot_area_fill_visible`(bool), `plot_area_border`(`#RRGGBB`), `plot_area_image`(string — local file path)
+  - **Plot-area pinning:** `plot_area_left`/`plot_area_top`/`plot_area_width`/`plot_area_height`(num pt, relative to chart frame top-left — pins the plot rectangle so caller-side overlays land on bars deterministically)
+  - **3D-only:** `rotation`(deg 0–360), `elevation`(deg -90–90), `perspective`(0–100), `right_angle_axes`(bool), `height_percent`(int — Z-axis height as % of base), `gap_depth`(int — depth between series for 3D bar/column)
+- **`set_chart_series`** — per-series props. `req:` `slide`, `shape_id`, `series_index`(1-based), `props`(object — any of):
+  - **Identity / combo:** `name`(string — rename series), `chart_type`(string — for combo charts; use any `add_chart` `chart_type` value), `axis_group`(`primary`|`secondary`)
+  - **Fill:** `fill`/`fill_color`(`#RRGGBB`), `fill_visible`(bool — hide a series visually while keeping its data, e.g. waterfall base), `border_visible`(bool — for filled series like columns/areas)
+  - **Pattern fill (object):** `pattern_fill` = `{ "fore": "#RRGGBB", "back": "#RRGGBB", "type": <pattern-name> }` where pattern-name is one of `dotted_5/10/20/25/30/40/50/60/70/75/80/90`, `dark_horizontal`, `dark_vertical`, `dark_diagonal_down`, `dark_diagonal_up`, `light_horizontal`, `light_vertical`, `light_diagonal_down`, `light_diagonal_up`, `small_checker`, `small_grid`, `small_confetti`, `large_checker`, `large_grid`, `large_confetti`, `horizontal_brick`, `diagonal_brick`, `weave`, `plaid`, `divot`, `dotted_diamond`, `shingle`, `wave`, `zig_zag`, `trellis`
+  - **Gradient fill (object):** `gradient_fill` = `{ "from": "#RRGGBB", "to": "#RRGGBB", "direction": "horizontal"|"vertical"|"diagonal_up"|"diagonal_down" }` (direction is nested **inside** `gradient_fill`)
+  - **Line series:** `line_color`(`#RRGGBB`), `line_weight`(num pt), `line_dash`(`solid`|`dash`|`dot`|`round_dot`|`dash_dot`|`long_dash`|`long_dash_dot`)
+  - **Markers:** `marker_style`(`circle`|`square`|`triangle`|`diamond`|`x`|`none`), `marker_size`(num), `marker_fill`(`#RRGGBB`), `marker_line`(`#RRGGBB`)
+  - **Data labels:** `show_labels`(bool), `label_format`(string Excel format), `label_position`(`outside_end`|`above`|`inside_end`|`inside_base`|`center`|`below`|`left`|`right`), `label_color`/`label_size`/`label_bold`/`label_italic`(font props), `label_fill`(`#RRGGBB`), `label_fill_visible`(bool), `label_line_visible`(bool)
+  - **Custom per-point label text:** `custom_labels`(array — per-point label text override; supersedes `label_format`; one element per category)
+  - **Per-point overrides (arrays, one element per category):** `point_fills`(array of `#RRGGBB`), `point_marker_fills`(array of `#RRGGBB`), `point_marker_styles`(array — per-point marker style; pass `"none"` to hide one point, e.g. to clip last point of a line series), `point_line_visible`(array of bools — `false` hides the line segment ending at point i, useful to break the line before a sentinel last point), `point_label_colors`(array of `#RRGGBB`), `point_label_positions`(array of label-position strings)
+  - **Pie/doughnut:** `show_leader_lines`(bool), `leader_line_color`(`#RRGGBB`)
+  - **Legend:** `hide_from_legend`(bool)
   > Tip: setting `set_chart_axis` `props.visible:false` removes the axis entirely (`HasAxis = False`) and breaks any series rendered against it (line series on a hidden secondary axis disappear). To hide an axis visually but keep its scale active, use `tick_label_position:"none"` + `line_visible:false` instead — the same recipe `add_chart` `clean_style:true` uses internally.
-- **`set_chart_legend`** — `req:` `slide`, `shape_id`, `props`(object — `position`(`top`|`right`|`bottom`|`left`|`corner`), `visible`(bool), `font_size`(int)).
+- **`set_chart_legend`** — `req:` `slide`, `shape_id`, `props`(object — `visible`(bool), `position`(`top`|`right`|`bottom`|`left`|`corner`), `font_size`(int), `font_color`(`#RRGGBB`)).
+  > Compared to `set_chart_legend_position`, this action's `position` vocab drops `none` but adds `corner`. To hide the legend, pass `visible:false` here OR pass `value:"none"` to `set_chart_legend_position`.
 - **`add_chart_trendline`** — `req:` `slide`, `shape_id`, `series_index`, `props`(object — `kind`(`linear`|`log`|`polynomial`|`power`|`exponential`|`moving_avg`), `order`(int, for polynomial), `period`(int, for moving_avg), `display_equation`(bool), `display_r2`(bool), `dash`(`solid`|`dash`|`dot`|`round_dot`|`dash_dot`|`long_dash`|`long_dash_dot`), `color`(`#RRGGBB`))).
 - **`set_chart_error_bars`** — `req:` `slide`, `shape_id`, `series_index`, `props`(object — `direction`(`x`|`y`|`both`), `include`(`both`|`plus`|`minus`), `type`(`fixed`|`percent`|`stdev`|`stderr`|`custom`), `amount`(num), `end_style`(`cap`|`no_cap`))).
 
@@ -371,7 +443,8 @@ string is also accepted per element).
 - **`insert_picture`** — insert a local image file. `req:` `slide`, `pos`, and one of `path` or `picture_path`(string — absolute local file path).
 - **`replace_picture`** — swap an existing picture, keeping its frame. `req:` `slide`, `shape_id`, `path`(string).
 - **`insert_icon`** — insert a Microsoft Fluent UI SVG icon.
-  `req:` `slide`, `icon`(string — a lowercase_underscore name from the Fluent UI set, e.g. `building_factory`, `people`, `globe`, `chart_multiple`, `arrow_trending`, `money`, `shield`). `opt:` `style`(`filled`|`regular`)=`filled`, `size`(16|20|24|28|32|48)=48, `color`(`#RRGGBB`)=`#000000`, `left`,`top`,`width`,`height`(num pt). Icons are fetched from the unpkg CDN and cached.
+  `req:` `slide`, `icon`(string — a lowercase_underscore name from the Fluent UI set, e.g. `building_factory`, `people`, `globe`, `chart_multiple`, `arrow_trending`, `money`, `shield`), **`left`, `top`, `width`, `height`** (num pt — all four REQUIRED, no `pos` object). `opt:` `style`(`filled`|`regular`)=`filled`, `size`(16|20|24|28|32|48)=48, `color`(`#RRGGBB`)=`#000000`, `ref_name`(string). Icons fetched from unpkg CDN and cached.
+  `ex:` `{"type":"insert_icon","slide":2,"icon":"building_factory","left":60,"top":120,"width":48,"height":48,"color":"#15283C"}`
   > If unsure of the exact icon name, pick the nearest semantic match. When Decko's Export prompt template injects an allow-list of icon names, use ONLY names from that list.
 - **`fetch_page_images`** — scrape all images from a URL into a local folder. `req:` `url`(string). `opt:` `dest_folder`(string), `ref_name`(string).
 - **`download_image`** — download one image URL to a local path. `req:` `url`(string), `dest_path`(string).
@@ -594,6 +667,64 @@ Use `set_paragraph_font_size` / `set_paragraph_font_color` with a specific
 // RIGHT — changes only paragraph 0 (the heading)
 {"type":"set_paragraph_font_color","slide":1,"shape_id":3,"paragraph_index":0,"value":"#1F3864"}
 ```
+
+### Mistake 6 — `v_align` on `add_text_box` (it's silently ignored)
+
+`add_text_box` only reads `h_align`. If you pass `v_align`, it does nothing — the textbox keeps the default top alignment. To vertically center, create the box first with a `ref_name`, then use `set_text_vertical_align` referencing that name:
+
+```json
+// WRONG — v_align ignored
+{"type":"add_text_box","slide":1,"text":"Centered","pos":{"left":100,"top":200,"width":300,"height":60},"v_align":"middle"}
+
+// RIGHT
+{"type":"add_text_box","slide":1,"text":"Centered","pos":{"left":100,"top":200,"width":300,"height":60},"ref_name":"tb1"}
+{"type":"set_text_vertical_align","slide":1,"shape_id":"tb1","value":"middle"}
+```
+
+`add_shape` DOES accept both `h_align` and `v_align` directly — the asymmetry is unfortunate but real.
+
+### Mistake 7 — `insert_icon` uses flat `left/top/width/height` (NOT `pos`)
+
+Unlike `add_shape`/`add_text_box`/`add_chart`/`add_table`, the icon action does NOT take a `pos` object. All four position fields are required at the action's top level:
+
+```json
+// WRONG
+{"type":"insert_icon","slide":2,"icon":"people","pos":{"left":60,"top":120,"width":48,"height":48}}
+
+// RIGHT
+{"type":"insert_icon","slide":2,"icon":"people","left":60,"top":120,"width":48,"height":48}
+```
+
+Same flat-coordinate convention applies to `bulk_insert_image` and `bulk_insert_text_box`.
+
+### Mistake 8 — Mixing `scope` semantics across actions
+
+Three different `scope`-using action families read it slightly differently:
+- `find_replace_text`, `find_replace_regex`: `deck` or `slide:N` — searches text frames only.
+- `recolor_fill_match`, `recolor_font_match`, `recolor_palette_deck_wide`, `delete_shapes_match`: `deck` or `slide:N` — sweeps shapes for color/kind/text filters.
+- `swap_font_deck_wide`: **no `scope`** — always deck-wide (`from_name`/`to_name` only).
+- `enable_text_shrink_for_overflow`: `deck` or `slide:N`, plus optional `include_titles`(bool).
+
+If you mean "this slide only", use `slide:N`. If you mean "the whole deck", use `deck`. Don't pass numeric values (the parser will reject them).
+
+### Validator error glossary (when an action is skipped, the log shows one of these)
+
+| Error string | Cause | Fix |
+|---|---|---|
+| `unknown_type: X` | `"type"` field not recognised | Spelling — see catalogue |
+| `missing_field: X` | Required field absent | Re-read `req:` for the action |
+| `missing_field: X or Y` | Either-or field pair missing both | Provide one of the two |
+| `slide must be numeric (1-based)` | `slide` was a string | Pass an integer, not `"1"` |
+| `slide_out_of_range: N (deck has M)` | `slide > slide count` (or < 1) | Add a slide first or fix the index |
+| `shape_id 'X': not found as Id or ref_name` | Shape doesn't exist on that slide | Re-check snapshot; remember `ref_name`s only resolve in the same batch |
+| `value: must be ...` | String/number outside the allowed vocab | Match the vocab tables in §2 |
+| `value: invalid hyperlink URL` | URL doesn't start with `http://`/`https://`/`mailto:`/`#slide:` | Use one of the four prefixes |
+| `width_pt/height_pt: must be > 0` | Zero or negative size | Use a positive number |
+| `preset: must be 16:9 or 4:3` | `set_slide_size` preset typo | Lowercase, exact `16:9` or `4:3` |
+| `from_name/to_name: empty` | `swap_font_deck_wide` got blank strings | Both must be non-empty font names |
+| `axis: must be h or v` | `flip_shape`/`smart_spacing` got something else | Use single-letter `h`/`v` |
+
+When the batch finishes, a JSON report appears with `actions_executed` / `actions_skipped` counts and per-action `error` strings. **Read those before assuming success.**
 
 ### Pattern: populate bullet box with variable-length refined text
 
