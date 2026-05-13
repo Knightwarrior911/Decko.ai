@@ -1090,3 +1090,85 @@ Private Function JsonEscape(s As String) As String
     out = Replace(out, Chr(9), "\t")
     JsonEscape = out
 End Function
+
+' =============================================================================
+' "Fix This" button helpers — read sidecar JSON, format as LLM-ready prompt,
+' optionally copy to clipboard. Public so the form button can call them and
+' so they're testable from Application.Run.
+' =============================================================================
+
+' Read warnings.json sidecar, format as LLM prompt. Returns empty string on
+' missing/empty/unparseable file (caller checks Len and handles).
+Public Function BuildLLMPromptFromWarnings(Optional warningsPath As String = "") As String
+    BuildLLMPromptFromWarnings = ""
+    Dim path As String
+    If Len(warningsPath) = 0 Then
+        path = ActivePresentation.FullName & ".warnings.json"
+    Else
+        path = warningsPath
+    End If
+
+    Dim fso As Object: Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FileExists(path) Then Exit Function
+
+    Dim raw As String
+    Dim fnum As Integer: fnum = FreeFile
+    Open path For Input As #fnum
+    If LOF(fnum) > 0 Then raw = Input$(LOF(fnum), fnum)
+    Close #fnum
+
+    Dim parsed As Object
+    On Error Resume Next
+    Set parsed = modJSON.ParseJson(raw)
+    If Err.Number <> 0 Then Err.Clear: Exit Function
+    On Error GoTo 0
+    If Not parsed.Exists("warnings") Then Exit Function
+
+    Dim warns As Object: Set warns = parsed("warnings")
+    If warns.Count = 0 Then Exit Function
+
+    Dim sb As String
+    sb = "Decko's verification loop found " & warns.Count & " quality issue(s) " & _
+         "in the active deck. Each warning has a SUGGESTION field with the " & _
+         "literal action(s) to use as a fix. Return a single JSON object " & _
+         "{""actions"":[...]} that resolves every warning. Use the suggestions " & _
+         "as guidance; combine related fixes where it makes sense." & vbCrLf & vbCrLf
+    sb = sb & "WARNINGS:" & vbCrLf
+
+    Dim i As Long
+    For i = 1 To warns.Count
+        Dim w As Object: Set w = warns(i)
+        Dim head As String
+        head = "[" & CStr(w("severity")) & "] " & CStr(w("kind")) & " (slide " & CStr(w("slide"))
+        If CLng(w("shape_id")) <> 0 Then head = head & ", shape_id " & CStr(w("shape_id"))
+        head = head & ")"
+        sb = sb & vbCrLf & head & vbCrLf
+        sb = sb & "  ISSUE: " & CStr(w("message")) & vbCrLf
+        sb = sb & "  SUGGESTION: " & CStr(w("suggestion")) & vbCrLf
+    Next i
+    BuildLLMPromptFromWarnings = sb
+End Function
+
+' One-call helper: build prompt + put on clipboard. Returns warning count
+' (0 if nothing to copy). Form's btnFixThis_Click calls this.
+Public Function CopyWarningsPromptToClipboard() As Long
+    Dim prompt As String: prompt = BuildLLMPromptFromWarnings()
+    If Len(prompt) = 0 Then
+        CopyWarningsPromptToClipboard = 0
+        Exit Function
+    End If
+    Dim dobj As MSForms.DataObject
+    Set dobj = New MSForms.DataObject
+    dobj.SetText prompt
+    dobj.PutInClipboard
+    ' Count warnings cheaply: scan for "WARNINGS:" then count lines starting with "["
+    Dim n As Long: n = 0
+    Dim pos As Long: pos = 1
+    Do
+        pos = InStr(pos, prompt, vbCrLf & "[")
+        If pos = 0 Then Exit Do
+        n = n + 1
+        pos = pos + 1
+    Loop
+    CopyWarningsPromptToClipboard = n
+End Function

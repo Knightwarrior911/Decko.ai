@@ -2,8 +2,8 @@ VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmExecute 
    Caption         =   "Decko.ai • Execute Instructions"
    ClientHeight    =   10400
-   ClientLeft      =   91
-   ClientTop       =   406
+   ClientLeft      =   90
+   ClientTop       =   410
    ClientWidth     =   12000
    OleObjectBlob   =   "frmExecute.frx":0000
    StartUpPosition =   1  'CenterOwner
@@ -13,6 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
+
 Option Explicit
 
 Private mParsed As Object
@@ -22,6 +24,18 @@ Private mValid() As Boolean
 ' large pastes (whitespace injected into numbers/keys); the file path avoids
 ' the textbox entirely. Cleared the moment the user types in the textbox.
 Private mLoadedJson As String
+Private Sub btnFixThis_Click()
+    ' Delegates to modVerify.CopyWarningsPromptToClipboard so the logic is
+    ' testable from Application.Run and reusable elsewhere.
+    Dim n As Long
+    n = modVerify.CopyWarningsPromptToClipboard()
+    If n = 0 Then
+        lblStatus.Caption = "No warnings to copy. Either run Apply first, or the deck is clean."
+    Else
+        lblStatus.Caption = n & " warning(s) copied to clipboard as LLM prompt. " & _
+                            "Paste into your chat and ask the model to fix."
+    End If
+End Sub
 
 Private Sub UserForm_Initialize()
     lblStatus.Caption = ""
