@@ -630,6 +630,25 @@ identified filenames) send a second prompt to build the final table.
 **Always Ctrl+S after applying.** Decko edits the open deck in memory. Close
 without saving = all changes lost. Ctrl+S right after every Apply.
 
+**For table-anchored layouts, describe the anchor — don't guess coordinates.**
+Say "position it above the third column of the table on slide 4" rather than
+inventing pixel offsets. The model computes the exact position from the snapshot's
+table geometry.
+
+**For "add something similar to existing", describe the pattern, not the dimensions.**
+Say "add a section above column 4 matching the style of the existing sections above
+columns 2 and 3" — the model reads existing shapes' dimensions from the snapshot
+and copies them. Don't say "width 200, height 44" unless you actually know.
+
+**For compound geometric operations, describe the outcome, not the steps.**
+Say "three header sections, each flush with its table column, same height, evenly
+distributed above columns 2, 3, and 4." The model handles the inspect → compute
+→ reposition sequence.
+
+**Use relative spatial language.** "Above column N", "same top edge as the existing
+sections", "matching the height of the boxes above column 2" — this is easier to
+say and more reliable than specific point values.
+
 ---
 
 ## Full Action Reference (for AI Assistants)
@@ -882,6 +901,7 @@ and the schema in [`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md) **literally**.
 11. **Never invent data.** Facts come from the VP or public sources they approve.
 12. **Need the snapshot.** You cannot reference existing shapes without it. If the VP gave you a request that touches existing content but no snapshot, ask for it first.
 13. **Big batches: tell the VP to use "Load from file...", or emit one action per line.** The Execute text box corrupts large pastes.
+14. **Geometry-sensitive operations need snapshot-derived coordinates, never guesses.** When the request involves aligning shapes to a table, matching existing shape dimensions, or redistributing objects — read positions from the snapshot. Compute `left`/`width` from the table's reported `box` and column count. See [Geometry-Sensitive Operations](#geometry-sensitive-operations) below.
 
 ### Step-by-step: VP request → actions JSON
 
@@ -906,6 +926,70 @@ and the schema in [`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md) **literally**.
 8. **If the batch is large, output one action object per line** so the VP can
    paste it without the text box mangling it (or tell them to save it to a
    `.json` file and use "Load from file...").
+
+### Geometry-Sensitive Operations
+
+Some requests require computing exact coordinates from the snapshot before emitting
+any action. Recognize them by these phrases:
+
+| Phrase | What it means geometrically |
+|--------|-----------------------------|
+| "above column N of the table" | shape left = table.left + sum of first N-1 column widths; shape width = column N width |
+| "aligned with / flush with the table column" | same left + width as the column |
+| "matching the size / style of existing sections" | read the existing shapes' `box=(L,T,W,H)` from the snapshot; copy those dimensions |
+| "redistribute evenly above the columns" | set each section's left = its column's left edge; width = column width |
+| "same top edge as the others" | read the lowest `top` among the existing sections; use that for new shapes |
+
+#### How to derive table column boundaries
+
+The snapshot reports the table as a single shape with `box=(table_left, table_top, table_width, table_height)`.
+Unless per-column widths are shown, assume equal columns:
+
+```
+col_width = table_width / num_columns
+col_left[i] = table_left + i * col_width          (i is 0-based)
+col_right[i] = col_left[i] + col_width
+```
+
+"Above column N" (1-based) means:
+- `shape.left  = col_left[N-1]`
+- `shape.width = col_width`
+- `shape.top`  = some consistent value above `table_top` (match existing sections or leave gap ~8–16 pt)
+
+#### The inspect-first rule
+
+Before emitting any move/resize/add that depends on existing geometry:
+
+1. Read the snapshot for all relevant shape positions.
+2. Identify the reference object (the table, an existing section, etc.) and record its `box`.
+3. Compute all target coordinates from those values.
+4. Only then emit the actions.
+
+If the snapshot does not show per-column widths explicitly, use equal-split
+arithmetic. If you cannot determine the geometry from the snapshot at all, ask
+the VP for a fresh snapshot before acting.
+
+#### Pattern: add new section + redistribute to align with columns
+
+This is the most common table-header pattern. Steps:
+
+1. **Read** existing sections' `shape_id`, `box`, fill, font from the snapshot.
+2. **Compute** column boundaries from the table's `box`.
+3. **Add** the new section's boxes (`add_shape`) at the new column's left + width.
+4. **Reposition** all existing sections (`move_shape` + `resize_shape`) to their
+   respective column left + width — even if they already look right; this makes
+   all three consistent.
+5. Use the same `top` for all top-boxes and the same `top` for all bottom-boxes.
+
+#### Pattern: "match existing style"
+
+When the VP says "add something similar to the existing X", do **not** invent
+dimensions, colors, or fonts. Read them from the snapshot:
+
+- `box` → `width`, `height` for the new shape
+- fill color → use `"fill"` field verbatim from snapshot's reported fill
+- font size → copy from existing shape's text run
+- gap between stacked boxes → `existing_bottom_box.top - (existing_top_box.top + existing_top_box.height)`
 
 ### How to write a good "VP prompt"
 
@@ -997,6 +1081,49 @@ Calibri to Arial."
 ]}
 ```
 
+**Example E — add a section above a table column; redistribute all sections to align with columns.**
+
+*Snapshot excerpt:*
+```
+Slide 3 (960x540)
+  shape_id=5   kind=table   box=(40,200,880,200)   rows=5 cols=4
+  shape_id=10  kind=rect    box=(260,110,220,44)   text: "Label A"
+  shape_id=11  kind=rect    box=(260,158,220,36)   text: "Value A"
+  shape_id=12  kind=rect    box=(480,110,220,44)   text: "Label B"
+  shape_id=13  kind=rect    box=(480,158,220,36)   text: "Value B"
+```
+*VP request:* "Slide 3 has a 4-column table. There are two sections above it — each
+is two stacked boxes — one above column 2, one above column 3. Add a third section
+above column 4 (blank text), matching the style of the existing ones. Then make all
+three sections flush with their respective table columns."
+
+*Geometry derivation:*
+- Table: left=40, width=880 → 4 equal columns → col_width=220
+- col2_left=260, col3_left=480, col4_left=700
+- Existing top-box height=44, bottom-box height=36, gap=4 pt (158-110-44=4)
+- Existing top y=110, bottom y=158
+
+*Actions:*
+```json
+{"actions":[
+  {"type":"move_shape","slide":3,"shape_id":10,"left":260,"top":110},
+  {"type":"resize_shape","slide":3,"shape_id":10,"width":220,"height":44},
+  {"type":"move_shape","slide":3,"shape_id":11,"left":260,"top":158},
+  {"type":"resize_shape","slide":3,"shape_id":11,"width":220,"height":36},
+  {"type":"move_shape","slide":3,"shape_id":12,"left":480,"top":110},
+  {"type":"resize_shape","slide":3,"shape_id":12,"width":220,"height":44},
+  {"type":"move_shape","slide":3,"shape_id":13,"left":480,"top":158},
+  {"type":"resize_shape","slide":3,"shape_id":13,"width":220,"height":36},
+  {"type":"add_shape","slide":3,"kind":"rect","pos":{"left":700,"top":110,"width":220,"height":44},"fill":"#FFFFFF","text":"","font_size":12,"ref_name":"sec3_top"},
+  {"type":"add_shape","slide":3,"kind":"rect","pos":{"left":700,"top":158,"width":220,"height":36},"fill":"#FFFFFF","text":"","font_size":12,"ref_name":"sec3_bot"}
+]}
+```
+> Copy the exact fill color and font from the snapshot's existing shapes — the
+> values above use `#FFFFFF` as a placeholder. `col_left` always comes from
+> `table.left + (col_index * col_width)`. Column 1 (left=40) has no section above it.
+
+---
+
 ### Intent → action cheat-sheet
 
 | VP says | Use |
@@ -1025,6 +1152,9 @@ Calibri to Arial."
 | "Change slide size to 16:9" | `set_slide_size`, `preset:"16:9"` |
 | "Add slide numbers" | `insert_slide_number` per slide (or via the template's master) |
 | "Color the slide background" | `set_slide_background_color` |
+| "Position shapes above / aligned with table columns" | Derive `col_left = table.left + (col_index * col_width)`, `col_width = table.width / num_cols`. Use `move_shape` + `resize_shape` to set each shape's `left` and `width` to the column's values. |
+| "Add a section matching the style of existing ones" | Read existing shape `box` (L,T,W,H), fill, font from snapshot. `add_shape` with those exact dimensions and fill at the new column's left. |
+| "Redistribute / realign sections above table columns" | Set each section's `left = col_left[N]`, `width = col_width` via `move_shape` + `resize_shape`. Use the same `top` for all. Anchor: table geometry, not hardcoded offsets. |
 
 ### Always remind the VP
 
