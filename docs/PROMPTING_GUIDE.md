@@ -771,8 +771,8 @@ any model.
 | `set_chart_gridlines` | Show / hide / style major & minor gridlines per axis (`x`/`y`/`both`) — color, weight, dash. Use `{"props":{"major":false}}` to kill the horizontal lines. |
 | `set_chart_legend_position` / `set_chart_legend` | top / right / bottom / left; or `props` for position + visible + font. |
 | `set_series_color` | Color a *series* by 1-based index. (For per-bar color in a single-series chart use `set_chart_series` `props.point_fills`.) |
-| `set_chart_series` | Per-series props: `show_labels`, `label_format` (the data-label number format — e.g. `#,##0;(#,##0)`), `label_position`, `fill_color`, `point_fills` (array, per-point color), markers, etc. |
-| `set_chart_format` | Chart-group props: `gap_width`, `overlap`, `bar_shape`, `doughnut_hole_size`, reverse cats/series. |
+| `set_chart_series` | Per-series props: `show_labels`, `label_format` (the data-label number format — e.g. `#,##0;(#,##0)`), `label_position`, `fill_color`, `point_fills` (array, per-point color), `point_marker_styles` (per-point marker — pass `"none"` to hide one), `point_line_visible` (per-point line-segment hide — break a line before a sentinel last point), markers, axis_group, custom_labels, etc. |
+| `set_chart_format` | Chart-group props: `gap_width`, `overlap`, `bar_shape`, `doughnut_hole_size`, reverse cats/series, **`plot_area_left/top/width/height`** (pin the plot rectangle inside the frame so caller-side overlay text — segment totals, CAGR callouts, growth brackets — lands on bars deterministically). |
 | `set_series_values` | Array of data values. |
 | `set_chart_categories` | Array of category labels. |
 | `set_series_name` | Series label. |

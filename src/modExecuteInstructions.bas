@@ -1331,10 +1331,17 @@ Public Function SanitizeJsonInput(raw As String) As String
         If AscW(Mid(s, 1, 1)) = &HFEFF Then s = Mid(s, 2)
     End If
 
-    ' Normalize smart quotes to ASCII. LLM autocorrectors sometimes inject these.
-    ' U+201C and U+201D are curly double quotes; U+2018 and U+2019 are curly singles.
-    s = Replace(s, ChrW(&H201C), """")  ' left double
-    s = Replace(s, ChrW(&H201D), """")  ' right double
+    ' Normalize smart quotes to ASCII. LLM autocorrectors sometimes wrap JSON
+    ' keys/values in curly double quotes; converting those rescues the parse.
+    ' BUT: only when the input has no ASCII double quotes at all -- otherwise the
+    ' structure is already valid ASCII JSON and any curly double quotes are
+    ' *content* inside string values (e.g. legal text full of "quoted" terms);
+    ' converting them would inject unescaped quotes and break the parse. Curly
+    ' single quotes are always safe to normalize inside JSON double-quoted strings.
+    If InStr(s, """") = 0 Then
+        s = Replace(s, ChrW(&H201C), """")  ' left double
+        s = Replace(s, ChrW(&H201D), """")  ' right double
+    End If
     s = Replace(s, ChrW(&H2018), "'")   ' left single
     s = Replace(s, ChrW(&H2019), "'")   ' right single
 

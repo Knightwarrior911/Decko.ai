@@ -285,6 +285,16 @@ Public Sub Do_set_chart_format(slideNum As Long, shapeId As Long, ByVal props As
         ch.PlotArea.Format.Line.ForeColor.RGB = modActions.HexToRgb(CStr(props("plot_area_border")))
         ch.PlotArea.Format.Line.Visible = msoTrue
     End If
+    ' Pin the plot area's inside rectangle (where bars / markers actually render)
+    ' to absolute pt coords inside the chart frame. PowerPoint normally autosizes
+    ' the plot box based on axis labels / title; pinning it lets caller-side
+    ' code compute exact bar / segment screen coords for overlay annotations.
+    ' All four optional; use whichever the caller specifies. Coords are in pt
+    ' relative to the chart frame's top-left.
+    If props.Exists("plot_area_left") Then ch.PlotArea.InsideLeft = CDbl(props("plot_area_left"))
+    If props.Exists("plot_area_top") Then ch.PlotArea.InsideTop = CDbl(props("plot_area_top"))
+    If props.Exists("plot_area_width") Then ch.PlotArea.InsideWidth = CDbl(props("plot_area_width"))
+    If props.Exists("plot_area_height") Then ch.PlotArea.InsideHeight = CDbl(props("plot_area_height"))
     On Error GoTo 0
 End Sub
 
@@ -721,7 +731,7 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
         Err.Clear
         ser.DataLabels.ShowLeaderLines = showLeaders
         Err.Clear
-        On Error GoTo 0
+    Err.Clear
     End If
     If props.Exists("leader_line_color") Then
         Dim llC As Long: llC = modActions.HexToRgb(CStr(props("leader_line_color")))
@@ -730,7 +740,7 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
         Err.Clear
         ser.DataLabels.LeaderLines.Format.Line.ForeColor.RGB = llC
         Err.Clear
-        On Error GoTo 0
+    Err.Clear
     End If
     ' Gradient fill — props.gradient_fill = { from, to, direction }
     If props.Exists("gradient_fill") Then
@@ -877,7 +887,7 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
         If modActions.ToBool(props("hide_from_legend")) Then
             On Error Resume Next
             ch.Legend.LegendEntries(seriesIndex).Delete
-            On Error GoTo 0
+    Err.Clear
         End If
     End If
     ' Per-point custom label text override.
@@ -998,7 +1008,46 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
             End If
         Next pm
     End If
-    On Error GoTo 0
+    ' Per-point marker style — array of "circle"/"square"/"triangle"/"diamond"/"x"/"none".
+    ' Empty string skips a point. Use to hide markers on individual data points
+    ' (e.g. last point of a line series that should end at category N-1).
+    ' (Function-level `On Error Resume Next` set at top of body covers errors here.)
+    If props.Exists("point_marker_styles") Then
+        Dim pms As Object: Set pms = props("point_marker_styles")
+        Dim pmsi As Long
+        For pmsi = 1 To ser.Points.Count
+            If pmsi <= pms.Count Then
+                Dim msName As String: msName = LCase(CStr(pms(pmsi)))
+                Select Case msName
+                    Case "circle":   ser.Points(pmsi).MarkerStyle = 8
+                    Case "square":   ser.Points(pmsi).MarkerStyle = 1
+                    Case "triangle": ser.Points(pmsi).MarkerStyle = 3
+                    Case "diamond":  ser.Points(pmsi).MarkerStyle = 2
+                    Case "x":        ser.Points(pmsi).MarkerStyle = -4168
+                    Case "none":     ser.Points(pmsi).MarkerStyle = -4142
+                End Select
+            End If
+        Next pmsi
+    End If
+    ' Per-point line-segment visibility — list of bools. point_line_visible[i]=False
+    ' hides the line segment ending at point i (i.e. between point i-1 and i). Use
+    ' to break a line series so it doesn't connect to a sentinel last point.
+    If props.Exists("point_line_visible") Then
+        Dim plv As Object: Set plv = props("point_line_visible")
+        Dim plvi As Long
+        For plvi = 1 To ser.Points.Count
+            If plvi <= plv.Count Then
+                If Not modActions.ToBool(plv(plvi)) Then
+                    ser.Points(plvi).Format.Line.Visible = msoFalse
+                End If
+            End If
+        Next plvi
+    End If
+    ' Clear any error flag accumulated during the swallow-all-errors run so the
+    ' dispatcher (which inspects Err.Number after this returns) does not falsely
+    ' mark this whole action as errored. Inner `On Error GoTo 0` would re-enable
+    ' errors for every subsequent prop branch -- DO NOT add one back.
+    Err.Clear
 End Sub
 
 ' Set the entire chart legend's properties.
