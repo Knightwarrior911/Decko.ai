@@ -125,6 +125,36 @@ Public Sub Do_set_run_hyperlink(slideNum As Long, shapeId As Long, _
     End If
 End Sub
 
+' Character spacing / kerning for a run. value in points (0 = default,
+' positive = wider letters, negative = tighter). Lives on Font2.
+Public Sub Do_set_run_kerning(slideNum As Long, shapeId As Long, _
+                               paragraphIndex As Long, runIndex As Long, ptValue As Double)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 5013, "Do_set_run_kerning", "shape not found"
+    If Not sh.HasTextFrame Then Err.Raise vbObjectError + 5013, "Do_set_run_kerning", "no text frame"
+    Dim tr2 As Object: Set tr2 = sh.TextFrame2.TextRange
+    If paragraphIndex + 1 > tr2.Paragraphs.Count Then
+        Err.Raise vbObjectError + 5013, "Do_set_run_kerning", "paragraph_index out of range"
+    End If
+    Dim p2 As Object: Set p2 = tr2.Paragraphs(paragraphIndex + 1)
+    If runIndex + 1 > p2.Runs.Count Then
+        Err.Raise vbObjectError + 5013, "Do_set_run_kerning", "run_index out of range"
+    End If
+    On Error Resume Next
+    p2.Runs(runIndex + 1).Font.Spacing = ptValue
+    On Error GoTo 0
+End Sub
+
+' Custom baseline offset for a run. value: -1.0 to +1.0 as fraction of font
+' height (set_run_superscript is fixed +0.3; this lets you fine-tune).
+Public Sub Do_set_run_baseline_offset(slideNum As Long, shapeId As Long, _
+                                       paragraphIndex As Long, runIndex As Long, value As Double)
+    Dim r As TextRange: Set r = FindRun(slideNum, shapeId, paragraphIndex, runIndex)
+    If r Is Nothing Then Err.Raise vbObjectError + 5014, "Do_set_run_baseline_offset", "run not found"
+    If value < -1 Or value > 1 Then Err.Raise vbObjectError + 5014, "Do_set_run_baseline_offset", "value must be -1..1"
+    r.Font.BaselineOffset = value
+End Sub
+
 ' Text highlight (background fill behind characters). Lives on Font2/TextFrame2.
 ' Pass "" to clear the highlight. Caller-side range is one run, mirroring all
 ' other run-level actions.

@@ -1180,19 +1180,64 @@ Public Sub Do_set_chart_title(slideNum As Long, shapeId As Long, _
 End Sub
 
 Public Sub Do_set_chart_axis_title(slideNum As Long, shapeId As Long, _
-                                   axis As String, value As String)
+                                   axis As String, value As String, _
+                                   Optional ByVal props As Object = Nothing)
     Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 11001, "Do_set_chart_axis_title", "shape not found"
     If Not sh.HasChart Then Err.Raise vbObjectError + 11002, "Do_set_chart_axis_title", "not_a_native_chart"
     Dim ch As Object: Set ch = sh.Chart
     Dim axNum As Long
     Select Case LCase(axis)
-        Case "x": axNum = 1
-        Case "y": axNum = 2
+        Case "x", "category": axNum = 1
+        Case "y", "value":    axNum = 2
         Case Else: Err.Raise vbObjectError + 11004, "Do_set_chart_axis_title", "axis must be 'x' or 'y'"
     End Select
     ch.Axes(axNum).HasTitle = True
     ch.Axes(axNum).AxisTitle.Text = value
+    If props Is Nothing Then Exit Sub
+    On Error Resume Next
+    Dim at As Object: Set at = ch.Axes(axNum).AxisTitle
+    If props.Exists("font_size") Then
+        at.Font.Size = modActions.ToLong(props("font_size"))
+        at.Format.TextFrame2.TextRange.Font.Size = modActions.ToLong(props("font_size"))
+    End If
+    If props.Exists("font_color") Then
+        Dim tc As Long: tc = modActions.HexToRgb(CStr(props("font_color")))
+        at.Font.Color.RGB = tc
+        at.Format.TextFrame2.TextRange.Font.Fill.ForeColor.RGB = tc
+    End If
+    If props.Exists("font_bold") Then
+        at.Font.Bold = modActions.ToBool(props("font_bold"))
+        at.Format.TextFrame2.TextRange.Font.Bold = modActions.ToBool(props("font_bold"))
+    End If
+    If props.Exists("font_italic") Then
+        at.Font.Italic = modActions.ToBool(props("font_italic"))
+        at.Format.TextFrame2.TextRange.Font.Italic = modActions.ToBool(props("font_italic"))
+    End If
+    On Error GoTo 0
+End Sub
+
+' Set a single data point's label to custom text. Standalone alternative to
+' set_chart_series.custom_labels (which requires a full array).
+Public Sub Do_set_data_label_text(slideNum As Long, shapeId As Long, _
+                                   seriesIndex As Long, pointIndex As Long, value As String)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 11040, "Do_set_data_label_text", "shape not found"
+    If Not sh.HasChart Then Err.Raise vbObjectError + 11040, "Do_set_data_label_text", "not a chart"
+    Dim ch As Object: Set ch = sh.Chart
+    If seriesIndex < 1 Or seriesIndex > ch.SeriesCollection.Count Then
+        Err.Raise vbObjectError + 11040, "Do_set_data_label_text", "series_index out of range"
+    End If
+    Dim ser As Object: Set ser = ch.SeriesCollection(seriesIndex)
+    If pointIndex < 1 Or pointIndex > ser.Points.Count Then
+        Err.Raise vbObjectError + 11040, "Do_set_data_label_text", "point_index out of range"
+    End If
+    On Error Resume Next
+    ser.HasDataLabels = True
+    Dim pt As Object: Set pt = ser.Points(pointIndex)
+    pt.HasDataLabel = True
+    pt.DataLabel.Text = value
+    On Error GoTo 0
 End Sub
 
 Public Sub Do_set_chart_legend_position(slideNum As Long, shapeId As Long, value As String)

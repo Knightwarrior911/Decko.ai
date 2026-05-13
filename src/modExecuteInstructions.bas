@@ -847,6 +847,72 @@ Private Function ValidateAction(act As Object) As String
                 If Len(Trim(CStr(act("picture_path")))) = 0 Then ValidateAction = "picture_path: empty"
             End If
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        ' --- WAVE 3 -----------------------------------------------------
+        Case "set_slide_transition"
+            ValidateAction = RequireFields(act, Array("slide", "effect"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "change_slide_layout"
+            ValidateAction = RequireFields(act, Array("slide", "layout_index"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "add_section"
+            ValidateAction = RequireFields(act, Array("before_slide", "name"))
+        Case "delete_section"
+            ValidateAction = RequireFields(act, Array("section_index"))
+        Case "rename_section"
+            ValidateAction = RequireFields(act, Array("section_index", "name"))
+        Case "move_section"
+            ValidateAction = RequireFields(act, Array("section_index", "to_position"))
+        Case "apply_picture_artistic_effect"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "effect"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "reset_picture"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_shape_visible"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "reconnect_connector"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "from_shape_id", "to_shape_id"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_run_kerning"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
+            If Len(ValidateAction) = 0 Then
+                If Not IsNumeric(act("value")) Then ValidateAction = "value: must be a number"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_run_baseline_offset"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
+            If Len(ValidateAction) = 0 Then
+                If Not IsNumeric(act("value")) Or CDbl(act("value")) < -1 Or CDbl(act("value")) > 1 Then _
+                    ValidateAction = "value: must be -1..1"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_bullet_start_number"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then
+                If Not IsNumeric(act("value")) Or CLng(act("value")) < 1 Then _
+                    ValidateAction = "value: must be a positive integer"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_notes_font_size"
+            ValidateAction = RequireFields(act, Array("slide", "value"))
+            If Len(ValidateAction) = 0 Then
+                If Not IsNumeric(act("value")) Or CLng(act("value")) <= 0 Then _
+                    ValidateAction = "value: must be a positive integer"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "set_notes_font_color", "set_notes_font_name"
+            ValidateAction = RequireFields(act, Array("slide", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "set_notes_font_bold", "set_notes_font_italic"
+            ValidateAction = RequireFields(act, Array("slide", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "fit_cell_to_content"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_data_label_text"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "series_index", "point_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -1036,7 +1102,14 @@ Private Sub DispatchAction(act As Object)
             modActionsText.Do_set_paragraph_font_color CLng(act("slide")), CLng(act("shape_id")), _
                                                         CLng(act("paragraph_index")), CStr(act("value"))
         Case "find_replace_text"
-            modActionsText.Do_find_replace_text CStr(act("scope")), CStr(act("find")), CStr(act("replace"))
+            Dim frCase As Boolean: frCase = False
+            Dim frWord As Boolean: frWord = False
+            Dim frNotes As Boolean: frNotes = False
+            If act.Exists("case_sensitive") Then frCase = modActions.ToBool(act("case_sensitive"))
+            If act.Exists("whole_word") Then frWord = modActions.ToBool(act("whole_word"))
+            If act.Exists("include_notes") Then frNotes = modActions.ToBool(act("include_notes"))
+            modActionsText.Do_find_replace_text CStr(act("scope")), CStr(act("find")), CStr(act("replace")), _
+                frCase, frWord, frNotes
         Case "align_shapes"
             modActionsLayout.Do_align_shapes CLng(act("slide")), ResolveActShapeIdArray(act, "shape_ids"), CStr(act("anchor"))
         Case "distribute_horizontal"
@@ -1287,8 +1360,10 @@ Private Sub DispatchAction(act As Object)
             modActionsChart.Do_set_chart_title CLng(act("slide")), CLng(act("shape_id")), _
                                                CStr(act("value")), cte, cttProps
         Case "set_chart_axis_title"
+            Dim catProps As Object
+            If act.Exists("props") Then Set catProps = act("props")
             modActionsChart.Do_set_chart_axis_title CLng(act("slide")), CLng(act("shape_id")), _
-                                                    CStr(act("axis")), CStr(act("value"))
+                                                    CStr(act("axis")), CStr(act("value")), catProps
         Case "set_chart_legend_position"
             modActionsChart.Do_set_chart_legend_position CLng(act("slide")), CLng(act("shape_id")), _
                                                           CStr(act("value"))
@@ -1512,11 +1587,13 @@ Private Sub DispatchAction(act As Object)
             Dim cbColor As String: cbColor = ""
             Dim cbWeight As Single: cbWeight = 0
             Dim cbVisible As Boolean: cbVisible = True
+            Dim cbDash As String: cbDash = ""
             If act.Exists("color") Then cbColor = CStr(act("color"))
             If act.Exists("weight_pt") Then cbWeight = CSng(act("weight_pt"))
             If act.Exists("visible") Then cbVisible = modActions.ToBool(act("visible"))
+            If act.Exists("dash_style") Then cbDash = CStr(act("dash_style"))
             modActionsTable.Do_set_cell_border CLng(act("slide")), CLng(act("shape_id")), _
-                CLng(act("row")), CLng(act("col")), CStr(act("side")), cbColor, cbWeight, cbVisible
+                CLng(act("row")), CLng(act("col")), CStr(act("side")), cbColor, cbWeight, cbVisible, cbDash
         Case "set_cell_text_align"
             Dim cthAlign As String: cthAlign = ""
             Dim ctvAlign As String: ctvAlign = ""
@@ -1760,29 +1837,35 @@ Private Sub DispatchAction(act As Object)
             Dim tbBdColor As String: tbBdColor = ""
             Dim tbBdWeight As Single: tbBdWeight = 0
             Dim tbBdVisible As Boolean: tbBdVisible = True
+            Dim tbBdDash As String: tbBdDash = ""
             If act.Exists("color") Then tbBdColor = CStr(act("color"))
             If act.Exists("weight_pt") Then tbBdWeight = CSng(act("weight_pt"))
             If act.Exists("visible") Then tbBdVisible = modActions.ToBool(act("visible"))
+            If act.Exists("dash_style") Then tbBdDash = CStr(act("dash_style"))
             modActionsTable.Do_set_table_borders CLng(act("slide")), CLng(act("shape_id")), _
-                CStr(act("side")), tbBdColor, tbBdWeight, tbBdVisible
+                CStr(act("side")), tbBdColor, tbBdWeight, tbBdVisible, tbBdDash
         Case "set_row_borders"
             Dim rbColor As String: rbColor = ""
             Dim rbWeight As Single: rbWeight = 0
             Dim rbVisible As Boolean: rbVisible = True
+            Dim rbDash As String: rbDash = ""
             If act.Exists("color") Then rbColor = CStr(act("color"))
             If act.Exists("weight_pt") Then rbWeight = CSng(act("weight_pt"))
             If act.Exists("visible") Then rbVisible = modActions.ToBool(act("visible"))
+            If act.Exists("dash_style") Then rbDash = CStr(act("dash_style"))
             modActionsTable.Do_set_row_borders CLng(act("slide")), CLng(act("shape_id")), _
-                CLng(act("row")), CStr(act("side")), rbColor, rbWeight, rbVisible
+                CLng(act("row")), CStr(act("side")), rbColor, rbWeight, rbVisible, rbDash
         Case "set_column_borders"
             Dim cbBdColor As String: cbBdColor = ""
             Dim cbBdWeight As Single: cbBdWeight = 0
             Dim cbBdVisible As Boolean: cbBdVisible = True
+            Dim cbBdDash As String: cbBdDash = ""
             If act.Exists("color") Then cbBdColor = CStr(act("color"))
             If act.Exists("weight_pt") Then cbBdWeight = CSng(act("weight_pt"))
             If act.Exists("visible") Then cbBdVisible = modActions.ToBool(act("visible"))
+            If act.Exists("dash_style") Then cbBdDash = CStr(act("dash_style"))
             modActionsTable.Do_set_column_borders CLng(act("slide")), CLng(act("shape_id")), _
-                CLng(act("col")), CStr(act("side")), cbBdColor, cbBdWeight, cbBdVisible
+                CLng(act("col")), CStr(act("side")), cbBdColor, cbBdWeight, cbBdVisible, cbBdDash
         Case "unmerge_cells"
             modActionsTable.Do_unmerge_cells CLng(act("slide")), CLng(act("shape_id")), _
                 CLng(act("row")), CLng(act("col"))
@@ -1832,6 +1915,77 @@ Private Sub DispatchAction(act As Object)
             modActions.Do_set_shape_hyperlink CLng(act("slide")), CLng(act("shape_id")), CStr(act("value"))
         Case "set_shape_picture_fill"
             modActions.Do_set_shape_picture_fill CLng(act("slide")), CLng(act("shape_id")), CStr(act("picture_path"))
+        ' --- WAVE 3 ----------------------------------------------------
+        Case "set_slide_transition"
+            Dim stSpeed As String: stSpeed = ""
+            Dim stOnClick As Boolean: stOnClick = True
+            Dim stAdvSec As Double: stAdvSec = 0
+            Dim stHasSpeed As Boolean: stHasSpeed = act.Exists("speed")
+            Dim stHasOnClick As Boolean: stHasOnClick = act.Exists("advance_on_click")
+            Dim stHasAdvSec As Boolean: stHasAdvSec = act.Exists("advance_after_seconds")
+            If stHasSpeed Then stSpeed = CStr(act("speed"))
+            If stHasOnClick Then stOnClick = modActions.ToBool(act("advance_on_click"))
+            If stHasAdvSec Then stAdvSec = CDbl(act("advance_after_seconds"))
+            modActionsSlide.Do_set_slide_transition CLng(act("slide")), CStr(act("effect")), _
+                stSpeed, stOnClick, stAdvSec, stHasSpeed, stHasOnClick, stHasAdvSec
+        Case "change_slide_layout"
+            modActionsSlide.Do_change_slide_layout CLng(act("slide")), CLng(act("layout_index"))
+        Case "add_section"
+            modActionsSlide.Do_add_section CLng(act("before_slide")), CStr(act("name"))
+        Case "delete_section"
+            Dim secDelSlides As Boolean: secDelSlides = False
+            If act.Exists("delete_slides") Then secDelSlides = modActions.ToBool(act("delete_slides"))
+            modActionsSlide.Do_delete_section CLng(act("section_index")), secDelSlides
+        Case "rename_section"
+            modActionsSlide.Do_rename_section CLng(act("section_index")), CStr(act("name"))
+        Case "move_section"
+            modActionsSlide.Do_move_section CLng(act("section_index")), CLng(act("to_position"))
+        Case "apply_picture_artistic_effect"
+            Dim apeInt As Long: apeInt = 50
+            Dim apeHasInt As Boolean: apeHasInt = act.Exists("intensity")
+            If apeHasInt Then apeInt = CLng(act("intensity"))
+            modActionsEffects.Do_apply_picture_artistic_effect CLng(act("slide")), CLng(act("shape_id")), _
+                CStr(act("effect")), apeInt, apeHasInt
+        Case "reset_picture"
+            modActionsEffects.Do_reset_picture CLng(act("slide")), CLng(act("shape_id"))
+        Case "set_shape_visible"
+            modActionsEffects.Do_set_shape_visible CLng(act("slide")), CLng(act("shape_id")), _
+                modActions.ToBool(act("value"))
+        Case "reconnect_connector"
+            Dim rcFromSite As Long: rcFromSite = 1
+            Dim rcToSite As Long: rcToSite = 1
+            Dim rcHasFrom As Boolean: rcHasFrom = act.Exists("from_connection_site")
+            Dim rcHasTo As Boolean: rcHasTo = act.Exists("to_connection_site")
+            If rcHasFrom Then rcFromSite = CLng(act("from_connection_site"))
+            If rcHasTo Then rcToSite = CLng(act("to_connection_site"))
+            modActionsEffects.Do_reconnect_connector CLng(act("slide")), CLng(act("shape_id")), _
+                ResolveActShapeId(act, "from_shape_id"), ResolveActShapeId(act, "to_shape_id"), _
+                rcFromSite, rcToSite, rcHasFrom, rcHasTo
+        Case "set_run_kerning"
+            modActionsRun.Do_set_run_kerning CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("paragraph_index")), CLng(act("run_index")), CDbl(act("value"))
+        Case "set_run_baseline_offset"
+            modActionsRun.Do_set_run_baseline_offset CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("paragraph_index")), CLng(act("run_index")), CDbl(act("value"))
+        Case "set_bullet_start_number"
+            modActionsText.Do_set_bullet_start_number CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("paragraph_index")), CLng(act("value"))
+        Case "set_notes_font_size"
+            modActions.Do_set_notes_font_size CLng(act("slide")), CLng(act("value"))
+        Case "set_notes_font_color"
+            modActions.Do_set_notes_font_color CLng(act("slide")), CStr(act("value"))
+        Case "set_notes_font_bold"
+            modActions.Do_set_notes_font_bold CLng(act("slide")), modActions.ToBool(act("value"))
+        Case "set_notes_font_italic"
+            modActions.Do_set_notes_font_italic CLng(act("slide")), modActions.ToBool(act("value"))
+        Case "set_notes_font_name"
+            modActions.Do_set_notes_font_name CLng(act("slide")), CStr(act("value"))
+        Case "fit_cell_to_content"
+            modActionsTable.Do_fit_cell_to_content CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col"))
+        Case "set_data_label_text"
+            modActionsChart.Do_set_data_label_text CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("series_index")), CLng(act("point_index")), CStr(act("value"))
     End Select
 End Sub
 

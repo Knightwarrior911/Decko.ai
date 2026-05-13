@@ -113,8 +113,10 @@ End Sub
 Public Sub Do_set_cell_border(slideNum As Long, shapeId As Long, _
                                rowNum As Long, colNum As Long, _
                                side As String, hexColor As String, _
-                               weightPt As Single, visible As Boolean)
+                               weightPt As Single, visible As Boolean, _
+                               Optional dashStyle As String = "")
     ' side: top/left/bottom/right/diag_down/diag_up/all
+    ' dashStyle (optional): solid/dash/dot/round_dot/dash_dot/long_dash/long_dash_dot
     Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 8001, "Do_set_cell_border", "shape not found"
     If Not sh.HasTable Then Err.Raise vbObjectError + 8002, "Do_set_cell_border", "shape is not a table"
@@ -122,6 +124,7 @@ Public Sub Do_set_cell_border(slideNum As Long, shapeId As Long, _
     Dim cell As Object: Set cell = tbl.Cell(rowNum, colNum)
     Dim sides() As Long
     Dim n As Long: n = ResolveBorderSides(side, sides)
+    Dim dashMso As Long: dashMso = ResolveDashStyle(dashStyle)
     Dim i As Long
     For i = 0 To n - 1
         With cell.Borders(sides(i))
@@ -129,12 +132,28 @@ Public Sub Do_set_cell_border(slideNum As Long, shapeId As Long, _
                 .Visible = msoTrue
                 If Len(hexColor) > 0 Then .ForeColor.RGB = modActions.HexToRgb(hexColor)
                 If weightPt > 0 Then .Weight = weightPt
+                If dashMso >= 0 Then .DashStyle = dashMso
             Else
                 .Visible = msoFalse
             End If
         End With
     Next i
 End Sub
+
+' Returns MsoLineDashStyle enum value, or -1 if dashStyle empty (caller skips).
+Private Function ResolveDashStyle(dashStyle As String) As Long
+    If Len(dashStyle) = 0 Then ResolveDashStyle = -1: Exit Function
+    Select Case LCase(Trim(dashStyle))
+        Case "solid":         ResolveDashStyle = 1   ' msoLineSolid
+        Case "dash":          ResolveDashStyle = 4   ' msoLineDash
+        Case "dot":           ResolveDashStyle = 3   ' msoLineRoundDot
+        Case "round_dot":     ResolveDashStyle = 3
+        Case "dash_dot":      ResolveDashStyle = 5   ' msoLineDashDot
+        Case "long_dash":     ResolveDashStyle = 7   ' msoLineLongDash
+        Case "long_dash_dot": ResolveDashStyle = 8   ' msoLineLongDashDot
+        Case Else: Err.Raise vbObjectError + 8015, "ResolveDashStyle", "unknown dash: " & dashStyle
+    End Select
+End Function
 
 Private Function ResolveBorderSides(side As String, ByRef out() As Long) As Long
     Select Case LCase(Trim(side))
@@ -645,40 +664,43 @@ End Sub
 
 Public Sub Do_set_table_borders(slideNum As Long, shapeId As Long, _
                                  side As String, hexColor As String, _
-                                 weightPt As Single, visible As Boolean)
+                                 weightPt As Single, visible As Boolean, _
+                                 Optional dashStyle As String = "")
     Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_table_borders")
     Dim tbl As Table: Set tbl = sh.Table
     Dim r As Long, c As Long
     For r = 1 To tbl.Rows.Count
         For c = 1 To tbl.Columns.Count
-            Do_set_cell_border slideNum, shapeId, r, c, side, hexColor, weightPt, visible
+            Do_set_cell_border slideNum, shapeId, r, c, side, hexColor, weightPt, visible, dashStyle
         Next c
     Next r
 End Sub
 
 Public Sub Do_set_row_borders(slideNum As Long, shapeId As Long, rowNum As Long, _
                                side As String, hexColor As String, _
-                               weightPt As Single, visible As Boolean)
+                               weightPt As Single, visible As Boolean, _
+                               Optional dashStyle As String = "")
     Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_row_borders")
     Dim tbl As Table: Set tbl = sh.Table
     If rowNum < 1 Or rowNum > tbl.Rows.Count Then _
         Err.Raise vbObjectError + 8140, "Do_set_row_borders", "row out of range"
     Dim c As Long
     For c = 1 To tbl.Columns.Count
-        Do_set_cell_border slideNum, shapeId, rowNum, c, side, hexColor, weightPt, visible
+        Do_set_cell_border slideNum, shapeId, rowNum, c, side, hexColor, weightPt, visible, dashStyle
     Next c
 End Sub
 
 Public Sub Do_set_column_borders(slideNum As Long, shapeId As Long, colNum As Long, _
                                   side As String, hexColor As String, _
-                                  weightPt As Single, visible As Boolean)
+                                  weightPt As Single, visible As Boolean, _
+                                  Optional dashStyle As String = "")
     Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_column_borders")
     Dim tbl As Table: Set tbl = sh.Table
     If colNum < 1 Or colNum > tbl.Columns.Count Then _
         Err.Raise vbObjectError + 8141, "Do_set_column_borders", "col out of range"
     Dim r As Long
     For r = 1 To tbl.Rows.Count
-        Do_set_cell_border slideNum, shapeId, r, colNum, side, hexColor, weightPt, visible
+        Do_set_cell_border slideNum, shapeId, r, colNum, side, hexColor, weightPt, visible, dashStyle
     Next r
 End Sub
 
@@ -841,6 +863,17 @@ Public Sub Do_append_cell_text(slideNum As Long, shapeId As Long, _
     Else
         tr.Text = tr.Text & Chr(13) & value
     End If
+End Sub
+
+' Auto-resize a single cell's text frame to fit its text (shrink-to-fit).
+Public Sub Do_fit_cell_to_content(slideNum As Long, shapeId As Long, _
+                                   rowNum As Long, colNum As Long)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_fit_cell_to_content")
+    Dim cs As Shape: Set cs = sh.Table.Cell(rowNum, colNum).Shape
+    If Not cs.HasTextFrame Then Exit Sub
+    On Error Resume Next
+    cs.TextFrame2.AutoSize = 2   ' msoAutoSizeTextToFitShape
+    On Error GoTo 0
 End Sub
 
 ' Mega-action: set a cell's text and any subset of formatting in one call.

@@ -140,7 +140,10 @@ Public Sub Do_set_paragraph_font_color(slideNum As Long, shapeId As Long, _
     p.Font.Color.RGB = modActions.HexToRgb(hexValue)
 End Sub
 
-Public Sub Do_find_replace_text(scope As String, findText As String, replaceText As String)
+Public Sub Do_find_replace_text(scope As String, findText As String, replaceText As String, _
+                                 Optional caseSensitive As Boolean = False, _
+                                 Optional wholeWord As Boolean = False, _
+                                 Optional includeNotes As Boolean = False)
     Dim pres As Presentation: Set pres = ActivePresentation
     Dim slideNumFilter As Long: slideNumFilter = 0
     If LCase(Left(scope, 6)) = "slide:" Then
@@ -157,20 +160,30 @@ Public Sub Do_find_replace_text(scope As String, findText As String, replaceText
         If slideNumFilter = 0 Or slideNumFilter = i Then
             Dim sh As Shape
             For Each sh In pres.Slides(i).Shapes
-                ReplaceInShape sh, findText, replaceText
+                ReplaceInShape sh, findText, replaceText, caseSensitive, wholeWord
             Next sh
+            If includeNotes Then
+                Dim notesSh As Shape
+                For Each notesSh In pres.Slides(i).NotesPage.Shapes
+                    If notesSh.HasTextFrame Then
+                        If notesSh.TextFrame.HasText Then
+                            ReplaceInTextRange notesSh.TextFrame.TextRange, _
+                                findText, replaceText, caseSensitive, wholeWord
+                        End If
+                    End If
+                Next notesSh
+            End If
         End If
     Next i
 End Sub
 
-Private Sub ReplaceInShape(sh As Shape, findText As String, replaceText As String)
+Private Sub ReplaceInShape(sh As Shape, findText As String, replaceText As String, _
+                            Optional caseSensitive As Boolean = False, _
+                            Optional wholeWord As Boolean = False)
     On Error Resume Next
     If sh.HasTextFrame Then
         If sh.TextFrame.HasText Then
-            ' Use TextRange.Find loop to preserve run/paragraph formatting:
-            ' mutating a Find-returned range's .Text changes only the matched
-            ' chars, keeping surrounding runs intact.
-            ReplaceInTextRange sh.TextFrame.TextRange, findText, replaceText
+            ReplaceInTextRange sh.TextFrame.TextRange, findText, replaceText, caseSensitive, wholeWord
         End If
     End If
     If sh.HasTable Then
@@ -180,7 +193,7 @@ Private Sub ReplaceInShape(sh As Shape, findText As String, replaceText As Strin
                 Dim cellSh As Shape: Set cellSh = sh.Table.Cell(r, c).Shape
                 If cellSh.HasTextFrame Then
                     If cellSh.TextFrame.HasText Then
-                        ReplaceInTextRange cellSh.TextFrame.TextRange, findText, replaceText
+                        ReplaceInTextRange cellSh.TextFrame.TextRange, findText, replaceText, caseSensitive, wholeWord
                     End If
                 End If
             Next c
@@ -189,7 +202,7 @@ Private Sub ReplaceInShape(sh As Shape, findText As String, replaceText As Strin
     If sh.Type = msoGroup Then
         Dim child As Shape
         For Each child In sh.GroupItems
-            ReplaceInShape child, findText, replaceText
+            ReplaceInShape child, findText, replaceText, caseSensitive, wholeWord
         Next child
     End If
 End Sub
@@ -206,7 +219,9 @@ End Sub
 ' break to be inserted on top of the existing terminator. Net symptom:
 ' "Name\r" -> "Other\r" produces "Name" + blank paragraph + "Other".
 ' Stripping eliminates the duplicate \r without changing the visible result.
-Public Sub ReplaceInTextRange(tr As TextRange, findText As String, replaceText As String)
+Public Sub ReplaceInTextRange(tr As TextRange, findText As String, replaceText As String, _
+                                Optional caseSensitive As Boolean = False, _
+                                Optional wholeWord As Boolean = False)
     If Len(findText) = 0 Then Exit Sub
     Dim f As String: f = findText
     Dim r As String: r = replaceText
@@ -223,7 +238,8 @@ Public Sub ReplaceInTextRange(tr As TextRange, findText As String, replaceText A
     Do
         Set found = Nothing
         On Error Resume Next
-        Set found = tr.Find(FindWhat:=f, After:=startPos - 1)
+        Set found = tr.Find(FindWhat:=f, After:=startPos - 1, _
+                            MatchCase:=caseSensitive, WholeWords:=wholeWord)
         On Error GoTo 0
         If found Is Nothing Then Exit Do
         Dim matchStart As Long: matchStart = found.Start
@@ -412,6 +428,18 @@ Public Sub Do_set_paragraph_space_after(slideNum As Long, shapeId As Long, _
     If p Is Nothing Then Err.Raise vbObjectError + 6015, "Do_set_paragraph_space_after", "paragraph not found"
     If ptValue < 0 Then ptValue = 0
     p.ParagraphFormat.SpaceAfter = ptValue
+End Sub
+
+' Numbered-list start number. For paragraphs with bullet type "number" or "letter",
+' sets the starting count (default 1).
+Public Sub Do_set_bullet_start_number(slideNum As Long, shapeId As Long, _
+                                       paragraphIndex As Long, value As Long)
+    If value < 1 Then Err.Raise vbObjectError + 6020, "Do_set_bullet_start_number", "value must be >= 1"
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 6020, "Do_set_bullet_start_number", "paragraph not found"
+    On Error Resume Next
+    p.ParagraphFormat.Bullet.StartValue = value
+    On Error GoTo 0
 End Sub
 
 ' Reset a paragraph's character formatting to defaults. Useful before applying

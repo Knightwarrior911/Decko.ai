@@ -154,3 +154,116 @@ Public Sub Do_set_slide_name(slideNum As Long, newName As String)
     If Len(Trim(newName)) = 0 Then Err.Raise vbObjectError + 7062, "Do_set_slide_name", "name empty"
     pres.Slides(slideNum).Name = newName
 End Sub
+
+' Slide transition effect (entry animation when this slide appears in slideshow).
+' effect: "none"/"fade"/"push"/"wipe"/"split"/"reveal"/"cut"/"dissolve"/"checkerboard"/
+'         "blinds"/"random_bars"/"box"/"comb"/"zoom"/"morph"
+' speed:  "slow" / "medium" / "fast"  (optional, default medium)
+' advance_on_click:        bool (default true)
+' advance_after_seconds:   num >=0 (default 0 = no auto-advance)
+Public Sub Do_set_slide_transition(slideNum As Long, effect As String, _
+                                    speed As String, _
+                                    advanceOnClick As Boolean, _
+                                    advanceAfterSec As Double, _
+                                    hasSpeed As Boolean, _
+                                    hasOnClick As Boolean, _
+                                    hasAdvSec As Boolean)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 7070, "Do_set_slide_transition", "slide_out_of_range"
+    End If
+    Dim t As Object: Set t = pres.Slides(slideNum).SlideShowTransition
+    Dim ef As Long: ef = ResolveTransitionEffect(effect)
+    On Error Resume Next
+    t.EntryEffect = ef
+    If hasSpeed Then
+        Select Case LCase(speed)
+            Case "slow":   t.Speed = 1   ' ppTransitionSpeedSlow
+            Case "medium": t.Speed = 2   ' ppTransitionSpeedMedium
+            Case "fast":   t.Speed = 3   ' ppTransitionSpeedFast
+        End Select
+    End If
+    If hasOnClick Then t.AdvanceOnClick = IIf(advanceOnClick, msoTrue, msoFalse)
+    If hasAdvSec Then
+        If advanceAfterSec > 0 Then
+            t.AdvanceOnTime = msoTrue
+            t.AdvanceTime = advanceAfterSec
+        Else
+            t.AdvanceOnTime = msoFalse
+        End If
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Function ResolveTransitionEffect(effect As String) As Long
+    Select Case LCase(Trim(effect))
+        Case "none":            ResolveTransitionEffect = 0
+        Case "cut":             ResolveTransitionEffect = 257
+        Case "fade":            ResolveTransitionEffect = 1793
+        Case "push":            ResolveTransitionEffect = 1796
+        Case "wipe":            ResolveTransitionEffect = 1539
+        Case "split":           ResolveTransitionEffect = 257
+        Case "reveal":          ResolveTransitionEffect = 1795
+        Case "dissolve":        ResolveTransitionEffect = 1281
+        Case "checkerboard":    ResolveTransitionEffect = 769
+        Case "blinds":          ResolveTransitionEffect = 513
+        Case "random_bars":     ResolveTransitionEffect = 1025
+        Case "box":             ResolveTransitionEffect = 3329
+        Case "comb":            ResolveTransitionEffect = 3585
+        Case "zoom":            ResolveTransitionEffect = 4097
+        Case "morph":           ResolveTransitionEffect = 4353
+        Case Else: Err.Raise vbObjectError + 7071, "ResolveTransitionEffect", "unknown effect: " & effect
+    End Select
+End Function
+
+' Change slide layout. Single-slide shortcut for apply_layout_to_slides.
+Public Sub Do_change_slide_layout(slideNum As Long, layoutIndex As Long)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 7072, "Do_change_slide_layout", "slide_out_of_range"
+    End If
+    If layoutIndex < 0 Or layoutIndex >= pres.SlideMaster.CustomLayouts.Count Then
+        Err.Raise vbObjectError + 7072, "Do_change_slide_layout", _
+                  "layout_index out of range (0.." & (pres.SlideMaster.CustomLayouts.Count - 1) & ")"
+    End If
+    pres.Slides(slideNum).CustomLayout = pres.SlideMaster.CustomLayouts(layoutIndex + 1)
+End Sub
+
+' --- Sections -------------------------------------------------------------
+' PowerPoint deck section management. Sections group consecutive slides.
+
+Public Sub Do_add_section(beforeSlide As Long, sectionName As String)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If beforeSlide < 1 Or beforeSlide > pres.Slides.Count Then
+        Err.Raise vbObjectError + 7073, "Do_add_section", "slide_out_of_range"
+    End If
+    Dim secProps As Object: Set secProps = pres.SectionProperties
+    secProps.AddSection beforeSlide, sectionName
+End Sub
+
+Public Sub Do_delete_section(sectionIndex As Long, deleteSlides As Boolean)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    Dim secProps As Object: Set secProps = pres.SectionProperties
+    If sectionIndex < 1 Or sectionIndex > secProps.Count Then
+        Err.Raise vbObjectError + 7074, "Do_delete_section", "section_index out of range"
+    End If
+    secProps.Delete sectionIndex, deleteSlides
+End Sub
+
+Public Sub Do_rename_section(sectionIndex As Long, newName As String)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    Dim secProps As Object: Set secProps = pres.SectionProperties
+    If sectionIndex < 1 Or sectionIndex > secProps.Count Then
+        Err.Raise vbObjectError + 7075, "Do_rename_section", "section_index out of range"
+    End If
+    secProps.Rename sectionIndex, newName
+End Sub
+
+Public Sub Do_move_section(sectionIndex As Long, toPosition As Long)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    Dim secProps As Object: Set secProps = pres.SectionProperties
+    If sectionIndex < 1 Or sectionIndex > secProps.Count Then
+        Err.Raise vbObjectError + 7076, "Do_move_section", "section_index out of range"
+    End If
+    secProps.Move sectionIndex, toPosition
+End Sub

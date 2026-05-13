@@ -467,3 +467,53 @@ Public Sub Do_set_shape_picture_fill(slideNum As Long, shapeId As Long, pictureP
     On Error GoTo 0
 End Sub
 
+' --- Speaker-notes formatting ---------------------------------------------
+' Apply font properties to a slide's speaker-notes body. All ops act on the
+' entire notes body (no per-paragraph addressability — notes are rarely that
+' complex).
+
+Private Function GetNotesBody(slideNum As Long, label As String) As Object
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 5020, label, "slide_out_of_range"
+    End If
+    Dim sl As Slide: Set sl = pres.Slides(slideNum)
+    Dim ph As Object
+    Dim i As Long
+    For i = 1 To sl.NotesPage.Shapes.Placeholders.Count
+        Set ph = sl.NotesPage.Shapes.Placeholders(i)
+        If ph.PlaceholderFormat.Type = ppPlaceholderBody Then
+            Set GetNotesBody = ph
+            Exit Function
+        End If
+    Next i
+    Err.Raise vbObjectError + 5020, label, "notes body placeholder not found"
+End Function
+
+Public Sub Do_set_notes_font_size(slideNum As Long, value As Long)
+    If value <= 0 Then Err.Raise vbObjectError + 5021, "Do_set_notes_font_size", "size must be > 0"
+    Dim ph As Object: Set ph = GetNotesBody(slideNum, "Do_set_notes_font_size")
+    ph.TextFrame.TextRange.Font.Size = value
+End Sub
+
+Public Sub Do_set_notes_font_color(slideNum As Long, hexValue As String)
+    Dim ph As Object: Set ph = GetNotesBody(slideNum, "Do_set_notes_font_color")
+    ph.TextFrame.TextRange.Font.Color.RGB = HexToRgb(hexValue)
+End Sub
+
+Public Sub Do_set_notes_font_bold(slideNum As Long, value As Boolean)
+    Dim ph As Object: Set ph = GetNotesBody(slideNum, "Do_set_notes_font_bold")
+    ph.TextFrame.TextRange.Font.Bold = IIf(value, msoTrue, msoFalse)
+End Sub
+
+Public Sub Do_set_notes_font_italic(slideNum As Long, value As Boolean)
+    Dim ph As Object: Set ph = GetNotesBody(slideNum, "Do_set_notes_font_italic")
+    ph.TextFrame.TextRange.Font.Italic = IIf(value, msoTrue, msoFalse)
+End Sub
+
+Public Sub Do_set_notes_font_name(slideNum As Long, fontName As String)
+    If Len(Trim(fontName)) = 0 Then Err.Raise vbObjectError + 5022, "Do_set_notes_font_name", "name empty"
+    Dim ph As Object: Set ph = GetNotesBody(slideNum, "Do_set_notes_font_name")
+    ph.TextFrame.TextRange.Font.Name = fontName
+End Sub
+

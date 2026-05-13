@@ -278,3 +278,104 @@ Public Sub Do_set_3d_rotation(slideNum As Long, shapeId As Long, _
     If hasZ Then sh.ThreeD.RotationZ = rotZ
     On Error GoTo 0
 End Sub
+
+' Apply a Photoshop-style artistic effect to a picture. effect:
+'   "none", "marker", "pencil_grayscale", "pencil_sketch", "line_drawing",
+'   "chalk_sketch", "paint_strokes", "paint_brush", "glow_diffused",
+'   "blur", "light_screen", "watercolor", "film_grain", "mosaic_bubbles",
+'   "glass", "cement", "texturizer", "crisscross", "pastels_smooth", "plastic_wrap",
+'   "cutout", "photocopy", "glow_edges"
+' intensity: 0..100 (optional, default 50)
+Public Sub Do_apply_picture_artistic_effect(slideNum As Long, shapeId As Long, _
+                                             effect As String, intensity As Long, _
+                                             hasIntensity As Boolean)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8030, "Do_apply_picture_artistic_effect", "shape not found"
+    If sh.Type <> msoPicture And sh.Type <> msoLinkedPicture Then _
+        Err.Raise vbObjectError + 8030, "Do_apply_picture_artistic_effect", "shape is not a picture"
+    Dim eff As Long
+    Select Case LCase(Trim(effect))
+        Case "none":              eff = 0
+        Case "marker":            eff = 1
+        Case "pencil_grayscale":  eff = 2
+        Case "pencil_sketch":     eff = 3
+        Case "line_drawing":      eff = 4
+        Case "chalk_sketch":      eff = 5
+        Case "paint_strokes":     eff = 6
+        Case "paint_brush":       eff = 7
+        Case "glow_diffused":     eff = 8
+        Case "blur":              eff = 9
+        Case "light_screen":      eff = 10
+        Case "watercolor":        eff = 11
+        Case "film_grain":        eff = 12
+        Case "mosaic_bubbles":    eff = 13
+        Case "glass":             eff = 14
+        Case "cement":            eff = 15
+        Case "texturizer":        eff = 16
+        Case "crisscross":        eff = 17
+        Case "pastels_smooth":    eff = 18
+        Case "plastic_wrap":      eff = 19
+        Case "cutout":            eff = 20
+        Case "photocopy":         eff = 21
+        Case "glow_edges":        eff = 22
+        Case Else: Err.Raise vbObjectError + 8030, "Do_apply_picture_artistic_effect", "unknown effect: " & effect
+    End Select
+    On Error Resume Next
+    sh.PictureFormat.ArtisticEffect = eff
+    If hasIntensity Then
+        If intensity < 0 Then intensity = 0
+        If intensity > 100 Then intensity = 100
+        sh.PictureFormat.ArtisticEffectIntensity = intensity
+    End If
+    On Error GoTo 0
+End Sub
+
+' Reset a picture to its original state — undo all corrections (brightness,
+' contrast, crop, artistic effects, recolor). Useful after over-editing.
+Public Sub Do_reset_picture(slideNum As Long, shapeId As Long)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8031, "Do_reset_picture", "shape not found"
+    If sh.Type <> msoPicture And sh.Type <> msoLinkedPicture Then _
+        Err.Raise vbObjectError + 8031, "Do_reset_picture", "shape is not a picture"
+    On Error Resume Next
+    With sh.PictureFormat
+        .Brightness = 0
+        .Contrast = 0
+        .ColorType = msoPictureAutomatic
+        .CropLeft = 0: .CropRight = 0: .CropTop = 0: .CropBottom = 0
+        .ArtisticEffect = 0
+    End With
+    On Error GoTo 0
+End Sub
+
+' Toggle shape visibility (hide without deleting). Useful for staging /
+' conditional layouts.
+Public Sub Do_set_shape_visible(slideNum As Long, shapeId As Long, value As Boolean)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8032, "Do_set_shape_visible", "shape not found"
+    sh.Visible = IIf(value, msoTrue, msoFalse)
+End Sub
+
+' Reconnect an existing connector to different endpoint shapes. Faster than
+' delete + add_connector when only endpoints change.
+Public Sub Do_reconnect_connector(slideNum As Long, connectorShapeId As Long, _
+                                   fromShapeId As Long, toShapeId As Long, _
+                                   fromConnectionSite As Long, toConnectionSite As Long, _
+                                   hasFromSite As Boolean, hasToSite As Boolean)
+    Dim conn As Shape: Set conn = modActions.FindShape(slideNum, connectorShapeId)
+    If conn Is Nothing Then Err.Raise vbObjectError + 8033, "Do_reconnect_connector", "connector not found"
+    If Not conn.Connector Then Err.Raise vbObjectError + 8033, "Do_reconnect_connector", "shape is not a connector"
+    Dim fromSh As Shape: Set fromSh = modActions.FindShape(slideNum, fromShapeId)
+    Dim toSh As Shape: Set toSh = modActions.FindShape(slideNum, toShapeId)
+    If fromSh Is Nothing Or toSh Is Nothing Then _
+        Err.Raise vbObjectError + 8033, "Do_reconnect_connector", "from/to shape not found"
+    Dim fSite As Long: fSite = 1
+    Dim tSite As Long: tSite = 1
+    If hasFromSite Then fSite = fromConnectionSite
+    If hasToSite Then tSite = toConnectionSite
+    On Error Resume Next
+    conn.ConnectorFormat.BeginConnect fromSh, fSite
+    conn.ConnectorFormat.EndConnect toSh, tSite
+    conn.RerouteConnections
+    On Error GoTo 0
+End Sub
