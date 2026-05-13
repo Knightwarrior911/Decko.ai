@@ -125,8 +125,58 @@ def build_problem_deck(app):
     c22.Shape.TextFrame.TextRange.Text = "Black on navy"
     c22.Shape.TextFrame.TextRange.Font.Color.RGB = BLACK
 
-    # -------- Slide 5: too many colors + too many fonts (slide aggregate) --------
-    sl5 = pres.Slides.Add(5, BLANK_LAYOUT)
+    # -------- Slide 5b: trigger new wave-2 checks --------
+    # (will become slide 6 after slide 5 added below; rebuild as slide 5)
+    slX = pres.Slides.Add(5, BLANK_LAYOUT)
+
+    # cramped_to_edge: shape with left=2pt (within 12pt margin)
+    cr = slX.Shapes.AddShape(1, 2, 50, 200, 50)
+    cr.TextFrame.TextRange.Text = "Cramped at left edge"
+    cr.Fill.ForeColor.RGB = WHITE
+
+    # very_large_body_font: 80pt font in a non-title shape
+    huge = slX.Shapes.AddShape(1, 60, 130, 700, 100)
+    huge.Fill.ForeColor.RGB = WHITE
+    huge.TextFrame.TextRange.Text = "Huge 80pt body"
+    huge.TextFrame.TextRange.Font.Size = 80
+
+    # placeholder_text_present: text contains "Click to add title"
+    ph = slX.Shapes.AddShape(1, 60, 260, 400, 50)
+    ph.Fill.ForeColor.RGB = WHITE
+    ph.TextFrame.TextRange.Text = "Click to add title"
+
+    # trailing_whitespace: 5 spaces at end
+    tw = slX.Shapes.AddShape(1, 60, 330, 400, 30)
+    tw.Fill.ForeColor.RGB = WHITE
+    tw.TextFrame.TextRange.Text = "trailing whitespace here     "
+
+    # broken_internal_hyperlink: shape link to #slide:99
+    bl = slX.Shapes.AddShape(1, 60, 380, 200, 40)
+    bl.Fill.ForeColor.RGB = WHITE
+    bl.TextFrame.TextRange.Text = "Link to slide 99"
+    bl.ActionSettings(1).Hyperlink.Address = "#slide:99"
+
+    # duplicate_text_content: two shapes with same identifiable text
+    d1 = slX.Shapes.AddShape(1, 60, 440, 200, 40)
+    d1.Fill.ForeColor.RGB = WHITE
+    d1.TextFrame.TextRange.Text = "Duplicate content example"
+    d2 = slX.Shapes.AddShape(1, 280, 440, 200, 40)
+    d2.Fill.ForeColor.RGB = WHITE
+    d2.TextFrame.TextRange.Text = "Duplicate content example"
+
+    # inconsistent_row_alignment: 3 shapes with tops 50, 52, 54
+    r1 = slX.Shapes.AddShape(1, 500, 50, 80, 30)
+    r1.TextFrame.TextRange.Text = "A"
+    r1.Fill.ForeColor.RGB = WHITE
+    r2 = slX.Shapes.AddShape(1, 590, 52, 80, 30)
+    r2.TextFrame.TextRange.Text = "B"
+    r2.Fill.ForeColor.RGB = WHITE
+    r3 = slX.Shapes.AddShape(1, 680, 54, 80, 30)
+    r3.TextFrame.TextRange.Text = "C"
+    r3.Fill.ForeColor.RGB = WHITE
+
+    # -------- Slide 6: too many colors + too many fonts (slide aggregate) --------
+    sl5 = pres.Slides.Add(6, BLANK_LAYOUT)
     palette = [
         rgb(220, 50, 47),   rgb(133, 153, 0),   rgb(38, 139, 210),  rgb(211, 54, 130),
         rgb(42, 161, 152),  rgb(203, 75, 22),   rgb(108, 113, 196), rgb(181, 137, 0),

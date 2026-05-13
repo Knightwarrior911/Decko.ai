@@ -94,6 +94,12 @@ Private Sub CheckSlide(sl As Slide, slideNum As Long, _
     Dim posMap As Object: Set posMap = CreateObject("Scripting.Dictionary")
     Dim colorMap As Object: Set colorMap = CreateObject("Scripting.Dictionary")
     Dim fontMap As Object: Set fontMap = CreateObject("Scripting.Dictionary")
+    Dim textMap As Object: Set textMap = CreateObject("Scripting.Dictionary")
+    Dim chartShapes As Collection: Set chartShapes = New Collection
+    Dim coveringShapes As Collection: Set coveringShapes = New Collection
+
+    ' --- slide-level pre-iteration: title check ---
+    CheckSlideTitle sl, slideNum, warnings
 
     For Each sh In sl.Shapes
         If g_warnCount >= g_warnCap Then Exit For
@@ -102,26 +108,41 @@ Private Sub CheckSlide(sl As Slide, slideNum As Long, _
         CheckOffSlide sh, slideNum, slideW, slideH, warnings
         CheckDuplicatePosition sh, slideNum, posMap, warnings
         CheckZeroSize sh, slideNum, warnings
+        CheckShapeInSafeArea sh, slideNum, slideW, slideH, warnings
+        CheckOrphanConnector sh, slideNum, warnings
 
         If deepOk Then
             CheckTextOverflow sh, slideNum, warnings
             CheckEmptyShape sh, slideNum, warnings
             CheckShapeTextContrast sh, slideNum, warnings
             CheckTinyShapeFont sh, slideNum, warnings
+            CheckHugeBodyFont sh, slideNum, warnings
             CheckMixedFontFamilies sh, slideNum, warnings
             CheckPictureAltText sh, slideNum, warnings
-            ' Track distinct colors/fonts for slide-level summary
+            CheckPlaceholderText sh, slideNum, warnings
+            CheckTrailingWhitespace sh, slideNum, warnings
+            CheckBrokenInternalHyperlink sh, slideNum, warnings
+            ' Track distinct colors/fonts/texts for slide-level aggregates
             TrackDistinctFill sh, colorMap
             TrackDistinctFont sh, fontMap
+            TrackDuplicateText sh, slideNum, textMap, warnings
+            ' Track charts + non-chart shapes for Z-order check
+            If sh.HasChart Then chartShapes.Add sh Else coveringShapes.Add sh
 
             If sh.HasChart Then
                 CheckChartLabels sh, slideNum, warnings
                 CheckChartTitle sh, slideNum, warnings
                 CheckChartZeroValues sh, slideNum, warnings
                 CheckPieTooManySlices sh, slideNum, warnings
+                CheckChartDefaultSeriesNames sh, slideNum, warnings
+                CheckChartLegendPointless sh, slideNum, warnings
+                CheckChartAxisUnitsMismatch sh, slideNum, warnings
             End If
 
-            If sh.HasTable Then CheckTable sh, slideNum, warnings
+            If sh.HasTable Then
+                CheckTable sh, slideNum, warnings
+                CheckTableColumnOverflow sh, slideNum, warnings
+            End If
         End If
     Next sh
 
@@ -129,6 +150,8 @@ Private Sub CheckSlide(sl As Slide, slideNum As Long, _
     If deepOk Then
         CheckTooManyDistinctColors slideNum, colorMap, warnings
         CheckTooManyDistinctFonts slideNum, fontMap, warnings
+        CheckChartCovered slideNum, chartShapes, coveringShapes, warnings
+        CheckRowColumnAlignment sl, slideNum, warnings
     End If
 End Sub
 
@@ -536,6 +559,415 @@ Private Sub CheckTooManyDistinctFonts(slideNum As Long, fontMap As Object, warni
             " distinct font families (>3) — looks inconsistent", _
             "unify via swap_font_deck_wide or set_theme_font"
     End If
+End Sub
+
+' ====================================================================
+' WAVE 2 CHECKS — broader coverage across every Decko domain.
+' ====================================================================
+
+' ---- Check 15: shape inside slide but cramped within 12pt margin --------
+Private Sub CheckShapeInSafeArea(sh As Shape, slideNum As Long, _
+                                  slideW As Double, slideH As Double, _
+                                  warnings As Collection)
+    On Error Resume Next
+    ' Skip if already flagged off_slide (caller logic) — same shape would double-warn
+    Dim L As Double: L = sh.Left
+    Dim t As Double: t = sh.Top
+    Dim w As Double: w = sh.Width
+    Dim h As Double: h = sh.Height
+    If L < -SLIDE_BOUNDS_TOL_PT Or L + w > slideW + SLIDE_BOUNDS_TOL_PT Then Exit Sub
+    If t < -SLIDE_BOUNDS_TOL_PT Or t + h > slideH + SLIDE_BOUNDS_TOL_PT Then Exit Sub
+    ' Skip tiny shapes — margins don't matter for icons/dots
+    If w < 30 And h < 30 Then Exit Sub
+    Const SAFE_MARGIN As Double = 12
+    Dim edges As String: edges = ""
+    If L < SAFE_MARGIN Then edges = edges & "left "
+    If t < SAFE_MARGIN Then edges = edges & "top "
+    If slideW - (L + w) < SAFE_MARGIN Then edges = edges & "right "
+    If slideH - (t + h) < SAFE_MARGIN Then edges = edges & "bottom "
+    If Len(edges) > 0 Then
+        AddWarning warnings, "info", "cramped_to_edge", slideNum, sh.Id, _
+            sh.Name & " is within " & SAFE_MARGIN & "pt of " & Trim(edges) & "edge(s)", _
+            "move inward by ~" & SAFE_MARGIN & "pt for breathing room (move_shape or set_pos)"
+    End If
+End Sub
+
+' ---- Check 16: orphan / free-floating connector -------------------------
+Private Sub CheckOrphanConnector(sh As Shape, slideNum As Long, warnings As Collection)
+    On Error Resume Next
+    If Not sh.Connector Then Exit Sub
+    Dim beginOk As Boolean: beginOk = sh.ConnectorFormat.BeginConnected
+    Dim endOk As Boolean: endOk = sh.ConnectorFormat.EndConnected
+    If Not (beginOk And endOk) Then
+        Dim issue As String
+        If Not beginOk And Not endOk Then
+            issue = "both endpoints"
+        ElseIf Not beginOk Then
+            issue = "begin endpoint"
+        Else
+            issue = "end endpoint"
+        End If
+        AddWarning warnings, "warn", "orphan_connector", slideNum, sh.Id, _
+            sh.Name & " is a connector with " & issue & " not attached to a shape", _
+            "delete_shape or reconnect_connector slide=" & slideNum & " shape_id=" & sh.Id
+    End If
+End Sub
+
+' ---- Check 17: oversized body font (>40pt) on non-title shape -----------
+Private Sub CheckHugeBodyFont(sh As Shape, slideNum As Long, warnings As Collection)
+    On Error Resume Next
+    If sh.HasTable Or sh.HasChart Then Exit Sub
+    If Not sh.HasTextFrame Then Exit Sub
+    If Not sh.TextFrame.HasText Then Exit Sub
+    ' Skip if shape is a title placeholder — titles are SUPPOSED to be large
+    If sh.Type = msoPlaceholder Then
+        If sh.PlaceholderFormat.Type = ppPlaceholderTitle Or _
+           sh.PlaceholderFormat.Type = ppPlaceholderCenterTitle Then Exit Sub
+    End If
+    Dim sz As Double: sz = sh.TextFrame.TextRange.Font.Size
+    If sz > 40 Then
+        AddWarning warnings, "info", "very_large_body_font", slideNum, sh.Id, _
+            sh.Name & " uses " & Format(sz, "0") & "pt font on a non-title shape — likely meant to be smaller", _
+            "set_font_size slide=" & slideNum & " shape_id=" & sh.Id & " value=14 (or appropriate body size)"
+    End If
+End Sub
+
+' ---- Check 18: placeholder text never replaced ('Click to add ...') -----
+Private Sub CheckPlaceholderText(sh As Shape, slideNum As Long, warnings As Collection)
+    On Error Resume Next
+    If Not sh.HasTextFrame Then Exit Sub
+    If Not sh.TextFrame.HasText Then Exit Sub
+    Dim t As String: t = LCase(sh.TextFrame.TextRange.Text)
+    If InStr(t, "click to add") > 0 Or InStr(t, "click here to add") > 0 Then
+        AddWarning warnings, "warn", "placeholder_text_present", slideNum, sh.Id, _
+            sh.Name & " still contains default placeholder prompt text", _
+            "set_text or set_paragraph_text to replace the placeholder"
+    End If
+End Sub
+
+' ---- Check 19: trailing whitespace in text shapes -----------------------
+Private Sub CheckTrailingWhitespace(sh As Shape, slideNum As Long, warnings As Collection)
+    On Error Resume Next
+    If sh.HasTable Or sh.HasChart Then Exit Sub
+    If Not sh.HasTextFrame Then Exit Sub
+    If Not sh.TextFrame.HasText Then Exit Sub
+    Dim t As String: t = sh.TextFrame.TextRange.Text
+    ' Strip paragraph terminators first
+    Do While Len(t) > 0 And (Right(t, 1) = Chr(13) Or Right(t, 1) = Chr(10))
+        t = Left(t, Len(t) - 1)
+    Loop
+    If Len(t) >= 3 Then
+        If Right(t, 3) = "   " Then
+            AddWarning warnings, "info", "trailing_whitespace", slideNum, sh.Id, _
+                sh.Name & " text ends with 3+ trailing spaces (leftover from edits)", _
+                "find_replace_text or set_text to clean trailing whitespace"
+        End If
+    End If
+End Sub
+
+' ---- Check 20: broken internal hyperlink (#slide:N out of range) --------
+Private Sub CheckBrokenInternalHyperlink(sh As Shape, slideNum As Long, warnings As Collection)
+    On Error Resume Next
+    Dim deckCount As Long: deckCount = ActivePresentation.Slides.Count
+    ' Shape-level click action
+    Dim url As String: url = sh.ActionSettings(1).Hyperlink.Address
+    If Len(url) > 0 Then
+        If LCase(Left(url, 7)) = "#slide:" Then
+            Dim n As Long: n = Val(Mid(url, 8))
+            If n < 1 Or n > deckCount Then
+                AddWarning warnings, "warn", "broken_internal_hyperlink", slideNum, sh.Id, _
+                    sh.Name & " has a shape-level hyperlink to #slide:" & n & _
+                    " but deck only has " & deckCount & " slides", _
+                    "set_shape_hyperlink slide=" & slideNum & " shape_id=" & sh.Id & _
+                    " value=#slide:<valid N> (or """" to clear)"
+            End If
+        End If
+    End If
+    ' Run-level hyperlinks
+    If Not sh.HasTextFrame Then Exit Sub
+    If Not sh.TextFrame.HasText Then Exit Sub
+    Dim paraN As Long: paraN = sh.TextFrame.TextRange.Paragraphs().Count
+    Dim p As Long
+    For p = 1 To paraN
+        Dim para As TextRange: Set para = sh.TextFrame.TextRange.Paragraphs(p)
+        Dim r As Long
+        For r = 1 To para.Runs.Count
+            Dim ru As TextRange: Set ru = para.Runs(r)
+            Dim u As String: u = ru.ActionSettings(1).Hyperlink.Address
+            If LCase(Left(u, 7)) = "#slide:" Then
+                Dim n2 As Long: n2 = Val(Mid(u, 8))
+                If n2 < 1 Or n2 > deckCount Then
+                    AddWarning warnings, "warn", "broken_internal_hyperlink", slideNum, sh.Id, _
+                        sh.Name & " paragraph " & (p - 1) & " run " & (r - 1) & _
+                        " hyperlinks to #slide:" & n2 & " but deck has only " & deckCount & " slides", _
+                        "set_run_hyperlink slide=" & slideNum & " shape_id=" & sh.Id & _
+                        " paragraph_index=" & (p - 1) & " run_index=" & (r - 1) & " value=""""  (clear)"
+                End If
+            End If
+        Next r
+    Next p
+End Sub
+
+' ---- Check 21: duplicate text content (two shapes same text on slide) ---
+Private Sub TrackDuplicateText(sh As Shape, slideNum As Long, _
+                                textMap As Object, warnings As Collection)
+    On Error Resume Next
+    If sh.HasTable Or sh.HasChart Then Exit Sub
+    If Not sh.HasTextFrame Then Exit Sub
+    If Not sh.TextFrame.HasText Then Exit Sub
+    Dim t As String: t = Trim(sh.TextFrame.TextRange.Text)
+    If Len(t) < 8 Then Exit Sub   ' skip short labels like "Q1" / "Yes"
+    Dim key As String: key = LCase(t)
+    If textMap.Exists(key) Then
+        Dim otherId As Long: otherId = textMap(key)
+        AddWarning warnings, "info", "duplicate_text_content", slideNum, sh.Id, _
+            sh.Name & " contains the same text as shape Id " & otherId & _
+            " on this slide (possible accidental duplicate)", _
+            "delete one of the shapes or differentiate the text"
+    Else
+        textMap(key) = sh.Id
+    End If
+End Sub
+
+' ---- Check 22: chart series still named 'Series 1' / 'Series 2' --------
+Private Sub CheckChartDefaultSeriesNames(sh As Shape, slideNum As Long, warnings As Collection)
+    On Error Resume Next
+    Dim ch As Object: Set ch = sh.Chart
+    Dim seriesCount As Long: seriesCount = ch.SeriesCollection.Count
+    If seriesCount > MAX_CHART_SERIES_FOR_DEEP Then Exit Sub
+    Dim s As Long
+    For s = 1 To seriesCount
+        Dim nm As String: nm = ch.SeriesCollection(s).Name
+        If LCase(Left(nm, 7)) = "series " Then
+            AddWarning warnings, "info", "chart_default_series_name", slideNum, sh.Id, _
+                sh.Name & " series " & s & " still named '" & nm & "' (default placeholder)", _
+                "set_series_name slide=" & slideNum & " shape_id=" & sh.Id & _
+                " series_index=" & s & " value=""<descriptive name>"""
+        End If
+    Next s
+End Sub
+
+' ---- Check 23: chart with 1 series but legend visible (pointless) ------
+Private Sub CheckChartLegendPointless(sh As Shape, slideNum As Long, warnings As Collection)
+    On Error Resume Next
+    Dim ch As Object: Set ch = sh.Chart
+    If ch.SeriesCollection.Count = 1 And ch.HasLegend Then
+        AddWarning warnings, "info", "chart_pointless_legend", slideNum, sh.Id, _
+            sh.Name & " has only 1 series but the legend is visible (legend conveys no extra info)", _
+            "set_chart_legend slide=" & slideNum & " shape_id=" & sh.Id & " props.visible=false"
+    End If
+End Sub
+
+' ---- Check 24: chart value-axis range mismatched with data magnitude ---
+Private Sub CheckChartAxisUnitsMismatch(sh As Shape, slideNum As Long, warnings As Collection)
+    On Error Resume Next
+    Dim ch As Object: Set ch = sh.Chart
+    Dim seriesCount As Long: seriesCount = ch.SeriesCollection.Count
+    If seriesCount = 0 Or seriesCount > MAX_CHART_SERIES_FOR_DEEP Then Exit Sub
+    Dim maxVal As Double: maxVal = -1E+30
+    Dim minVal As Double: minVal = 1E+30
+    Dim sawData As Boolean: sawData = False
+    Dim s As Long
+    For s = 1 To seriesCount
+        Dim vals As Variant: vals = ch.SeriesCollection(s).Values
+        If IsArray(vals) Then
+            Dim i As Long
+            For i = LBound(vals) To UBound(vals)
+                If IsNumeric(vals(i)) Then
+                    sawData = True
+                    Dim v As Double: v = CDbl(vals(i))
+                    If v > maxVal Then maxVal = v
+                    If v < minVal Then minVal = v
+                End If
+            Next i
+        End If
+    Next s
+    If Not sawData Then Exit Sub
+    Dim axMin As Double: axMin = ch.Axes(2).MinimumScale
+    Dim axMax As Double: axMax = ch.Axes(2).MaximumScale
+    ' Flag if axis max < 30% of data max (data clipped) OR axis max > 10x data max (wasted space)
+    If maxVal > 0 Then
+        If axMax > 0 And axMax < maxVal * 0.3 Then
+            AddWarning warnings, "warn", "chart_axis_clips_data", slideNum, sh.Id, _
+                sh.Name & " value axis max (" & Format(axMax, "0.#") & ") is below data max (" & _
+                Format(maxVal, "0.#") & ") — bars will be clipped", _
+                "set_chart_axis slide=" & slideNum & " shape_id=" & sh.Id & _
+                " axis=y props.max=" & Format(maxVal * 1.1, "0")
+        ElseIf axMax > maxVal * 10 Then
+            AddWarning warnings, "info", "chart_axis_excess_headroom", slideNum, sh.Id, _
+                sh.Name & " value axis max (" & Format(axMax, "0") & ") is >10x data max (" & _
+                Format(maxVal, "0") & ") — most of plot area is empty", _
+                "set_chart_axis slide=" & slideNum & " shape_id=" & sh.Id & _
+                " axis=y props.max=" & Format(maxVal * 1.1, "0")
+        End If
+    End If
+End Sub
+
+' ---- Check 25: table column widths sum exceeds table width --------------
+Private Sub CheckTableColumnOverflow(sh As Shape, slideNum As Long, warnings As Collection)
+    On Error Resume Next
+    Dim tbl As Table: Set tbl = sh.Table
+    Dim sumW As Double: sumW = 0
+    Dim c As Long
+    For c = 1 To tbl.Columns.Count
+        sumW = sumW + tbl.Columns(c).Width
+    Next c
+    If sumW > sh.Width + 2 Then
+        AddWarning warnings, "warn", "table_column_overflow", slideNum, sh.Id, _
+            sh.Name & " column widths sum to " & Format(sumW, "0") & "pt but table is only " & _
+            Format(sh.Width, "0") & "pt wide", _
+            "set_table_col_width on individual columns to fit, or resize the table"
+    End If
+End Sub
+
+' ---- Check 26: slide has no title or title placeholder is empty --------
+Private Sub CheckSlideTitle(sl As Slide, slideNum As Long, warnings As Collection)
+    On Error Resume Next
+    ' Skip section-header / blank-layout slides where missing title is intentional.
+    Dim layoutType As Long: layoutType = sl.Layout
+    ' ppLayoutBlank = 12, ppLayoutSectionHeader = 17 (not always present in enum, skip layout=12)
+    If layoutType = 12 Then Exit Sub
+    Dim hasTitle As Boolean: hasTitle = False
+    Dim ph As Shape
+    Dim i As Long
+    For i = 1 To sl.Shapes.Placeholders.Count
+        Set ph = sl.Shapes.Placeholders(i)
+        If ph.PlaceholderFormat.Type = ppPlaceholderTitle Or _
+           ph.PlaceholderFormat.Type = ppPlaceholderCenterTitle Then
+            hasTitle = True
+            ' Title placeholder present; check if it has actual text
+            If ph.HasTextFrame Then
+                If ph.TextFrame.HasText Then
+                    Dim txt As String: txt = Trim(ph.TextFrame.TextRange.Text)
+                    If Len(txt) > 0 And InStr(LCase(txt), "click to add") = 0 Then Exit Sub
+                End If
+            End If
+            AddWarning warnings, "info", "slide_empty_title", slideNum, ph.Id, _
+                "slide " & slideNum & " title placeholder is empty or contains default prompt", _
+                "set_text or set_paragraph_text on the title placeholder"
+            Exit Sub
+        End If
+    Next i
+    If Not hasTitle Then
+        AddWarning warnings, "info", "slide_no_title", slideNum, 0, _
+            "slide " & slideNum & " has no title placeholder (screen readers + TOC rely on it)", _
+            "use a layout that includes a title, or add_text_box for a title"
+    End If
+End Sub
+
+' ---- Check 27: chart fully covered by another shape (Z-order mistake) ---
+Private Sub CheckChartCovered(slideNum As Long, chartShapes As Collection, _
+                               coveringShapes As Collection, warnings As Collection)
+    On Error Resume Next
+    Dim ch As Shape, cv As Shape
+    Dim i As Long, j As Long
+    For i = 1 To chartShapes.Count
+        Set ch = chartShapes(i)
+        For j = 1 To coveringShapes.Count
+            Set cv = coveringShapes(j)
+            If cv.ZOrderPosition <= ch.ZOrderPosition Then GoTo NextCv
+            ' Bounds containment with 2pt tolerance
+            If cv.Left <= ch.Left + 2 And _
+               cv.Top <= ch.Top + 2 And _
+               (cv.Left + cv.Width) >= (ch.Left + ch.Width) - 2 And _
+               (cv.Top + cv.Height) >= (ch.Top + ch.Height) - 2 Then
+                AddWarning warnings, "warn", "chart_covered_by_shape", slideNum, ch.Id, _
+                    "chart '" & ch.Name & "' is fully covered by shape '" & cv.Name & _
+                    "' (Id " & cv.Id & ") which is above it in Z-order", _
+                    "z_order slide=" & slideNum & " shape_id=" & cv.Id & " order=back, " & _
+                    "or delete the covering shape"
+                Exit For
+            End If
+NextCv:
+        Next j
+    Next i
+End Sub
+
+' ---- Check 28: inconsistent row / column alignment ---------------------
+' Finds shapes that look like they're in the same row (similar tops within
+' 1-5pt) and warns if their tops aren't pixel-aligned. Same for columns.
+Private Sub CheckRowColumnAlignment(sl As Slide, slideNum As Long, warnings As Collection)
+    On Error Resume Next
+    If sl.Shapes.Count > 30 Then Exit Sub   ' too noisy on busy slides
+    Dim tops As Object: Set tops = CreateObject("Scripting.Dictionary")
+    Dim lefts As Object: Set lefts = CreateObject("Scripting.Dictionary")
+    Dim sh As Shape
+    For Each sh In sl.Shapes
+        If sh.Type = msoLine Then GoTo NextSh
+        If sh.Connector Then GoTo NextSh
+        ' Quantize to nearest 0.5pt to detect "almost-aligned" groups
+        Dim tkey As String: tkey = CStr(Int(sh.Top * 2) / 2)
+        Dim lkey As String: lkey = CStr(Int(sh.Left * 2) / 2)
+        If tops.Exists(tkey) Then
+            tops(tkey) = tops(tkey) & "," & sh.Id & ":" & sh.Top
+        Else
+            tops(tkey) = sh.Id & ":" & sh.Top
+        End If
+        If lefts.Exists(lkey) Then
+            lefts(lkey) = lefts(lkey) & "," & sh.Id & ":" & sh.Left
+        Else
+            lefts(lkey) = sh.Id & ":" & sh.Left
+        End If
+NextSh:
+    Next sh
+    ' Look for near-aligned rows: tops differing by 0.1 to 4pt across 3+ shapes
+    DetectMisalignmentBand sl, slideNum, "row", warnings
+    DetectMisalignmentBand sl, slideNum, "column", warnings
+End Sub
+
+' Group shapes by similar Y (or X), flag groups where individual tops (or
+' lefts) differ from each other by 1-5pt — looks intentional but isn't aligned.
+Private Sub DetectMisalignmentBand(sl As Slide, slideNum As Long, _
+                                    axis As String, warnings As Collection)
+    On Error Resume Next
+    Dim n As Long: n = sl.Shapes.Count
+    If n < 3 Or n > 30 Then Exit Sub
+    Dim ids() As Long: ReDim ids(1 To n)
+    Dim coord() As Double: ReDim coord(1 To n)
+    Dim names() As String: ReDim names(1 To n)
+    Dim i As Long, count As Long: count = 0
+    Dim sh As Shape
+    For Each sh In sl.Shapes
+        If sh.Type = msoLine Or sh.Connector Then GoTo NextSh2
+        count = count + 1
+        ids(count) = sh.Id
+        names(count) = sh.Name
+        If axis = "row" Then
+            coord(count) = sh.Top
+        Else
+            coord(count) = sh.Left
+        End If
+NextSh2:
+    Next sh
+    If count < 3 Then Exit Sub
+    ' Cluster shapes whose coord is within 5pt of each other; if cluster has
+    ' >=3 members AND any pair differs by >0.5pt, flag the band.
+    Dim flagged As Object: Set flagged = CreateObject("Scripting.Dictionary")
+    Dim a As Long, b As Long
+    For a = 1 To count - 2
+        If flagged.Exists(CStr(ids(a))) Then GoTo NextA
+        Dim members As String: members = names(a) & "(" & Format(coord(a), "0.0") & ")"
+        Dim memberCount As Long: memberCount = 1
+        Dim maxDelta As Double: maxDelta = 0
+        For b = a + 1 To count
+            If Abs(coord(b) - coord(a)) <= 5 And Abs(coord(b) - coord(a)) > 0.5 Then
+                members = members & ", " & names(b) & "(" & Format(coord(b), "0.0") & ")"
+                memberCount = memberCount + 1
+                If Abs(coord(b) - coord(a)) > maxDelta Then maxDelta = Abs(coord(b) - coord(a))
+                flagged(CStr(ids(b))) = 1
+            End If
+        Next b
+        If memberCount >= 3 Then
+            flagged(CStr(ids(a))) = 1
+            AddWarning warnings, "info", "inconsistent_" & axis & "_alignment", slideNum, ids(a), _
+                memberCount & " shapes appear to share a " & axis & " but their " & _
+                IIf(axis = "row", "tops", "lefts") & " differ by up to " & _
+                Format(maxDelta, "0.#") & "pt: " & members, _
+                "align_shapes slide=" & slideNum & " shape_ids=[<ids>] anchor=" & _
+                IIf(axis = "row", "top", "left")
+        End If
+NextA:
+    Next a
 End Sub
 
 ' ---- Helpers --------------------------------------------------------------
