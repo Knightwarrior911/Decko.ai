@@ -2171,6 +2171,10 @@ Public Function GetActionGuidance(actionType As String) As String
                 "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3," & _
                 """paragraph_index"":0,""run_index"":1,""value"":<value>}" & vbCrLf & _
                 "  NOTE: paragraph_index AND run_index are both 0-based."
+        Case "set_run_font_name"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(string, non-empty font name)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_run_font_name"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":""Calibri""}"
         Case "add_shape"
             GetActionGuidance = _
                 "  REQUIRED: slide, kind(string), pos({left,top,width,height})" & vbCrLf & _
@@ -2263,10 +2267,738 @@ Public Function GetActionGuidance(actionType As String) As String
             GetActionGuidance = _
                 "  REQUIRED: slide, value(string)" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":3,""value"":""Mention Q3 EBITDA expansion.""}"
-        Case Else
-            ' Generic fallback — most types use a uniform shape, point to docs.
+        Case "clear_speaker_notes"
             GetActionGuidance = _
-                "  See docs/ACTIONS_REFERENCE.md §3 for the exact signature of ""'" & actionType & "'""." & vbCrLf & _
+                "  REQUIRED: slide" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""clear_speaker_notes"",""slide"":3}"
+        ' ---- shape geometry / state ----
+        Case "duplicate_shape"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, left(num), top(num)" & vbCrLf & _
+                "  OPTIONAL: ref_name" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""duplicate_shape"",""slide"":1,""shape_id"":3,""left"":400,""top"":120}"
+        Case "rotate_shape"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, degrees(num)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""rotate_shape"",""slide"":1,""shape_id"":3,""degrees"":45}"
+        Case "flip_shape"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, axis(""h""|""v"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""flip_shape"",""slide"":1,""shape_id"":3,""axis"":""h""}"
+        Case "set_shape_adjustment"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, index(1-based int), value(num, usually 0.0-1.0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_shape_adjustment"",""slide"":1,""shape_id"":3,""index"":1,""value"":0.25}"
+        Case "z_order"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, order(""front""|""back""|""forward""|""backward"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""z_order"",""slide"":1,""shape_id"":3,""order"":""front""}"
+        Case "copy_formatting"
+            GetActionGuidance = _
+                "  REQUIRED: slide, source_shape_id, target_shape_id" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""copy_formatting"",""slide"":1,""source_shape_id"":3,""target_shape_id"":5}"
+        Case "set_shape_name"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(string, non-empty, unique on slide)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_shape_name"",""slide"":1,""shape_id"":3,""value"":""hero_card""}"
+        Case "set_pos"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, AND at least one of: left, top, width, height (all num pt)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_pos"",""slide"":1,""shape_id"":3,""left"":100,""top"":120,""width"":300,""height"":200}"
+        Case "set_shape_alt_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(string; """" clears)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_shape_alt_text"",""slide"":1,""shape_id"":3,""value"":""Q3 revenue chart""}"
+        Case "lock_aspect_ratio", "set_shape_visible", "set_fill_visible", "set_line_visible"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(bool)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3,""value"":true}"
+        Case "clear_fill", "clear_line", "clear_shadow", "clear_glow", "clear_reflection", "clear_all_effects"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3}"
+        Case "set_shape_hyperlink"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(URL starting http://|https://|mailto:|#slide:N; or """" to clear)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_shape_hyperlink"",""slide"":1,""shape_id"":3,""value"":""#slide:5""}"
+        Case "set_shape_picture_fill"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, picture_path(absolute local file path)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_shape_picture_fill"",""slide"":1,""shape_id"":3,""picture_path"":""C:\\imgs\\hero.jpg""}"
+        Case "set_shape_kind"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, kind(string — see add_shape kind vocabulary)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_shape_kind"",""slide"":1,""shape_id"":3,""kind"":""rrect""}"
+        ' ---- paragraph-level granular ----
+        Case "set_paragraph_bold", "set_paragraph_italic", "set_paragraph_underline"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, value(bool)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3,""paragraph_index"":0,""value"":true}"
+        Case "set_paragraph_font_name"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, value(string, non-empty)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_paragraph_font_name"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""value"":""Calibri""}"
+        Case "set_paragraph_space_before", "set_paragraph_space_after"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, value(num pt, >=0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3,""paragraph_index"":1,""value"":6}"
+        Case "set_paragraph_line_spacing"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, value(num, multiple e.g. 1.0, 1.5)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_paragraph_line_spacing"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""value"":1.15}"
+        Case "clear_paragraph_formatting"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""clear_paragraph_formatting"",""slide"":1,""shape_id"":3,""paragraph_index"":0}"
+        Case "set_bullet_start_number"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, value(int >=1)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_bullet_start_number"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""value"":5}"
+        ' ---- run-level extras ----
+        Case "set_run_subscript", "set_run_superscript"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(bool)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":true}"
+        Case "set_run_hyperlink"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(URL: http://|https://|mailto:|#slide:N; or """" to clear)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_run_hyperlink"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":""https://example.com""}"
+        Case "set_run_highlight"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(#RRGGBB or """" to clear)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_run_highlight"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":""#FFF59D""}"
+        Case "set_run_kerning"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(num pt; 0=default, +=wider, -=tighter)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_run_kerning"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":0,""value"":1.5}"
+        Case "set_run_baseline_offset"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(num -1.0..1.0; fraction of font height)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_run_baseline_offset"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":0.3}"
+        Case "delete_paragraph"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""delete_paragraph"",""slide"":1,""shape_id"":3,""paragraph_index"":2}"
+        ' ---- text-frame behavior ----
+        Case "set_text_vertical_align"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(""top""|""middle""|""bottom"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_text_vertical_align"",""slide"":1,""shape_id"":3,""value"":""middle""}"
+        Case "set_text_autofit"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, mode(""none""|""shrink""|""resize"")  -- note: field is 'mode' NOT 'value'" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_text_autofit"",""slide"":1,""shape_id"":3,""mode"":""shrink""}"
+        Case "set_text_margin"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, left(num>=0), right(num>=0), top(num>=0), bottom(num>=0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_text_margin"",""slide"":1,""shape_id"":3,""left"":4,""right"":4,""top"":2,""bottom"":2}"
+        Case "fit_to_content"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""fit_to_content"",""slide"":1,""shape_id"":3}"
+        Case "enable_text_shrink_for_overflow"
+            GetActionGuidance = _
+                "  REQUIRED: scope(""deck""|""slide:N"")" & vbCrLf & _
+                "  OPTIONAL: include_titles(bool)=false" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""enable_text_shrink_for_overflow"",""scope"":""slide:3""}"
+        ' ---- find/replace ----
+        Case "find_replace_regex"
+            GetActionGuidance = _
+                "  REQUIRED: scope(""deck""|""slide:N""), pattern(regex string), replacement(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""find_replace_regex"",""scope"":""deck"",""pattern"":""\\$\\d+M"",""replacement"":""TBD""}"
+        ' ---- layout / alignment ----
+        Case "align_shapes"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_ids(array of int/ref_name), anchor(""left""|""right""|""top""|""bottom""|""hcenter""|""vcenter"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""align_shapes"",""slide"":1,""shape_ids"":[3,4,5],""anchor"":""top""}"
+        Case "distribute_horizontal", "distribute_vertical"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_ids(array of >=3 elements)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_ids"":[3,4,5,6]}"
+        Case "tile_grid"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_ids(array), cols(int), gap_pt(num)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""tile_grid"",""slide"":1,""shape_ids"":[3,4,5,6],""cols"":2,""gap_pt"":12}"
+        Case "smart_spacing", "equalize_spacing"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_ids(array), gap_pt(num, smart only), axis(""h""|""v"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_ids"":[3,4,5],""gap_pt"":10,""axis"":""h""}"
+        Case "uniform_size"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_ids(array), width_pt(num>0), height_pt(num>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""uniform_size"",""slide"":1,""shape_ids"":[3,4,5],""width_pt"":200,""height_pt"":80}"
+        Case "match_size"
+            GetActionGuidance = _
+                "  REQUIRED: slide, ref_shape_id, target_shape_ids(array)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""match_size"",""slide"":1,""ref_shape_id"":3,""target_shape_ids"":[4,5,6]}"
+        Case "match_position"
+            GetActionGuidance = _
+                "  REQUIRED: slide, ref_shape_id, target_shape_id, edge(""left""|""right""|""top""|""bottom""|""hcenter""|""vcenter"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""match_position"",""slide"":1,""ref_shape_id"":3,""target_shape_id"":4,""edge"":""left""}"
+        Case "swap_positions"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_a_id, shape_b_id" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""swap_positions"",""slide"":1,""shape_a_id"":3,""shape_b_id"":4}"
+        Case "group_by_overlap"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_ids(array)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""group_by_overlap"",""slide"":1,""shape_ids"":[3,4,5,6]}"
+        Case "fit_to_slide_margins"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id" & vbCrLf & _
+                "  OPTIONAL: margin_pt(num)=36" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""fit_to_slide_margins"",""slide"":1,""shape_id"":3,""margin_pt"":24}"
+        Case "move_shape_relative"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, dx_pt(num), dy_pt(num)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""move_shape_relative"",""slide"":1,""shape_id"":3,""dx_pt"":10,""dy_pt"":-5}"
+        Case "nudge"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, direction(""l""|""r""|""u""|""d""), amount_pt(num>=0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""nudge"",""slide"":1,""shape_id"":3,""direction"":""r"",""amount_pt"":5}"
+        Case "snap_to_grid"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, grid_pt(num>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""snap_to_grid"",""slide"":1,""shape_id"":3,""grid_pt"":12}"
+        Case "align_to_slide_center"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, axis(""h""|""v""|""both"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""align_to_slide_center"",""slide"":1,""shape_id"":3,""axis"":""both""}"
+        Case "clear_slide"
+            GetActionGuidance = _
+                "  REQUIRED: slide" & vbCrLf & _
+                "  OPTIONAL: keep_shape_ids(array of int/ref_name)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""clear_slide"",""slide"":3,""keep_shape_ids"":[2]}"
+        ' ---- recolor / match-delete ----
+        Case "recolor_fill_match", "recolor_font_match"
+            GetActionGuidance = _
+                "  REQUIRED: scope(""deck""|""slide:N""), from(#RRGGBB), to(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""scope"":""deck"",""from"":""#FF0000"",""to"":""#15283C""}"
+        Case "delete_shapes_match"
+            GetActionGuidance = _
+                "  REQUIRED: scope(""deck""|""slide:N""), AND at least one filter: kind(string), fill(#RRGGBB), text_contains(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""delete_shapes_match"",""scope"":""slide:3"",""kind"":""rectangle"",""fill"":""#CCCCCC""}"
+        Case "recolor_palette_deck_wide"
+            GetActionGuidance = _
+                "  REQUIRED: from_hex(#RRGGBB), to_hex(#RRGGBB), target(""fill""|""font""|""both"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""recolor_palette_deck_wide"",""from_hex"":""#FF0000"",""to_hex"":""#15283C"",""target"":""both""}"
+        ' ---- connectors / groups ----
+        Case "group_shapes"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_ids(array of >=2 elements)" & vbCrLf & _
+                "  OPTIONAL: ref_name" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""group_shapes"",""slide"":1,""shape_ids"":[3,4,5],""ref_name"":""logo_group""}"
+        Case "ungroup"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id (the group shape)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""ungroup"",""slide"":1,""shape_id"":7}"
+        Case "reconnect_connector"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id (the connector), from_shape_id, to_shape_id" & vbCrLf & _
+                "  OPTIONAL: from_connection_site(int), to_connection_site(int)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""reconnect_connector"",""slide"":1,""shape_id"":7,""from_shape_id"":3,""to_shape_id"":5}"
+        ' ---- tables — granular ----
+        Case "add_table_row"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, after_row(int; 0 = before first)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_table_row"",""slide"":1,""shape_id"":4,""after_row"":2}"
+        Case "delete_table_row"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row(1-based)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""delete_table_row"",""slide"":1,""shape_id"":4,""row"":3}"
+        Case "add_table_col"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, after_col(int; 0 = before first)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_table_col"",""slide"":1,""shape_id"":4,""after_col"":1}"
+        Case "delete_table_col"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, col(1-based)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""delete_table_col"",""slide"":1,""shape_id"":4,""col"":2}"
+        Case "swap_table_columns"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, col_a(1-based), col_b(1-based)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""swap_table_columns"",""slide"":1,""shape_id"":4,""col_a"":1,""col_b"":3}"
+        Case "swap_table_rows"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row_a(1-based), row_b(1-based)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""swap_table_rows"",""slide"":1,""shape_id"":4,""row_a"":2,""row_b"":4}"
+        Case "merge_cells"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row_a, col_a, row_b, col_b (all 1-based)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""merge_cells"",""slide"":1,""shape_id"":4,""row_a"":1,""col_a"":1,""row_b"":1,""col_b"":3}"
+        Case "unmerge_cells"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row(1-based), col(1-based) — any cell in the merged region" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""unmerge_cells"",""slide"":1,""shape_id"":4,""row"":1,""col"":1}"
+        Case "set_table_col_width"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, col(1-based), width_pt(num>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_table_col_width"",""slide"":1,""shape_id"":4,""col"":2,""width_pt"":180}"
+        Case "set_table_row_height"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row(1-based), height_pt(num>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_table_row_height"",""slide"":1,""shape_id"":4,""row"":1,""height_pt"":36}"
+        Case "set_cell_border"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, side(""top""|""left""|""bottom""|""right""|""diag_down""|""diag_up""|""all"")" & vbCrLf & _
+                "  OPTIONAL: color(#RRGGBB), weight_pt(num), visible(bool)=true, dash_style" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_border"",""slide"":1,""shape_id"":4,""row"":2,""col"":3,""side"":""all"",""color"":""#15283C"",""weight_pt"":0.75}"
+        Case "set_cell_text_align"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, AND at least one of: h_align(""left""|""center""|""right""), v_align(""top""|""middle""|""bottom"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_text_align"",""slide"":1,""shape_id"":4,""row"":2,""col"":3,""h_align"":""center"",""v_align"":""middle""}"
+        Case "set_cell_fill"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, color(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_fill"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""color"":""#15283C""}"
+        Case "apply_table_style"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, style_id(string — lowercase_underscore name like 'medium_style_2_accent1' OR Office GUID)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""apply_table_style"",""slide"":1,""shape_id"":4,""style_id"":""medium_style_2_accent1""}"
+        Case "set_cell_padding"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, left, right, top, bottom (all num pt, >=0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_padding"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""left"":4,""right"":4,""top"":2,""bottom"":2}"
+        Case "clear_cell_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""clear_cell_text"",""slide"":1,""shape_id"":4,""row"":2,""col"":3}"
+        Case "set_table_style_options"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, AND at least one of: header_row, total_row, banded_rows, first_column, last_column, banded_columns (all bool)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_table_style_options"",""slide"":1,""shape_id"":4,""header_row"":true,""banded_rows"":true}"
+        Case "populate_table_column"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, col(1-based), values(array of strings; one per row starting at row 1)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""populate_table_column"",""slide"":1,""shape_id"":4,""col"":1,""values"":[""Q1"",""Q2"",""Q3"",""Q4""]}"
+        Case "populate_table_cells"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, start_row(1-based), start_col(1-based), values(2D array — outer=rows, inner=cells)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""populate_table_cells"",""slide"":1,""shape_id"":4,""start_row"":2,""start_col"":1,""values"":[[""Q1"",""$1.2B""],[""Q2"",""$1.4B""]]}"
+        Case "set_cell_font_size"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, value(int>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_font_size"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""value"":12}"
+        Case "set_cell_font_color"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, value(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_font_color"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""value"":""#FFFFFF""}"
+        Case "set_cell_font_bold", "set_cell_font_italic", "set_cell_font_underline"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, value(bool)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":4,""row"":1,""col"":1,""value"":true}"
+        Case "set_cell_font_name"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, value(string, non-empty)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_font_name"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""value"":""Calibri""}"
+        Case "set_cell_text_orientation"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, value(""horizontal""|""vertical_90""|""vertical_270""|""stacked"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_text_orientation"",""slide"":1,""shape_id"":4,""row"":1,""col"":2,""value"":""vertical_90""}"
+        Case "set_row_fill", "set_row_font_color"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row(1-based), value(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":4,""row"":1,""value"":""#15283C""}"
+        Case "set_column_fill", "set_column_font_color"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, col(1-based), value(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":4,""col"":1,""value"":""#15283C""}"
+        Case "set_row_font_size"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row(1-based), value(int>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_row_font_size"",""slide"":1,""shape_id"":4,""row"":1,""value"":12}"
+        Case "set_column_font_size"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, col(1-based), value(int>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_column_font_size"",""slide"":1,""shape_id"":4,""col"":1,""value"":10}"
+        Case "set_row_font_bold"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row(1-based), value(bool)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_row_font_bold"",""slide"":1,""shape_id"":4,""row"":1,""value"":true}"
+        Case "set_column_font_bold"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, col(1-based), value(bool)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_column_font_bold"",""slide"":1,""shape_id"":4,""col"":1,""value"":true}"
+        Case "clear_row_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row(1-based)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""clear_row_text"",""slide"":1,""shape_id"":4,""row"":3}"
+        Case "clear_column_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, col(1-based)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""clear_column_text"",""slide"":1,""shape_id"":4,""col"":2}"
+        Case "set_table_font_size"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(int>0)  -- applies to every cell" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_table_font_size"",""slide"":1,""shape_id"":4,""value"":10}"
+        Case "set_table_font_name"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(string, non-empty)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_table_font_name"",""slide"":1,""shape_id"":4,""value"":""Calibri""}"
+        Case "set_table_font_color"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_table_font_color"",""slide"":1,""shape_id"":4,""value"":""#15283C""}"
+        Case "auto_fit_table_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id  -- enables shrink-to-fit on every cell" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""auto_fit_table_text"",""slide"":1,""shape_id"":4}"
+        Case "set_table_borders"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, side(""top""|""left""|""bottom""|""right""|""diag_down""|""diag_up""|""all"")" & vbCrLf & _
+                "  OPTIONAL: color, weight_pt, visible(bool)=true, dash_style" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_table_borders"",""slide"":1,""shape_id"":4,""side"":""all"",""color"":""#15283C"",""weight_pt"":0.5}"
+        Case "set_row_borders"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row(1-based), side" & vbCrLf & _
+                "  OPTIONAL: color, weight_pt, visible, dash_style" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_row_borders"",""slide"":1,""shape_id"":4,""row"":1,""side"":""bottom"",""color"":""#15283C"",""weight_pt"":1.5}"
+        Case "set_column_borders"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, col(1-based), side" & vbCrLf & _
+                "  OPTIONAL: color, weight_pt, visible, dash_style" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_column_borders"",""slide"":1,""shape_id"":4,""col"":1,""side"":""right""}"
+        Case "fit_cell_to_content"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""fit_cell_to_content"",""slide"":1,""shape_id"":4,""row"":2,""col"":3}"
+        Case "build_image_grid_table"
+            GetActionGuidance = _
+                "  REQUIRED: slide, pos({left,top,width,height}), rows(array of row objects)" & vbCrLf & _
+                "  Each row object: {name, image_path OR image_url, bullets:[strings]}" & vbCrLf & _
+                "  See ACTIONS_REFERENCE.md §3.12 for full schema (image_col, name_position, name_font, etc.)"
+        ' ---- cell paragraph actions ----
+        Case "set_cell_paragraph_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, paragraph_index(0-based), value(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_paragraph_text"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""paragraph_index"":0,""value"":""Header""}"
+        Case "set_cell_paragraph_font_size"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, paragraph_index, value(int>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_paragraph_font_size"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""paragraph_index"":0,""value"":12}"
+        Case "set_cell_paragraph_font_color"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, paragraph_index, value(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_paragraph_font_color"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""paragraph_index"":0,""value"":""#FFFFFF""}"
+        Case "set_cell_paragraph_bold", "set_cell_paragraph_italic"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, paragraph_index, value(bool)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":4,""row"":1,""col"":1,""paragraph_index"":0,""value"":true}"
+        Case "set_cell_paragraph_alignment"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, paragraph_index, value(""left""|""center""|""right""|""justify"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_paragraph_alignment"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""paragraph_index"":0,""value"":""center""}"
+        Case "set_cell_bullet_style"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, paragraph_index, value(""none""|""disc""|""square""|""dash""|""number""|""letter"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_bullet_style"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""paragraph_index"":0,""value"":""disc""}"
+        Case "add_cell_paragraph"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, after_paragraph_index(int; -1 prepends), value(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_cell_paragraph"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""after_paragraph_index"":0,""value"":""Sub-bullet""}"
+        Case "delete_cell_paragraph"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, paragraph_index" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""delete_cell_paragraph"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""paragraph_index"":1}"
+        Case "append_cell_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, value(string — appended after newline to existing cell text)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""append_cell_text"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""value"":""+12% YoY""}"
+        Case "set_cell"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, AND at least one of: text, font_size, font_color, font_bold, font_italic, font_underline, font_name, fill, h_align, v_align" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""text"":""Revenue"",""font_size"":12,""font_bold"":true,""fill"":""#15283C"",""font_color"":""#FFFFFF"",""h_align"":""center""}"
+        ' ---- charts — granular ----
+        Case "set_chart_type"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(chart type string — see add_chart vocabulary)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_type"",""slide"":1,""shape_id"":2,""value"":""barclustered""}"
+        Case "set_chart_title"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(string)" & vbCrLf & _
+                "  OPTIONAL: enabled(bool)=true, props({font_size,font_color,font_bold,font_italic,position})" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_title"",""slide"":1,""shape_id"":2,""value"":""FY25 Revenue"",""props"":{""font_size"":18,""font_bold"":true,""font_color"":""#15283C""}}"
+        Case "set_chart_axis_title"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, axis(""x""|""y""|""category""|""value""), value(string)" & vbCrLf & _
+                "  OPTIONAL: props({font_size,font_color,font_bold,font_italic})" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_axis_title"",""slide"":1,""shape_id"":2,""axis"":""y"",""value"":""Revenue ($M)""}"
+        Case "set_chart_legend_position"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(""top""|""right""|""bottom""|""left""|""none"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_legend_position"",""slide"":1,""shape_id"":2,""value"":""bottom""}"
+        Case "set_chart_legend"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, props(object: visible|position|font_size|font_color)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_legend"",""slide"":1,""shape_id"":2,""props"":{""position"":""right"",""font_size"":10}}"
+        Case "set_series_color"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, series_index(1-based), value(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_series_color"",""slide"":1,""shape_id"":2,""series_index"":1,""value"":""#15283C""}"
+        Case "set_series_values"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, series_index(1-based), values(array of numbers; length must match categories)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_series_values"",""slide"":1,""shape_id"":2,""series_index"":1,""values"":[120,138,151,170]}"
+        Case "set_chart_categories"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, categories(array of strings)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_categories"",""slide"":1,""shape_id"":2,""categories"":[""FY22"",""FY23"",""FY24"",""FY25""]}"
+        Case "set_series_name"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, series_index(1-based), value(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_series_name"",""slide"":1,""shape_id"":2,""series_index"":1,""value"":""Revenue""}"
+        Case "set_chart_axis"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, axis(""x""|""y""|""y2""|""x2"" or aliases), props(object — see ACTIONS_REFERENCE.md §3.11)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_axis"",""slide"":1,""shape_id"":2,""axis"":""y"",""props"":{""min"":0,""max"":200,""major_unit"":50,""number_format"":""$#,##0""}}"
+        Case "set_chart_gridlines"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, props(object: major|minor|major_color|major_weight|major_dash|minor_color|minor_weight|minor_dash)" & vbCrLf & _
+                "  OPTIONAL: axis(""x""|""y""|""category""|""value""|""both"")=""y""" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_gridlines"",""slide"":1,""shape_id"":2,""props"":{""major"":true,""major_color"":""#E0E0E0"",""major_dash"":""dot""}}"
+        Case "set_chart_format"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, props(object — see ACTIONS_REFERENCE.md §3.11 for full key list)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_format"",""slide"":1,""shape_id"":2,""props"":{""gap_width"":50,""overlap"":0}}"
+        Case "set_chart_series"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, series_index(1-based), props(object)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_series"",""slide"":1,""shape_id"":2,""series_index"":1,""props"":{""fill"":""#15283C"",""show_labels"":true,""label_color"":""#FFFFFF""}}"
+        Case "add_chart_trendline"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, series_index(1-based), props(object: kind|order|period|forward|backward|display_equation|display_r_squared|color|dash|weight)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_chart_trendline"",""slide"":1,""shape_id"":2,""series_index"":1,""props"":{""kind"":""linear"",""color"":""#FF0000"",""display_r_squared"":true}}"
+        Case "set_chart_error_bars"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, series_index(1-based), props({direction,include,type,amount,end_style})" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_error_bars"",""slide"":1,""shape_id"":2,""series_index"":1,""props"":{""direction"":""y"",""include"":""both"",""type"":""percent"",""amount"":5}}"
+        Case "set_chart_data_table"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, visible(bool)" & vbCrLf & _
+                "  OPTIONAL: props({show_legend_key,horizontal_border,vertical_border,outline_border,font_size,font_color})" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_data_table"",""slide"":1,""shape_id"":2,""visible"":true}"
+        Case "set_line_smoothing"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, series_index(1-based), value(bool)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_line_smoothing"",""slide"":1,""shape_id"":2,""series_index"":1,""value"":true}"
+        Case "delete_series"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, series_index(1-based)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""delete_series"",""slide"":1,""shape_id"":2,""series_index"":3}"
+        Case "add_series"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, name(string), values(array of numbers; length must match categories)" & vbCrLf & _
+                "  OPTIONAL: color(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_series"",""slide"":1,""shape_id"":2,""name"":""Forecast"",""values"":[180,195,210,225],""color"":""#A6A6A6""}"
+        Case "set_data_label_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, series_index(1-based), point_index(1-based), value(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_data_label_text"",""slide"":1,""shape_id"":2,""series_index"":1,""point_index"":3,""value"":""peak""}"
+        ' ---- images / web ----
+        Case "replace_picture"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, path(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""replace_picture"",""slide"":1,""shape_id"":3,""path"":""C:\\imgs\\new.png""}"
+        Case "fetch_page_images"
+            GetActionGuidance = _
+                "  REQUIRED: url(string)" & vbCrLf & _
+                "  OPTIONAL: dest_folder(string), ref_name(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""fetch_page_images"",""url"":""https://example.com""}"
+        Case "download_image"
+            GetActionGuidance = _
+                "  REQUIRED: url(string), dest_path(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""download_image"",""url"":""https://example.com/img.jpg"",""dest_path"":""C:\\imgs\\img.jpg""}"
+        Case "open_image_picker"
+            GetActionGuidance = _
+                "  OPTIONAL: folder(string)  -- no required fields" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""open_image_picker"",""folder"":""C:\\imgs""}"
+        Case "build_image_picker_slide"
+            GetActionGuidance = _
+                "  OPTIONAL: folder, cols(int)=4, insert_at(int)=0, max_per_slide(int)=24" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""build_image_picker_slide"",""cols"":4,""max_per_slide"":24}"
+        Case "bulk_insert_image"
+            GetActionGuidance = _
+                "  REQUIRED: slide_indices(array of ints), picture_path, left, top, width, height (all num pt)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""bulk_insert_image"",""slide_indices"":[1,2,3],""picture_path"":""C:\\imgs\\logo.png"",""left"":800,""top"":510,""width"":120,""height"":40}"
+        ' ---- slides ----
+        Case "move_slide"
+            GetActionGuidance = _
+                "  REQUIRED: from (or from_slide), to (or to_slide) — both 1-based" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""move_slide"",""from"":3,""to"":1}"
+        Case "extract_slides"
+            GetActionGuidance = _
+                "  REQUIRED: slide_indices(array of ints), output_path(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""extract_slides"",""slide_indices"":[1,3,5],""output_path"":""C:\\extracted.pptx""}"
+        Case "import_slides_from_deck"
+            GetActionGuidance = _
+                "  REQUIRED: source_path(string), slide_indices(array of ints), target_position(int)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""import_slides_from_deck"",""source_path"":""C:\\other.pptx"",""slide_indices"":[2,3],""target_position"":1}"
+        Case "apply_layout_to_slides"
+            GetActionGuidance = _
+                "  REQUIRED: slide_indices(array), layout_index(int, 0-based)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""apply_layout_to_slides"",""slide_indices"":[2,3,4],""layout_index"":1}"
+        Case "change_slide_layout"
+            GetActionGuidance = _
+                "  REQUIRED: slide, layout_index(int, 0-based)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""change_slide_layout"",""slide"":3,""layout_index"":1}"
+        Case "apply_theme"
+            GetActionGuidance = _
+                "  REQUIRED: theme_path(string — .thmx or .potx)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""apply_theme"",""theme_path"":""C:\\themes\\brand.thmx""}"
+        Case "set_theme_font"
+            GetActionGuidance = _
+                "  REQUIRED: at least one of: major(string, heading), minor(string, body)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_theme_font"",""major"":""Calibri"",""minor"":""Calibri""}"
+        Case "swap_font_deck_wide"
+            GetActionGuidance = _
+                "  REQUIRED: from_name(string, non-empty), to_name(string, non-empty)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""swap_font_deck_wide"",""from_name"":""Arial"",""to_name"":""Calibri""}"
+        Case "set_slide_size"
+            GetActionGuidance = _
+                "  REQUIRED: preset(""16:9""|""4:3"") OR (width_pt(num>0) AND height_pt(num>0)) — not both" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_slide_size"",""preset"":""16:9""}"
+        Case "bulk_insert_text_box"
+            GetActionGuidance = _
+                "  REQUIRED: slide_indices(array of ints), text(string), left, top, width, height (all num pt)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""bulk_insert_text_box"",""slide_indices"":[1,2,3],""text"":""CONFIDENTIAL"",""left"":800,""top"":510,""width"":120,""height"":20}"
+        Case "set_slide_background_color"
+            GetActionGuidance = _
+                "  REQUIRED: slide, color(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_slide_background_color"",""slide"":1,""color"":""#15283C""}"
+        Case "insert_slide_number"
+            GetActionGuidance = _
+                "  REQUIRED: slide, pos({left,top,width,height})" & vbCrLf & _
+                "  OPTIONAL: ref_name, font_color, font_size" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""insert_slide_number"",""slide"":1,""pos"":{""left"":900,""top"":520,""width"":40,""height"":20},""font_size"":10}"
+        Case "set_slide_hidden"
+            GetActionGuidance = _
+                "  REQUIRED: slide, value(bool — true hides, false un-hides from slideshow)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_slide_hidden"",""slide"":5,""value"":true}"
+        Case "set_slide_name"
+            GetActionGuidance = _
+                "  REQUIRED: slide, value(string, non-empty)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_slide_name"",""slide"":1,""value"":""Title slide""}"
+        Case "set_slide_transition"
+            GetActionGuidance = _
+                "  REQUIRED: slide, effect(""none""|""fade""|""push""|""wipe""|""split""|""reveal""|""cut""|""dissolve""|""checkerboard""|""blinds""|""random_bars""|""box""|""comb""|""zoom""|""morph"")" & vbCrLf & _
+                "  OPTIONAL: speed(""slow""|""medium""|""fast""), advance_on_click(bool), advance_after_seconds(num)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_slide_transition"",""slide"":1,""effect"":""fade"",""speed"":""medium""}"
+        Case "add_section"
+            GetActionGuidance = _
+                "  REQUIRED: before_slide(int, 1-based), name(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_section"",""before_slide"":3,""name"":""Financials""}"
+        Case "delete_section"
+            GetActionGuidance = _
+                "  REQUIRED: section_index(int, 1-based)" & vbCrLf & _
+                "  OPTIONAL: delete_slides(bool)=false" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""delete_section"",""section_index"":2,""delete_slides"":false}"
+        Case "rename_section"
+            GetActionGuidance = _
+                "  REQUIRED: section_index(int), name(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""rename_section"",""section_index"":1,""name"":""Intro""}"
+        Case "move_section"
+            GetActionGuidance = _
+                "  REQUIRED: section_index(int), to_position(int)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""move_section"",""section_index"":2,""to_position"":1}"
+        ' ---- effects ----
+        Case "set_line_color"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_line_color"",""slide"":1,""shape_id"":3,""value"":""#15283C""}"
+        Case "set_line_weight"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, weight_pt(num>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_line_weight"",""slide"":1,""shape_id"":3,""weight_pt"":1.5}"
+        Case "set_line_style"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, style(""solid""|""dash""|""dot""|""dashdot"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_line_style"",""slide"":1,""shape_id"":3,""style"":""dash""}"
+        Case "set_shadow"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, offset_x(num), offset_y(num), blur(num), color(#RRGGBB), transparency(num 0..1)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_shadow"",""slide"":1,""shape_id"":3,""offset_x"":3,""offset_y"":3,""blur"":6,""color"":""#000000"",""transparency"":0.5}"
+        Case "set_glow"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, color(#RRGGBB), radius(num), transparency(num 0..1)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_glow"",""slide"":1,""shape_id"":3,""color"":""#FFD700"",""radius"":8,""transparency"":0.3}"
+        Case "set_reflection"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, size(num 0..1), transparency(num 0..1), distance(num pt)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_reflection"",""slide"":1,""shape_id"":3,""size"":0.5,""transparency"":0.5,""distance"":4}"
+        Case "set_transparency"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(num 0..1)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_transparency"",""slide"":1,""shape_id"":3,""value"":0.3}"
+        Case "set_gradient_fill"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, color1(#RRGGBB), color2(#RRGGBB), angle(num deg)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_gradient_fill"",""slide"":1,""shape_id"":3,""color1"":""#15283C"",""color2"":""#2A4F82"",""angle"":90}"
+        Case "set_3d_bevel"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, type(""circle""|""slope""|""cross""|""angle""|""softround""), depth_pt(num)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_3d_bevel"",""slide"":1,""shape_id"":3,""type"":""circle"",""depth_pt"":6}"
+        Case "set_3d_rotation"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, AND at least one of: x(deg), y(deg), z(deg)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_3d_rotation"",""slide"":1,""shape_id"":3,""x"":20,""y"":-30}"
+        Case "set_soft_edge"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, radius_pt(num; 0 clears)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_soft_edge"",""slide"":1,""shape_id"":3,""radius_pt"":5}"
+        Case "apply_preset_effect"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, preset_index(int 1..24)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""apply_preset_effect"",""slide"":1,""shape_id"":3,""preset_index"":12}"
+        Case "crop_picture"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, left(num), right(num), top(num), bottom(num) — all pt" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""crop_picture"",""slide"":1,""shape_id"":3,""left"":10,""right"":10,""top"":0,""bottom"":0}"
+        Case "recolor_picture"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, color_type(""grayscale""|""sepia""|""washout""|""bw""|""auto"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""recolor_picture"",""slide"":1,""shape_id"":3,""color_type"":""grayscale""}"
+        Case "set_brightness", "set_contrast"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(num -1.0..1.0; picture only)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3,""value"":0.2}"
+        Case "apply_picture_artistic_effect"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, effect(""none""|""marker""|""pencil_grayscale""|""pencil_sketch""|""line_drawing""|""chalk_sketch""|""paint_strokes""|""paint_brush""|""glow_diffused""|""blur""|""light_screen""|""watercolor""|""film_grain""|""mosaic_bubbles""|""glass""|""cement""|""texturizer""|""crisscross""|""pastels_smooth""|""plastic_wrap""|""cutout""|""photocopy""|""glow_edges"")" & vbCrLf & _
+                "  OPTIONAL: intensity(int 0..100)=50" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""apply_picture_artistic_effect"",""slide"":1,""shape_id"":3,""effect"":""watercolor"",""intensity"":50}"
+        Case "reset_picture"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id  -- undoes brightness/contrast/crop/recolor/artistic effect" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""reset_picture"",""slide"":1,""shape_id"":3}"
+        ' ---- speaker notes formatting ----
+        Case "set_notes_font_size"
+            GetActionGuidance = _
+                "  REQUIRED: slide, value(int>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_notes_font_size"",""slide"":3,""value"":11}"
+        Case "set_notes_font_color"
+            GetActionGuidance = _
+                "  REQUIRED: slide, value(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_notes_font_color"",""slide"":3,""value"":""#333333""}"
+        Case "set_notes_font_bold", "set_notes_font_italic"
+            GetActionGuidance = _
+                "  REQUIRED: slide, value(bool)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":3,""value"":true}"
+        Case "set_notes_font_name"
+            GetActionGuidance = _
+                "  REQUIRED: slide, value(string, non-empty)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_notes_font_name"",""slide"":3,""value"":""Calibri""}"
+        ' ---- verification ----
+        Case "run_verification"
+            GetActionGuidance = _
+                "  OPTIONAL: scope(""deck""|""slide:N"")=""deck"", max_warnings(int)=100" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""run_verification"",""scope"":""deck""}"
+        Case Else
+            ' Fallback for any action whose guidance entry hasn't been added.
+            ' This should be rare since the table above covers all ~165 known
+            ' types. If it fires, add a Case for the new type.
+            GetActionGuidance = _
+                "  No canonical guidance entry for ""'" & actionType & "'"" yet. See " & _
+                "docs/ACTIONS_REFERENCE.md §3 for the exact signature." & vbCrLf & _
                 "  General rules: every action has type+slide; existing-shape actions add shape_id; " & vbCrLf & _
                 "  paragraph actions add paragraph_index (0-based); run actions add paragraph_index + run_index (both 0-based); " & vbCrLf & _
                 "  table cell actions use row+col (1-based); chart series actions use series_index (1-based)."

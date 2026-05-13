@@ -47,3 +47,11 @@ test_decks/web_image_test*
 # Ad-hoc chart-verification decks (created by tools/test_charts.py etc.)
 decko_chart_test.pptx
 decko_loadfile_test.pptx
+
+# Runtime artifacts from modVerify quality-check loop
+*.warnings.json
+tests/test_verify_deck.pptx
+tests/demo_pngs/
+
+# Local ad-hoc test deck
+tests/quad_test.pptx

@@ -6,36 +6,53 @@ The user copies a JSON snapshot of the active deck into their LLM tool,
 describes a desired change, copies the LLM's instructions JSON back, and
 clicks Apply. Three macros, three UserForms, no API calls from PowerPoint.
 
+After every Apply, an automatic 32-check quality-verification loop sweeps the
+deck and flags problems (off-slide shapes, unreadable contrast, tiny fonts,
+broken hyperlinks, etc.). Two one-click buttons — **Fix Errors** (pre-Apply)
+and **Fix This** (post-Apply) — copy LLM-ready repair prompts to the clipboard
+so the user never reads raw error text or opens a JSON file by hand.
+
+**Fix Errors covers every action type** (~165) with canonical signature +
+working example, so even a weak LLM that produced malformed JSON gets enough
+context to self-correct without the user typing anything. See
+[`docs/VERIFICATION.md`](docs/VERIFICATION.md) for the full check list and the
+button mechanics.
+
 ## Documentation
 
+- **[`SETUP.md`](SETUP.md)** — fresh-clone bulletproof setup. **Read first if
+  you just cloned this repo.**
 - **[`docs/PROMPTING_GUIDE.md`](docs/PROMPTING_GUIDE.md)** — how to phrase
-  requests, worked examples, and a section for AI assistants (Hermes, OpenClaw,
-  GPT/Claude-class) on turning a VP request into the `actions` JSON.
+  requests, worked examples, and a section for AI assistants on turning a VP
+  request into the `actions` JSON.
 - **[`docs/ACTIONS_REFERENCE.md`](docs/ACTIONS_REFERENCE.md)** — the complete,
-  machine-precise schema for all ~130 actions (required/optional fields, value
+  machine-precise schema for all ~165 actions (required/optional fields, value
   vocabularies, examples). Read this literally; you don't need to have built
   Decko to use it.
+- **[`docs/VERIFICATION.md`](docs/VERIFICATION.md)** — quality-check loop and
+  the two Fix buttons explained end-to-end (what runs, when, what each warning
+  looks like, opt-out flags, performance limits).
 - **[`docs/EXAMPLES.md`](docs/EXAMPLES.md)** — a corpus of paired examples
   (VP prompt → exact `actions` JSON), ~45 worked cases across every action
   category. Best place for an agent to learn the request→actions mapping.
 - **[`docs/LAYOUT_RECIPES.md`](docs/LAYOUT_RECIPES.md)** — redesigning a slide's
   whole layout: a catalog of region presets (67/33, 50/50, quad, 3-/4-column,
-  2-stacked-left + 1-right, etc., with exact pt coordinates for 960×540), the
-  "explode a bullet box into visual cards" recipe, and mixed-object re-flow.
+  2-stacked-left + 1-right, etc., with exact pt coordinates for 960×540).
 - **[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)** — practical guide for VPs/MDs.
-- Design specs: `docs/specs/2026-05-08-ppt-ai-editor-design.md` (Phase 1),
-  `docs/specs/2026-05-08-ppt-ai-editor-phase2-design.md` (Phase 2).
+- Design specs in `docs/specs/`.
 
 ## One-time developer setup
 
-1. Install Python 3.10+ and run `pip install -r requirements.txt`.
-2. In PowerPoint: File → Options → Trust Center → Trust Center Settings →
-   Macro Settings → check **Trust access to the VBA project object model**.
-3. From the repo root, run `python tools/build_carrier.py` to bootstrap
-   `PPT_AI_Editor.pptm` (idempotent — skips if it already exists).
-4. Run `python tools/build_forms.py` to author the two UserForms inside the
-   carrier and export their `.frm`/`.frx` source files to `src/`.
-5. Run `python update_macros.py` to sync `src/` modules into the carrier.
+See [`SETUP.md`](SETUP.md) for the bulletproof checklist. Short version:
+
+```bash
+pip install -r requirements.txt        # pywin32 + python-pptx
+python update_macros.py                # sync src/*.bas + *.frm into carrier
+python tools/add_fix_button.py         # one-time install of Fix Errors / Fix This buttons
+```
+
+Plus: enable **Trust access to the VBA project object model** in PowerPoint
+Trust Center.
 
 ## Daily use
 
@@ -50,9 +67,16 @@ clicks Apply. Three macros, three UserForms, no API calls from PowerPoint.
    **Parse**, or — for a large batch — click **"Load from file..."** and pick
    the `.json` file (the text box corrupts big pastes; the file path doesn't).
    Review the action list — invalid rows are tagged.
-7. Click **Apply**. The deck is backed up first, then valid actions are
-   executed in order. A summary line shows applied / skipped counts and the
-   paths to the backup file and JSONL action log.
+7. **If any action is INVALID** — click **Fix Errors**. The clipboard now
+   holds a prompt with each failing action + canonical signature + example.
+   Paste into your LLM chat, get a corrected batch back, go to step 6.
+8. **All OK** — click **Apply**. Deck is backed up first, then valid actions
+   execute in order. After actions finish, the 32-check verify loop runs
+   automatically (typically <500 ms). Status line shows applied/skipped counts
+   plus `verification: N warning(s), M info`.
+9. **If verify found warnings** — click **Fix This**. Clipboard holds a prompt
+   with each quality issue + a suggested fix action. Paste into LLM, get the
+   fix batch, go to step 6.
 
 ## Action types
 
