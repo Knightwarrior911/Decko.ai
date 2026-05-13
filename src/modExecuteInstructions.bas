@@ -67,9 +67,44 @@ Public Function ExecuteFromString(jsonText As String) As String
         End If
     Next i
 
+    ' --- Automatic verification sweep ----------------------------------
+    ' Runs by default; caller may set "verify_after": false at the top level
+    ' to skip (e.g. when chaining batches and only the last should verify),
+    ' or "verify_scope": "slide:N" / "deck" to scope the sweep.
+    Dim verifyOn As Boolean: verifyOn = True
+    If parsed.Exists("verify_after") Then verifyOn = modActions.ToBool(parsed("verify_after"))
+    Dim verifyScope As String: verifyScope = "deck"
+    If parsed.Exists("verify_scope") Then verifyScope = CStr(parsed("verify_scope"))
+
+    Dim verifyMsg As String: verifyMsg = ""
+    Dim warningsJson As String: warningsJson = ""
+    If verifyOn Then
+        Dim warnings As Collection
+        Set warnings = modVerify.RunVerificationLoop(verifyScope, 100)
+        verifyMsg = " | " & modVerify.FormatWarningsSummary(warnings)
+        warningsJson = modVerify.WarningsToJson(warnings)
+        If warnings.Count > 0 Then
+            ' Persist warnings to a sidecar file so the LLM / user can read details.
+            WriteWarningsSidecar deckPath, warningsJson
+            verifyMsg = verifyMsg & " (details: " & deckPath & ".warnings.json)"
+        End If
+    End If
+
     ExecuteFromString = applied & " applied, " & skipped & " skipped. " & _
-                        "Log: " & deckPath & ".action_log.jsonl"
+                        "Log: " & deckPath & ".action_log.jsonl" & verifyMsg
 End Function
+
+' Write the warnings JSON to <deckPath>.warnings.json so a human or downstream
+' agent can read the full payload without parsing the action_log.
+Private Sub WriteWarningsSidecar(deckPath As String, warningsJson As String)
+    On Error Resume Next
+    Dim path As String: path = deckPath & ".warnings.json"
+    Dim fnum As Integer: fnum = FreeFile
+    Open path For Output As #fnum
+    Print #fnum, "{""warnings"":" & warningsJson & "}"
+    Close #fnum
+    On Error GoTo 0
+End Sub
 
 ' Returns "" if valid, else a reason string.
 Private Function ValidateAction(act As Object) As String
@@ -913,6 +948,9 @@ Private Function ValidateAction(act As Object) As String
         Case "set_data_label_text"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "series_index", "point_index", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "run_verification"
+            ' Optional scope (default "deck") and max_warnings (default 100); no required fields.
+            ValidateAction = ""
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -1986,6 +2024,21 @@ Private Sub DispatchAction(act As Object)
         Case "set_data_label_text"
             modActionsChart.Do_set_data_label_text CLng(act("slide")), CLng(act("shape_id")), _
                 CLng(act("series_index")), CLng(act("point_index")), CStr(act("value"))
+        Case "run_verification"
+            ' Standalone mid-batch verification trigger. Writes sidecar JSON.
+            Dim rvScope As String: rvScope = "deck"
+            Dim rvMax As Long: rvMax = 100
+            If act.Exists("scope") Then rvScope = CStr(act("scope"))
+            If act.Exists("max_warnings") Then rvMax = CLng(act("max_warnings"))
+            Dim rvWarns As Collection
+            Set rvWarns = modVerify.RunVerificationLoop(rvScope, rvMax)
+            On Error Resume Next
+            Dim rvPath As String: rvPath = ActivePresentation.FullName & ".warnings.json"
+            Dim fnum As Integer: fnum = FreeFile
+            Open rvPath For Output As #fnum
+            Print #fnum, "{""warnings"":" & modVerify.WarningsToJson(rvWarns) & "}"
+            Close #fnum
+            On Error GoTo 0
     End Select
 End Sub
 
