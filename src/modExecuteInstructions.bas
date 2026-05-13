@@ -697,6 +697,81 @@ Private Function ValidateAction(act As Object) As String
         Case "add_series"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "name", "values"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        ' --- GRANULAR TABLE ACTIONS ---------------------------------------
+        Case "populate_table_row"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "values"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "populate_table_column"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "col", "values"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "populate_table_cells"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "start_row", "start_col", "values"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_cell_font_size"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "value"))
+            If Len(ValidateAction) = 0 Then
+                If Not IsNumeric(act("value")) Or CLng(act("value")) <= 0 Then _
+                    ValidateAction = "value: must be a positive integer"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_cell_font_color", "set_cell_font_name"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_cell_font_bold", "set_cell_font_italic", "set_cell_font_underline"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_cell_text_orientation"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "value"))
+            If Len(ValidateAction) = 0 Then
+                Dim ctoVal As String: ctoVal = LCase(CStr(act("value")))
+                If ctoVal <> "horizontal" And ctoVal <> "vertical_90" And _
+                   ctoVal <> "vertical_270" And ctoVal <> "stacked" Then _
+                    ValidateAction = "value: must be horizontal/vertical_90/vertical_270/stacked"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_row_fill", "set_row_font_color"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_column_fill", "set_column_font_color"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "col", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_row_font_size", "set_row_font_bold"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_column_font_size", "set_column_font_bold"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "col", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "clear_row_text"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "clear_column_text"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "col"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_table_font_size"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If Len(ValidateAction) = 0 Then
+                If Not IsNumeric(act("value")) Or CLng(act("value")) <= 0 Then _
+                    ValidateAction = "value: must be a positive integer"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_table_font_name", "set_table_font_color"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "auto_fit_table_text"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_table_borders"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "side"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_row_borders"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "side"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_column_borders"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "col", "side"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "unmerge_cells"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -1539,6 +1614,103 @@ Private Sub DispatchAction(act As Object)
             If act.Exists("color") Then asColor = CStr(act("color"))
             modActionsChart.Do_add_series CLng(act("slide")), CLng(act("shape_id")), _
                 CStr(act("name")), act("values"), asColor
+        ' --- GRANULAR TABLE ACTIONS -------------------------------------------
+        Case "populate_table_row"
+            modActionsTable.Do_populate_table_row CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), act("values")
+        Case "populate_table_column"
+            modActionsTable.Do_populate_table_column CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("col")), act("values")
+        Case "populate_table_cells"
+            modActionsTable.Do_populate_table_cells CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("start_row")), CLng(act("start_col")), act("values")
+        Case "set_cell_font_size"
+            modActionsTable.Do_set_cell_font_size CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CLng(act("value"))
+        Case "set_cell_font_color"
+            modActionsTable.Do_set_cell_font_color CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CStr(act("value"))
+        Case "set_cell_font_bold"
+            modActionsTable.Do_set_cell_font_bold CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), modActions.ToBool(act("value"))
+        Case "set_cell_font_italic"
+            modActionsTable.Do_set_cell_font_italic CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), modActions.ToBool(act("value"))
+        Case "set_cell_font_underline"
+            modActionsTable.Do_set_cell_font_underline CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), modActions.ToBool(act("value"))
+        Case "set_cell_font_name"
+            modActionsTable.Do_set_cell_font_name CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CStr(act("value"))
+        Case "set_cell_text_orientation"
+            modActionsTable.Do_set_cell_text_orientation CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CStr(act("value"))
+        Case "set_row_fill"
+            modActionsTable.Do_set_row_fill CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CStr(act("value"))
+        Case "set_column_fill"
+            modActionsTable.Do_set_column_fill CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("col")), CStr(act("value"))
+        Case "set_row_font_size"
+            modActionsTable.Do_set_row_font_size CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("value"))
+        Case "set_column_font_size"
+            modActionsTable.Do_set_column_font_size CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("col")), CLng(act("value"))
+        Case "set_row_font_color"
+            modActionsTable.Do_set_row_font_color CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CStr(act("value"))
+        Case "set_column_font_color"
+            modActionsTable.Do_set_column_font_color CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("col")), CStr(act("value"))
+        Case "set_row_font_bold"
+            modActionsTable.Do_set_row_font_bold CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), modActions.ToBool(act("value"))
+        Case "set_column_font_bold"
+            modActionsTable.Do_set_column_font_bold CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("col")), modActions.ToBool(act("value"))
+        Case "clear_row_text"
+            modActionsTable.Do_clear_row_text CLng(act("slide")), CLng(act("shape_id")), CLng(act("row"))
+        Case "clear_column_text"
+            modActionsTable.Do_clear_column_text CLng(act("slide")), CLng(act("shape_id")), CLng(act("col"))
+        Case "set_table_font_size"
+            modActionsTable.Do_set_table_font_size CLng(act("slide")), CLng(act("shape_id")), CLng(act("value"))
+        Case "set_table_font_name"
+            modActionsTable.Do_set_table_font_name CLng(act("slide")), CLng(act("shape_id")), CStr(act("value"))
+        Case "set_table_font_color"
+            modActionsTable.Do_set_table_font_color CLng(act("slide")), CLng(act("shape_id")), CStr(act("value"))
+        Case "auto_fit_table_text"
+            modActionsTable.Do_auto_fit_table_text CLng(act("slide")), CLng(act("shape_id"))
+        Case "set_table_borders"
+            Dim tbBdColor As String: tbBdColor = ""
+            Dim tbBdWeight As Single: tbBdWeight = 0
+            Dim tbBdVisible As Boolean: tbBdVisible = True
+            If act.Exists("color") Then tbBdColor = CStr(act("color"))
+            If act.Exists("weight_pt") Then tbBdWeight = CSng(act("weight_pt"))
+            If act.Exists("visible") Then tbBdVisible = modActions.ToBool(act("visible"))
+            modActionsTable.Do_set_table_borders CLng(act("slide")), CLng(act("shape_id")), _
+                CStr(act("side")), tbBdColor, tbBdWeight, tbBdVisible
+        Case "set_row_borders"
+            Dim rbColor As String: rbColor = ""
+            Dim rbWeight As Single: rbWeight = 0
+            Dim rbVisible As Boolean: rbVisible = True
+            If act.Exists("color") Then rbColor = CStr(act("color"))
+            If act.Exists("weight_pt") Then rbWeight = CSng(act("weight_pt"))
+            If act.Exists("visible") Then rbVisible = modActions.ToBool(act("visible"))
+            modActionsTable.Do_set_row_borders CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CStr(act("side")), rbColor, rbWeight, rbVisible
+        Case "set_column_borders"
+            Dim cbBdColor As String: cbBdColor = ""
+            Dim cbBdWeight As Single: cbBdWeight = 0
+            Dim cbBdVisible As Boolean: cbBdVisible = True
+            If act.Exists("color") Then cbBdColor = CStr(act("color"))
+            If act.Exists("weight_pt") Then cbBdWeight = CSng(act("weight_pt"))
+            If act.Exists("visible") Then cbBdVisible = modActions.ToBool(act("visible"))
+            modActionsTable.Do_set_column_borders CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("col")), CStr(act("side")), cbBdColor, cbBdWeight, cbBdVisible
+        Case "unmerge_cells"
+            modActionsTable.Do_unmerge_cells CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col"))
     End Select
 End Sub
 

@@ -274,6 +274,426 @@ Public Sub Do_set_table_style_options(slideNum As Long, shapeId As Long, _
     On Error GoTo 0
 End Sub
 
+' =============================================================================
+' GRANULAR TABLE ACTIONS — bulk populate, per-cell font, row/column ops, borders
+' =============================================================================
+
+' --- Internal helpers --------------------------------------------------------
+
+' Resolve a table shape; raise if not a table.
+Private Function ResolveTableShape(slideNum As Long, shapeId As Long, label As String) As Shape
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8100, label, "shape not found"
+    If Not sh.HasTable Then Err.Raise vbObjectError + 8100, label, "shape is not a table"
+    Set ResolveTableShape = sh
+End Function
+
+' Apply a callback-like single-property change to one cell's text frame.
+Private Sub SetCellTextProp(cell As Object, propName As String, value As Variant)
+    On Error Resume Next
+    Dim cs As Shape: Set cs = cell.Shape
+    If Not cs.HasTextFrame Then Exit Sub
+    Dim tr As TextRange: Set tr = cs.TextFrame.TextRange
+    Select Case propName
+        Case "size":      tr.Font.Size = CLng(value)
+        Case "color":     tr.Font.Color.RGB = modActions.HexToRgb(CStr(value))
+        Case "bold":      tr.Font.Bold = IIf(modActions.ToBool(value), msoTrue, msoFalse)
+        Case "italic":    tr.Font.Italic = IIf(modActions.ToBool(value), msoTrue, msoFalse)
+        Case "underline": tr.Font.Underline = IIf(modActions.ToBool(value), msoTrue, msoFalse)
+        Case "name":      tr.Font.Name = CStr(value)
+    End Select
+    On Error GoTo 0
+End Sub
+
+' Count elements in a JSON-parsed array (Collection) or VB array.
+Private Function ArrayCount(v As Variant) As Long
+    If TypeName(v) = "Collection" Then
+        ArrayCount = v.Count
+    ElseIf IsArray(v) Then
+        On Error Resume Next
+        ArrayCount = UBound(v) - LBound(v) + 1
+        On Error GoTo 0
+    Else
+        ArrayCount = 1
+    End If
+End Function
+
+' Read element i (1-based for Collection, base-aware for array).
+Private Function ArrayAt(v As Variant, i As Long) As Variant
+    If TypeName(v) = "Collection" Then
+        ArrayAt = v(i)
+    ElseIf IsArray(v) Then
+        ArrayAt = v(LBound(v) + i - 1)
+    Else
+        ArrayAt = v
+    End If
+End Function
+
+' --- Bulk populate ----------------------------------------------------------
+' These eliminate the off-by-one shift LLMs hit when chaining many
+' set_cell_text actions: a single action with a values array maps 1:1 onto
+' the column indices, so there is no way to misalign.
+
+Public Sub Do_populate_table_row(slideNum As Long, shapeId As Long, _
+                                  rowNum As Long, values As Variant)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_populate_table_row")
+    Dim tbl As Table: Set tbl = sh.Table
+    If rowNum < 1 Or rowNum > tbl.Rows.Count Then _
+        Err.Raise vbObjectError + 8101, "Do_populate_table_row", "row out of range"
+    Dim n As Long: n = ArrayCount(values)
+    Dim cols As Long: cols = tbl.Columns.Count
+    Dim count As Long: count = n
+    If count > cols Then count = cols   ' clamp; trailing values silently dropped
+    Dim i As Long
+    For i = 1 To count
+        Dim cell As Object: Set cell = tbl.Cell(rowNum, i)
+        On Error Resume Next
+        cell.Shape.TextFrame.TextRange.Text = CStr(ArrayAt(values, i))
+        On Error GoTo 0
+    Next i
+End Sub
+
+Public Sub Do_populate_table_column(slideNum As Long, shapeId As Long, _
+                                     colNum As Long, values As Variant)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_populate_table_column")
+    Dim tbl As Table: Set tbl = sh.Table
+    If colNum < 1 Or colNum > tbl.Columns.Count Then _
+        Err.Raise vbObjectError + 8102, "Do_populate_table_column", "col out of range"
+    Dim n As Long: n = ArrayCount(values)
+    Dim rows As Long: rows = tbl.Rows.Count
+    Dim count As Long: count = n
+    If count > rows Then count = rows
+    Dim i As Long
+    For i = 1 To count
+        Dim cell As Object: Set cell = tbl.Cell(i, colNum)
+        On Error Resume Next
+        cell.Shape.TextFrame.TextRange.Text = CStr(ArrayAt(values, i))
+        On Error GoTo 0
+    Next i
+End Sub
+
+' 2D bulk populate starting at (start_row, start_col). values is an array of
+' arrays — outer = rows, inner = cells. Out-of-bounds cells are skipped.
+Public Sub Do_populate_table_cells(slideNum As Long, shapeId As Long, _
+                                    startRow As Long, startCol As Long, _
+                                    values As Variant)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_populate_table_cells")
+    Dim tbl As Table: Set tbl = sh.Table
+    If startRow < 1 Or startCol < 1 Then _
+        Err.Raise vbObjectError + 8103, "Do_populate_table_cells", "start_row/start_col must be >= 1"
+    Dim rowsN As Long: rowsN = ArrayCount(values)
+    Dim r As Long, c As Long
+    For r = 1 To rowsN
+        Dim absRow As Long: absRow = startRow + r - 1
+        If absRow > tbl.Rows.Count Then Exit For
+        Dim rowArr As Variant: rowArr = ArrayAt(values, r)
+        Dim colsN As Long: colsN = ArrayCount(rowArr)
+        For c = 1 To colsN
+            Dim absCol As Long: absCol = startCol + c - 1
+            If absCol > tbl.Columns.Count Then Exit For
+            Dim cell As Object: Set cell = tbl.Cell(absRow, absCol)
+            On Error Resume Next
+            cell.Shape.TextFrame.TextRange.Text = CStr(ArrayAt(rowArr, c))
+            On Error GoTo 0
+        Next c
+    Next r
+End Sub
+
+' --- Per-cell font / text formatting ---------------------------------------
+
+Public Sub Do_set_cell_font_size(slideNum As Long, shapeId As Long, _
+                                  rowNum As Long, colNum As Long, value As Long)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_cell_font_size")
+    If value <= 0 Then Err.Raise vbObjectError + 8110, "Do_set_cell_font_size", "size must be > 0"
+    SetCellTextProp sh.Table.Cell(rowNum, colNum), "size", value
+End Sub
+
+Public Sub Do_set_cell_font_color(slideNum As Long, shapeId As Long, _
+                                   rowNum As Long, colNum As Long, hexValue As String)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_cell_font_color")
+    SetCellTextProp sh.Table.Cell(rowNum, colNum), "color", hexValue
+End Sub
+
+Public Sub Do_set_cell_font_bold(slideNum As Long, shapeId As Long, _
+                                  rowNum As Long, colNum As Long, value As Boolean)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_cell_font_bold")
+    SetCellTextProp sh.Table.Cell(rowNum, colNum), "bold", value
+End Sub
+
+Public Sub Do_set_cell_font_italic(slideNum As Long, shapeId As Long, _
+                                    rowNum As Long, colNum As Long, value As Boolean)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_cell_font_italic")
+    SetCellTextProp sh.Table.Cell(rowNum, colNum), "italic", value
+End Sub
+
+Public Sub Do_set_cell_font_underline(slideNum As Long, shapeId As Long, _
+                                       rowNum As Long, colNum As Long, value As Boolean)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_cell_font_underline")
+    SetCellTextProp sh.Table.Cell(rowNum, colNum), "underline", value
+End Sub
+
+Public Sub Do_set_cell_font_name(slideNum As Long, shapeId As Long, _
+                                  rowNum As Long, colNum As Long, fontName As String)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_cell_font_name")
+    If Len(Trim(fontName)) = 0 Then Err.Raise vbObjectError + 8115, "Do_set_cell_font_name", "name empty"
+    SetCellTextProp sh.Table.Cell(rowNum, colNum), "name", fontName
+End Sub
+
+' Rotate text inside a cell. orientation: "horizontal" (default),
+' "vertical_90" (top-to-bottom), "vertical_270" (bottom-to-top), "stacked".
+Public Sub Do_set_cell_text_orientation(slideNum As Long, shapeId As Long, _
+                                         rowNum As Long, colNum As Long, orientation As String)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_cell_text_orientation")
+    Dim cs As Shape: Set cs = sh.Table.Cell(rowNum, colNum).Shape
+    If Not cs.HasTextFrame Then Exit Sub
+    On Error Resume Next
+    Select Case LCase(orientation)
+        Case "horizontal":   cs.TextFrame2.Orientation = 1  ' msoTextOrientationHorizontal
+        Case "vertical_90":  cs.TextFrame2.Orientation = 5  ' msoTextOrientationDownward
+        Case "vertical_270": cs.TextFrame2.Orientation = 3  ' msoTextOrientationUpward
+        Case "stacked":      cs.TextFrame2.Orientation = 2  ' msoTextOrientationVertical
+        Case Else: Err.Raise vbObjectError + 8116, "Do_set_cell_text_orientation", _
+                              "orientation must be horizontal/vertical_90/vertical_270/stacked"
+    End Select
+    On Error GoTo 0
+End Sub
+
+' --- Row / column bulk ops --------------------------------------------------
+' These iterate every cell in the row/column and apply the change. Faster and
+' less error-prone than N individual set_cell_* actions.
+
+Public Sub Do_set_row_fill(slideNum As Long, shapeId As Long, rowNum As Long, hexColor As String)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_row_fill")
+    Dim tbl As Table: Set tbl = sh.Table
+    If rowNum < 1 Or rowNum > tbl.Rows.Count Then _
+        Err.Raise vbObjectError + 8120, "Do_set_row_fill", "row out of range"
+    Dim c As Long
+    For c = 1 To tbl.Columns.Count
+        With tbl.Cell(rowNum, c).Shape.Fill
+            .Visible = msoTrue: .Solid: .ForeColor.RGB = modActions.HexToRgb(hexColor)
+        End With
+    Next c
+End Sub
+
+Public Sub Do_set_column_fill(slideNum As Long, shapeId As Long, colNum As Long, hexColor As String)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_column_fill")
+    Dim tbl As Table: Set tbl = sh.Table
+    If colNum < 1 Or colNum > tbl.Columns.Count Then _
+        Err.Raise vbObjectError + 8121, "Do_set_column_fill", "col out of range"
+    Dim r As Long
+    For r = 1 To tbl.Rows.Count
+        With tbl.Cell(r, colNum).Shape.Fill
+            .Visible = msoTrue: .Solid: .ForeColor.RGB = modActions.HexToRgb(hexColor)
+        End With
+    Next r
+End Sub
+
+Public Sub Do_set_row_font_size(slideNum As Long, shapeId As Long, rowNum As Long, value As Long)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_row_font_size")
+    Dim tbl As Table: Set tbl = sh.Table
+    If rowNum < 1 Or rowNum > tbl.Rows.Count Then _
+        Err.Raise vbObjectError + 8122, "Do_set_row_font_size", "row out of range"
+    If value <= 0 Then Err.Raise vbObjectError + 8122, "Do_set_row_font_size", "size must be > 0"
+    Dim c As Long
+    For c = 1 To tbl.Columns.Count
+        SetCellTextProp tbl.Cell(rowNum, c), "size", value
+    Next c
+End Sub
+
+Public Sub Do_set_column_font_size(slideNum As Long, shapeId As Long, colNum As Long, value As Long)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_column_font_size")
+    Dim tbl As Table: Set tbl = sh.Table
+    If colNum < 1 Or colNum > tbl.Columns.Count Then _
+        Err.Raise vbObjectError + 8123, "Do_set_column_font_size", "col out of range"
+    If value <= 0 Then Err.Raise vbObjectError + 8123, "Do_set_column_font_size", "size must be > 0"
+    Dim r As Long
+    For r = 1 To tbl.Rows.Count
+        SetCellTextProp tbl.Cell(r, colNum), "size", value
+    Next r
+End Sub
+
+Public Sub Do_set_row_font_color(slideNum As Long, shapeId As Long, rowNum As Long, hexValue As String)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_row_font_color")
+    Dim tbl As Table: Set tbl = sh.Table
+    If rowNum < 1 Or rowNum > tbl.Rows.Count Then _
+        Err.Raise vbObjectError + 8124, "Do_set_row_font_color", "row out of range"
+    Dim c As Long
+    For c = 1 To tbl.Columns.Count
+        SetCellTextProp tbl.Cell(rowNum, c), "color", hexValue
+    Next c
+End Sub
+
+Public Sub Do_set_column_font_color(slideNum As Long, shapeId As Long, colNum As Long, hexValue As String)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_column_font_color")
+    Dim tbl As Table: Set tbl = sh.Table
+    If colNum < 1 Or colNum > tbl.Columns.Count Then _
+        Err.Raise vbObjectError + 8125, "Do_set_column_font_color", "col out of range"
+    Dim r As Long
+    For r = 1 To tbl.Rows.Count
+        SetCellTextProp tbl.Cell(r, colNum), "color", hexValue
+    Next r
+End Sub
+
+Public Sub Do_set_row_font_bold(slideNum As Long, shapeId As Long, rowNum As Long, value As Boolean)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_row_font_bold")
+    Dim tbl As Table: Set tbl = sh.Table
+    If rowNum < 1 Or rowNum > tbl.Rows.Count Then _
+        Err.Raise vbObjectError + 8126, "Do_set_row_font_bold", "row out of range"
+    Dim c As Long
+    For c = 1 To tbl.Columns.Count
+        SetCellTextProp tbl.Cell(rowNum, c), "bold", value
+    Next c
+End Sub
+
+Public Sub Do_set_column_font_bold(slideNum As Long, shapeId As Long, colNum As Long, value As Boolean)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_column_font_bold")
+    Dim tbl As Table: Set tbl = sh.Table
+    If colNum < 1 Or colNum > tbl.Columns.Count Then _
+        Err.Raise vbObjectError + 8127, "Do_set_column_font_bold", "col out of range"
+    Dim r As Long
+    For r = 1 To tbl.Rows.Count
+        SetCellTextProp tbl.Cell(r, colNum), "bold", value
+    Next r
+End Sub
+
+Public Sub Do_clear_row_text(slideNum As Long, shapeId As Long, rowNum As Long)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_clear_row_text")
+    Dim tbl As Table: Set tbl = sh.Table
+    If rowNum < 1 Or rowNum > tbl.Rows.Count Then _
+        Err.Raise vbObjectError + 8128, "Do_clear_row_text", "row out of range"
+    Dim c As Long
+    For c = 1 To tbl.Columns.Count
+        On Error Resume Next
+        tbl.Cell(rowNum, c).Shape.TextFrame.TextRange.Text = ""
+        On Error GoTo 0
+    Next c
+End Sub
+
+Public Sub Do_clear_column_text(slideNum As Long, shapeId As Long, colNum As Long)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_clear_column_text")
+    Dim tbl As Table: Set tbl = sh.Table
+    If colNum < 1 Or colNum > tbl.Columns.Count Then _
+        Err.Raise vbObjectError + 8129, "Do_clear_column_text", "col out of range"
+    Dim r As Long
+    For r = 1 To tbl.Rows.Count
+        On Error Resume Next
+        tbl.Cell(r, colNum).Shape.TextFrame.TextRange.Text = ""
+        On Error GoTo 0
+    Next r
+End Sub
+
+' --- Table-wide font ops ----------------------------------------------------
+
+Public Sub Do_set_table_font_size(slideNum As Long, shapeId As Long, value As Long)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_table_font_size")
+    If value <= 0 Then Err.Raise vbObjectError + 8130, "Do_set_table_font_size", "size must be > 0"
+    Dim tbl As Table: Set tbl = sh.Table
+    Dim r As Long, c As Long
+    For r = 1 To tbl.Rows.Count
+        For c = 1 To tbl.Columns.Count
+            SetCellTextProp tbl.Cell(r, c), "size", value
+        Next c
+    Next r
+End Sub
+
+Public Sub Do_set_table_font_name(slideNum As Long, shapeId As Long, fontName As String)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_table_font_name")
+    If Len(Trim(fontName)) = 0 Then Err.Raise vbObjectError + 8131, "Do_set_table_font_name", "name empty"
+    Dim tbl As Table: Set tbl = sh.Table
+    Dim r As Long, c As Long
+    For r = 1 To tbl.Rows.Count
+        For c = 1 To tbl.Columns.Count
+            SetCellTextProp tbl.Cell(r, c), "name", fontName
+        Next c
+    Next r
+End Sub
+
+Public Sub Do_set_table_font_color(slideNum As Long, shapeId As Long, hexValue As String)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_table_font_color")
+    Dim tbl As Table: Set tbl = sh.Table
+    Dim r As Long, c As Long
+    For r = 1 To tbl.Rows.Count
+        For c = 1 To tbl.Columns.Count
+            SetCellTextProp tbl.Cell(r, c), "color", hexValue
+        Next c
+    Next r
+End Sub
+
+' Enable shrink-to-fit auto-size on every cell's text frame. Use this when text
+' overflows table boundaries — PowerPoint will shrink the font in cells that
+' overflow without changing cells that already fit.
+Public Sub Do_auto_fit_table_text(slideNum As Long, shapeId As Long)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_auto_fit_table_text")
+    Dim tbl As Table: Set tbl = sh.Table
+    Dim r As Long, c As Long
+    For r = 1 To tbl.Rows.Count
+        For c = 1 To tbl.Columns.Count
+            On Error Resume Next
+            Dim cs As Shape: Set cs = tbl.Cell(r, c).Shape
+            If cs.HasTextFrame Then
+                cs.TextFrame2.AutoSize = 2  ' msoAutoSizeTextToFitShape (shrink)
+            End If
+            On Error GoTo 0
+        Next c
+    Next r
+End Sub
+
+' --- Bulk border ops --------------------------------------------------------
+' Apply the same border style to every cell in the table / row / column at once.
+' side accepts the same vocabulary as set_cell_border (top/left/bottom/right/
+' diag_down/diag_up/all). visible defaults to true; color/weight_pt optional.
+
+Public Sub Do_set_table_borders(slideNum As Long, shapeId As Long, _
+                                 side As String, hexColor As String, _
+                                 weightPt As Single, visible As Boolean)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_table_borders")
+    Dim tbl As Table: Set tbl = sh.Table
+    Dim r As Long, c As Long
+    For r = 1 To tbl.Rows.Count
+        For c = 1 To tbl.Columns.Count
+            Do_set_cell_border slideNum, shapeId, r, c, side, hexColor, weightPt, visible
+        Next c
+    Next r
+End Sub
+
+Public Sub Do_set_row_borders(slideNum As Long, shapeId As Long, rowNum As Long, _
+                               side As String, hexColor As String, _
+                               weightPt As Single, visible As Boolean)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_row_borders")
+    Dim tbl As Table: Set tbl = sh.Table
+    If rowNum < 1 Or rowNum > tbl.Rows.Count Then _
+        Err.Raise vbObjectError + 8140, "Do_set_row_borders", "row out of range"
+    Dim c As Long
+    For c = 1 To tbl.Columns.Count
+        Do_set_cell_border slideNum, shapeId, rowNum, c, side, hexColor, weightPt, visible
+    Next c
+End Sub
+
+Public Sub Do_set_column_borders(slideNum As Long, shapeId As Long, colNum As Long, _
+                                  side As String, hexColor As String, _
+                                  weightPt As Single, visible As Boolean)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_set_column_borders")
+    Dim tbl As Table: Set tbl = sh.Table
+    If colNum < 1 Or colNum > tbl.Columns.Count Then _
+        Err.Raise vbObjectError + 8141, "Do_set_column_borders", "col out of range"
+    Dim r As Long
+    For r = 1 To tbl.Rows.Count
+        Do_set_cell_border slideNum, shapeId, r, colNum, side, hexColor, weightPt, visible
+    Next r
+End Sub
+
+' Un-merge a previously merged cell. row/col identify any cell that is part of
+' the merged region. After unmerge, the region returns to individual cells.
+Public Sub Do_unmerge_cells(slideNum As Long, shapeId As Long, rowNum As Long, colNum As Long)
+    Dim sh As Shape: Set sh = ResolveTableShape(slideNum, shapeId, "Do_unmerge_cells")
+    Dim tbl As Table: Set tbl = sh.Table
+    If rowNum < 1 Or rowNum > tbl.Rows.Count Or colNum < 1 Or colNum > tbl.Columns.Count Then _
+        Err.Raise vbObjectError + 8142, "Do_unmerge_cells", "row/col out of range"
+    On Error Resume Next
+    tbl.Cell(rowNum, colNum).Split 1, 1   ' Split (rowsToSplit, colsToSplit) — 1,1 fully unmerges
+    On Error GoTo 0
+End Sub
+
 ' Build a 2-column "image + bullets" table populated from a rows array.
 ' Per-row layout in the image_col cell: an image overlay plus a name caption
 ' anchored at the cell's top or bottom. The desc_col cell receives bullet
