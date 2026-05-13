@@ -12,9 +12,15 @@ broken hyperlinks, etc.). Two one-click buttons — **Fix Errors** (pre-Apply)
 and **Fix This** (post-Apply) — copy LLM-ready repair prompts to the clipboard
 so the user never reads raw error text or opens a JSON file by hand.
 
-**Fix Errors covers every action type** (~165) with canonical signature +
-working example, so even a weak LLM that produced malformed JSON gets enough
-context to self-correct without the user typing anything. See
+**Fix Errors covers every action type** (~165, 234 dispatch labels) with
+canonical signature + working example, so even a weak LLM that produced
+malformed JSON gets enough context to self-correct without the user typing
+anything. When the LLM invents an action name that doesn't exist, Fix Errors
+also emits **"DID YOU MEAN: ..."** suggestions (word-stem similarity over the
+master action list). The same canonical guidance is mirrored into the public
+`docs/ACTIONS_REFERENCE.md` auto-appendix via
+`python tools/sync_actions_guidance.py` and policed by a drift test, so the
+in-app and on-disk references can never disagree. See
 [`docs/VERIFICATION.md`](docs/VERIFICATION.md) for the full check list and the
 button mechanics.
 

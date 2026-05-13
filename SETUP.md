@@ -128,6 +128,26 @@ python update_macros.py          # always safe; pulls fresh .bas/.frm
 # tools/add_fix_button.py is idempotent — re-run only if frmExecute changed
 ```
 
+## After adding / renaming an action in the dispatcher
+
+Two files must stay in sync with `modExecuteInstructions.DispatchAction`:
+
+1. **`GetActionGuidance` Case table** — canonical signature + example for
+   the new action. Coverage test `tests/test_guidance_coverage.py` fails if
+   you forget.
+2. **`GetAllActionTypes` master list** — used by `FindSimilarActions` for
+   "did you mean" suggestions on `unknown_type` errors.
+3. **`docs/ACTIONS_REFERENCE.md` auto-appendix** — auto-regenerated from
+   GetActionGuidance. Run:
+
+   ```bash
+   python tools/sync_actions_guidance.py
+   ```
+
+   Drift test `tests/test_guidance_doc_sync.py` fails if you forget.
+
+Both tests run end-to-end via PowerPoint COM (~10-20 s each).
+
 ## Cleaning up
 
 To wipe the carrier and rebuild from scratch:
