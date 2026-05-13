@@ -15,6 +15,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
 
+
 Option Explicit
 
 Private mParsed As Object
@@ -25,8 +26,7 @@ Private mValid() As Boolean
 ' the textbox entirely. Cleared the moment the user types in the textbox.
 Private mLoadedJson As String
 Private Sub btnFixThis_Click()
-    ' Delegates to modVerify.CopyWarningsPromptToClipboard so the logic is
-    ' testable from Application.Run and reusable elsewhere.
+    ' Post-Apply quality warnings -> clipboard. See modVerify.
     Dim n As Long
     n = modVerify.CopyWarningsPromptToClipboard()
     If n = 0 Then
@@ -35,6 +35,30 @@ Private Sub btnFixThis_Click()
         lblStatus.Caption = n & " warning(s) copied to clipboard as LLM prompt. " & _
                             "Paste into your chat and ask the model to fix."
     End If
+End Sub
+
+Private Sub btnFixErrors_Click()
+    ' Pre-Apply action validation errors -> clipboard. Reads current JSON
+    ' (textbox or loaded file), runs PreviewValidate on each action, builds
+    ' an LLM-ready prompt with errors + canonical guidance for each failing
+    ' action type. Eliminates the user having to read INVALID lines and
+    ' hand-type a correction request.
+    Dim json As String: json = CurrentJson()
+    If Len(json) = 0 Then
+        lblStatus.Caption = "No actions JSON to validate. Paste or Load a batch first."
+        Exit Sub
+    End If
+    Dim prompt As String
+    prompt = modExecuteInstructions.BuildErrorFixPrompt(json)
+    If Len(prompt) = 0 Then
+        lblStatus.Caption = "All actions are valid — nothing to fix."
+        Exit Sub
+    End If
+    Dim dobj As MSForms.DataObject
+    Set dobj = New MSForms.DataObject
+    dobj.SetText prompt
+    dobj.PutInClipboard
+    lblStatus.Caption = "Error-fix prompt copied to clipboard. Paste into your LLM chat."
 End Sub
 
 Private Sub UserForm_Initialize()

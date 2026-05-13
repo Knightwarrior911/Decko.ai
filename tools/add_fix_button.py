@@ -23,8 +23,7 @@ BUTTON_NAME = "btnFixThis"
 
 CLICK_HANDLER = r'''
 Private Sub btnFixThis_Click()
-    ' Delegates to modVerify.CopyWarningsPromptToClipboard so the logic is
-    ' testable from Application.Run and reusable elsewhere.
+    ' Post-Apply quality warnings -> clipboard. See modVerify.
     Dim n As Long
     n = modVerify.CopyWarningsPromptToClipboard()
     If n = 0 Then
@@ -33,6 +32,30 @@ Private Sub btnFixThis_Click()
         lblStatus.Caption = n & " warning(s) copied to clipboard as LLM prompt. " & _
                             "Paste into your chat and ask the model to fix."
     End If
+End Sub
+
+Private Sub btnFixErrors_Click()
+    ' Pre-Apply action validation errors -> clipboard. Reads current JSON
+    ' (textbox or loaded file), runs PreviewValidate on each action, builds
+    ' an LLM-ready prompt with errors + canonical guidance for each failing
+    ' action type. Eliminates the user having to read INVALID lines and
+    ' hand-type a correction request.
+    Dim json As String: json = CurrentJson()
+    If Len(json) = 0 Then
+        lblStatus.Caption = "No actions JSON to validate. Paste or Load a batch first."
+        Exit Sub
+    End If
+    Dim prompt As String
+    prompt = modExecuteInstructions.BuildErrorFixPrompt(json)
+    If Len(prompt) = 0 Then
+        lblStatus.Caption = "All actions are valid — nothing to fix."
+        Exit Sub
+    End If
+    Dim dobj As MSForms.DataObject
+    Set dobj = New MSForms.DataObject
+    dobj.SetText prompt
+    dobj.PutInClipboard
+    lblStatus.Caption = "Error-fix prompt copied to clipboard. Paste into your LLM chat."
 End Sub
 '''
 
@@ -61,53 +84,58 @@ def main() -> int:
     form_comp = vbproj.VBComponents(FORM_NAME)
     designer = form_comp.Designer
 
-    # Check if button already exists
-    existing = None
+    # Locate btnCancel for relative placement
+    ref_btn = None
     for ctrl in designer.Controls:
-        if ctrl.Name == BUTTON_NAME:
-            existing = ctrl
+        if ctrl.Name == "btnCancel":
+            ref_btn = ctrl
             break
 
-    if existing is not None:
-        print(f"Button '{BUTTON_NAME}' already present at "
-              f"({existing.Left}, {existing.Top}) — skipping Add.")
-    else:
-        print(f"Adding '{BUTTON_NAME}' to {FORM_NAME}...")
-        # Position to right of btnCancel. Find btnCancel for reference.
-        ref_btn = None
-        for ctrl in designer.Controls:
-            if ctrl.Name == "btnCancel":
-                ref_btn = ctrl
+    def ensure_button(name: str, caption: str, left: float, top: float):
+        existing = None
+        for c in designer.Controls:
+            if c.Name == name:
+                existing = c
                 break
+        if existing is not None:
+            # Reposition (in case prior run stacked them)
+            existing.Left = left
+            existing.Top = top
+            existing.Width = 90
+            existing.Height = 24
+            existing.Caption = caption
+            print(f"Button '{name}' repositioned to ({left}, {top}).")
+            return existing
+        print(f"Adding '{name}' to {FORM_NAME}...")
+        b = designer.Controls.Add("Forms.CommandButton.1", name)
+        b.Caption = caption
+        b.Width = 90
+        b.Height = 24
+        b.Left = left
+        b.Top = top
+        b.BackColor = 0xCCCCCC
+        print(f"  placed at ({left}, {top}) size 90x24")
+        return b
 
-        btn = designer.Controls.Add("Forms.CommandButton.1", BUTTON_NAME)
-        btn.Caption = "Fix This"
-        btn.Width = 90
-        btn.Height = 24
-        if ref_btn is not None:
-            # Place to the left of Cancel
-            btn.Top = ref_btn.Top
-            btn.Left = max(10, ref_btn.Left - 100)
-        else:
-            btn.Left = 600
-            btn.Top = 600
-        # Make it stand out
-        btn.BackColor = 0xCCCCCC
-        print(f"  placed at ({btn.Left}, {btn.Top}) size {btn.Width}x{btn.Height}")
+    # Place both buttons on the bottom row, far left so they don't collide
+    # with btnApply / btnCancel (which usually sit on the right).
+    base_top = ref_btn.Top if ref_btn is not None else 384
+    ensure_button("btnFixErrors", "Fix Errors", 10, base_top)
+    ensure_button(BUTTON_NAME, "Fix This", 110, base_top)
 
-    # Inject (or replace) the click handler in the form's CodeModule
+    # Inject (or replace) the click handlers in the form's CodeModule.
     code = form_comp.CodeModule
-    # Look for existing btnFixThis_Click sub and remove it
-    try:
-        start = code.ProcStartLine("btnFixThis_Click", 0)
-        count = code.ProcCountLines("btnFixThis_Click", 0)
-        if start > 0:
-            print(f"Removing existing handler at lines {start}..{start + count - 1}")
-            code.DeleteLines(start, count)
-    except Exception:
-        pass  # handler not present yet — fine
+    for proc in ("btnFixThis_Click", "btnFixErrors_Click"):
+        try:
+            start = code.ProcStartLine(proc, 0)
+            n = code.ProcCountLines(proc, 0)
+            if start > 0:
+                print(f"Removing existing {proc} at lines {start}..{start + n - 1}")
+                code.DeleteLines(start, n)
+        except Exception:
+            pass
 
-    print("Appending click handler...")
+    print("Appending click handlers...")
     code.AddFromString(CLICK_HANDLER.strip())
 
     print(f"Saving carrier: {CARRIER}")

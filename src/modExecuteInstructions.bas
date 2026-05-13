@@ -2052,6 +2052,227 @@ End Sub
 ' 7. Trailing commas before } or ]
 ' Returns the cleaned JSON string. If no { or [ is found, returns the original
 ' input so the existing error path still surfaces a useful message.
+' =============================================================================
+' Pre-Apply error-fix helpers — when Parse shows validation errors (missing
+' fields, bad enum values, etc.) the user can click "Fix Errors" on the form
+' to get an LLM-ready prompt with the exact errors + canonical guidance.
+' =============================================================================
+
+' Build a paste-ready prompt that explains every invalid action in the batch
+' plus the canonical signature/example for that action type. Returns "" if
+' the batch parses cleanly with no validation errors.
+Public Function BuildErrorFixPrompt(jsonText As String) As String
+    BuildErrorFixPrompt = ""
+    Dim cleaned As String: cleaned = SanitizeJsonInput(jsonText)
+    Dim parsed As Object
+    On Error Resume Next
+    Set parsed = modJSON.ParseJson(cleaned)
+    If Err.Number <> 0 Then
+        BuildErrorFixPrompt = _
+            "Decko could not parse the actions JSON you returned. " & _
+            "PowerPoint says: " & Err.Description & vbCrLf & vbCrLf & _
+            "FIX: emit a single valid JSON object of shape {""actions"":[...]} . " & _
+            "Wrap the whole thing in one outer object; do not return a bare array. " & _
+            "Strip any prose, markdown fences, or comments outside the JSON."
+        Err.Clear
+        Exit Function
+    End If
+    On Error GoTo 0
+
+    If Not parsed.Exists("actions") Then
+        BuildErrorFixPrompt = "Missing top-level ""actions"" array. " & _
+            "Wrap your actions in {""actions"":[...]}."
+        Exit Function
+    End If
+
+    Dim actions As Object: Set actions = parsed("actions")
+    Dim errors As Collection: Set errors = New Collection
+    Dim i As Long
+    For i = 1 To actions.Count
+        Dim act As Object: Set act = actions(i)
+        Dim reason As String: reason = PreviewValidate(act)
+        If Len(reason) > 0 Then
+            Dim ed As Object: Set ed = CreateObject("Scripting.Dictionary")
+            ed("index") = i
+            ed("type") = GetStr(act, "type")
+            ed("reason") = reason
+            ed("json") = modJSON.ConvertToJson(act)
+            errors.Add ed
+        End If
+    Next i
+
+    If errors.Count = 0 Then Exit Function   ' no errors — clipboard stays clean
+
+    Dim sb As String
+    sb = "Decko's parser found " & errors.Count & " action(s) in your batch with " & _
+         "validation errors. For each one below, the ERROR field shows what's " & _
+         "wrong, and the CORRECT SHAPE field shows the canonical signature + a " & _
+         "working example. Return a single JSON object {""actions"":[...]} with " & _
+         "all errors fixed. Keep the actions that were already valid; only rewrite " & _
+         "the failing ones." & vbCrLf & vbCrLf
+
+    For i = 1 To errors.Count
+        Set ed = errors(i)
+        sb = sb & "--- ACTION " & ed("index") & " (type: " & ed("type") & ") ---" & vbCrLf
+        sb = sb & "YOU SENT: " & ed("json") & vbCrLf
+        sb = sb & "ERROR: " & ed("reason") & vbCrLf
+        sb = sb & "CORRECT SHAPE:" & vbCrLf
+        sb = sb & GetActionGuidance(CStr(ed("type"))) & vbCrLf & vbCrLf
+    Next i
+    BuildErrorFixPrompt = sb
+End Function
+
+' Canonical signature + example for the most-misused action types. For types
+' not listed here, returns a pointer to ACTIONS_REFERENCE.md. Keep table tight
+' (top ~35 types) so the prompt stays focused.
+Public Function GetActionGuidance(actionType As String) As String
+    Select Case LCase(actionType)
+        Case "set_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide(int), shape_id(int|ref_name), value(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_text"",""slide"":1,""shape_id"":3,""value"":""Q3 Revenue""}" & vbCrLf & _
+                "  NOTE: destroys per-paragraph formatting. Use set_paragraph_text for bullet lists."
+        Case "set_paragraph_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index (0-based int), value(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_paragraph_text"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""value"":""Hello""}"
+        Case "add_paragraph"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, after_paragraph_index(int; -1 prepends), value(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_paragraph"",""slide"":1,""shape_id"":3,""after_paragraph_index"":2,""value"":""New bullet""}"
+        Case "delete_paragraph"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""delete_paragraph"",""slide"":1,""shape_id"":3,""paragraph_index"":2}"
+        Case "set_font_size"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(int>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_font_size"",""slide"":1,""shape_id"":3,""value"":14}"
+        Case "set_font_color", "set_fill_color"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(#RRGGBB hex string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3,""value"":""#15283C""}"
+        Case "set_font_bold", "set_font_italic"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, value(bool)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3,""value"":true}"
+        Case "set_paragraph_font_size"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, value(int>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_paragraph_font_size"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""value"":12}"
+        Case "set_paragraph_font_color"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, value(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_paragraph_font_color"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""value"":""#15283C""}"
+        Case "set_run_font_color", "set_run_font_size", "set_run_bold", "set_run_italic", _
+             "set_run_underline", "set_run_strikethrough", "set_run_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3," & _
+                """paragraph_index"":0,""run_index"":1,""value"":<value>}" & vbCrLf & _
+                "  NOTE: paragraph_index AND run_index are both 0-based."
+        Case "add_shape"
+            GetActionGuidance = _
+                "  REQUIRED: slide, kind(string), pos({left,top,width,height})" & vbCrLf & _
+                "  OPTIONAL: fill, stroke, text, font_size, font_color, h_align, v_align, ref_name" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_shape"",""slide"":1,""kind"":""rrect"",""pos"":{""left"":60,""top"":120,""width"":200,""height"":80},""fill"":""#15283C"",""text"":""Phase 1"",""font_color"":""#FFFFFF""}"
+        Case "add_text_box"
+            GetActionGuidance = _
+                "  REQUIRED: slide, text(string — NOT 'value'), pos" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_text_box"",""slide"":1,""text"":""Label"",""pos"":{""left"":60,""top"":120,""width"":200,""height"":40}}"
+        Case "add_line"
+            GetActionGuidance = _
+                "  REQUIRED: slide, x1, y1, x2, y2, color(#RRGGBB), weight_pt" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_line"",""slide"":1,""x1"":60,""y1"":100,""x2"":300,""y2"":100,""color"":""#15283C"",""weight_pt"":1.5}"
+        Case "move_shape"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, left(num), top(num)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""move_shape"",""slide"":1,""shape_id"":3,""left"":100,""top"":120}"
+        Case "resize_shape"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, width(num), height(num)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""resize_shape"",""slide"":1,""shape_id"":3,""width"":300,""height"":200}"
+        Case "delete_shape"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""delete_shape"",""slide"":1,""shape_id"":3}"
+        Case "add_slide"
+            GetActionGuidance = _
+                "  REQUIRED: position(int, 1-based), layout_index(int, 0-based; 6 = blank)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_slide"",""position"":3,""layout_index"":6}"
+        Case "delete_slide", "duplicate_slide"
+            GetActionGuidance = _
+                "  REQUIRED: slide" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":3}"
+        Case "set_cell_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id (the table), row(1-based int), col(1-based int), value(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_text"",""slide"":1,""shape_id"":4,""row"":2,""col"":3,""value"":""$1.2B""}"
+        Case "populate_table_row"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row(1-based), values(array of strings; one per column)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""populate_table_row"",""slide"":1,""shape_id"":4,""row"":3,""values"":[""Q1"",""$1.2B"",""+12%""]}" & vbCrLf & _
+                "  TIP: use this instead of N separate set_cell_text calls — avoids column-shift bugs."
+        Case "add_table"
+            GetActionGuidance = _
+                "  REQUIRED: slide, rows(int), cols(int), pos({left,top,width,height})" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_table"",""slide"":1,""rows"":4,""cols"":3,""pos"":{""left"":60,""top"":120,""width"":600,""height"":300},""ref_name"":""tbl1""}"
+        Case "add_chart"
+            GetActionGuidance = _
+                "  REQUIRED: slide, chart_type(string), pos, categories(array), series(array of {name, values, color?})" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_chart"",""slide"":1,""chart_type"":""columnclustered""," & _
+                """pos"":{""left"":60,""top"":120,""width"":560,""height"":340}," & _
+                """categories"":[""FY22"",""FY23"",""FY24""]," & _
+                """series"":[{""name"":""Revenue ($M)"",""values"":[120,138,151],""color"":""#15283C""}]}" & vbCrLf & _
+                "  NOTE: each series.values length MUST equal categories length."
+        Case "find_replace_text"
+            GetActionGuidance = _
+                "  REQUIRED: scope(""deck"" or ""slide:N""), find(string), replace(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""find_replace_text"",""scope"":""deck"",""find"":""Acme"",""replace"":""NewCo""}"
+        Case "set_paragraph_alignment"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, value(""left""|""center""|""right""|""justify"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_paragraph_alignment"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""value"":""center""}"
+        Case "set_bullet_style"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, value(""none""|""disc""|""square""|""dash""|""number""|""letter"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_bullet_style"",""slide"":1,""shape_id"":3,""paragraph_index"":1,""value"":""disc""}"
+        Case "set_indent_level"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, value(int 0..4)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_indent_level"",""slide"":1,""shape_id"":3,""paragraph_index"":2,""value"":1}"
+        Case "set_chart_series"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, series_index(1-based), props(object)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_chart_series"",""slide"":1,""shape_id"":2,""series_index"":1," & _
+                """props"":{""fill"":""#15283C"",""show_labels"":true,""label_color"":""#FFFFFF""}}"
+        Case "insert_picture"
+            GetActionGuidance = _
+                "  REQUIRED: slide, pos, path (or picture_path; both accepted)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""insert_picture"",""slide"":1,""path"":""C:\\imgs\\logo.png""," & _
+                """pos"":{""left"":60,""top"":120,""width"":200,""height"":120}}"
+        Case "insert_icon"
+            GetActionGuidance = _
+                "  REQUIRED: slide, icon(lowercase_underscore name), left, top, width, height (ALL four required, NO pos object)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""insert_icon"",""slide"":1,""icon"":""building_factory"",""left"":60,""top"":120,""width"":48,""height"":48,""color"":""#15283C""}"
+        Case "add_connector"
+            GetActionGuidance = _
+                "  REQUIRED: slide, kind(""straight""|""elbow""|""curved""), from_shape_id (or from_shape_name), to_shape_id (or to_shape_name)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_connector"",""slide"":1,""kind"":""elbow"",""from_shape_name"":""box1"",""to_shape_name"":""box2"",""arrow_end"":""filled""}"
+        Case "set_speaker_notes", "append_speaker_notes"
+            GetActionGuidance = _
+                "  REQUIRED: slide, value(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":3,""value"":""Mention Q3 EBITDA expansion.""}"
+        Case Else
+            ' Generic fallback — most types use a uniform shape, point to docs.
+            GetActionGuidance = _
+                "  See docs/ACTIONS_REFERENCE.md §3 for the exact signature of ""'" & actionType & "'""." & vbCrLf & _
+                "  General rules: every action has type+slide; existing-shape actions add shape_id; " & vbCrLf & _
+                "  paragraph actions add paragraph_index (0-based); run actions add paragraph_index + run_index (both 0-based); " & vbCrLf & _
+                "  table cell actions use row+col (1-based); chart series actions use series_index (1-based)."
+    End Select
+End Function
+
 Public Function SanitizeJsonInput(raw As String) As String
     Dim s As String: s = raw
 
