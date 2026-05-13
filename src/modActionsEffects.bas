@@ -202,3 +202,79 @@ Public Sub Do_set_contrast(slideNum As Long, shapeId As Long, value As Double)
     If value < -1 Or value > 1 Then Err.Raise vbObjectError + 8016, "Do_set_contrast", "value must be -1..1"
     sh.PictureFormat.Contrast = value
 End Sub
+
+' ---- Effect clearers ----
+' Each set_shadow/set_glow/set_reflection action ENABLES that effect; there
+' was no symmetric disable. These clearers remove the effect cleanly.
+
+Public Sub Do_clear_shadow(slideNum As Long, shapeId As Long)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8020, "Do_clear_shadow", "shape not found"
+    On Error Resume Next
+    sh.Shadow.Visible = msoFalse
+    On Error GoTo 0
+End Sub
+
+Public Sub Do_clear_glow(slideNum As Long, shapeId As Long)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8021, "Do_clear_glow", "shape not found"
+    On Error Resume Next
+    sh.Glow.Radius = 0           ' radius 0 removes the glow visually
+    sh.Glow.Transparency = 1     ' belt-and-braces: full transparency
+    On Error GoTo 0
+End Sub
+
+Public Sub Do_clear_reflection(slideNum As Long, shapeId As Long)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8022, "Do_clear_reflection", "shape not found"
+    On Error Resume Next
+    sh.Reflection.Type = 0       ' msoReflectionTypeMixed=-2; 0 = none
+    sh.Reflection.Size = 0
+    On Error GoTo 0
+End Sub
+
+' Strip every visual effect on a shape: shadow, glow, reflection, 3D, soft edges.
+' Useful as a "go back to flat" reset before re-styling.
+Public Sub Do_clear_all_effects(slideNum As Long, shapeId As Long)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8023, "Do_clear_all_effects", "shape not found"
+    On Error Resume Next
+    sh.Shadow.Visible = msoFalse
+    sh.Glow.Radius = 0
+    sh.Glow.Transparency = 1
+    sh.Reflection.Type = 0
+    sh.Reflection.Size = 0
+    sh.ThreeD.BevelTopType = 0      ' msoBevelNone
+    sh.ThreeD.BevelTopDepth = 0
+    sh.ThreeD.Depth = 0
+    sh.SoftEdge.Type = 0            ' msoSoftEdgeNone
+    On Error GoTo 0
+End Sub
+
+' Soft edge (feathered border). Pass radius 0 to clear.
+Public Sub Do_set_soft_edge(slideNum As Long, shapeId As Long, radiusPt As Double)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8024, "Do_set_soft_edge", "shape not found"
+    If radiusPt < 0 Then radiusPt = 0
+    On Error Resume Next
+    If radiusPt = 0 Then
+        sh.SoftEdge.Type = 0
+    Else
+        sh.SoftEdge.Radius = radiusPt
+    End If
+    On Error GoTo 0
+End Sub
+
+' 3D rotation around X/Y/Z axes (degrees). Useful for pseudo-isometric layouts.
+' Any axis you omit stays at its current value.
+Public Sub Do_set_3d_rotation(slideNum As Long, shapeId As Long, _
+                               rotX As Double, rotY As Double, rotZ As Double, _
+                               hasX As Boolean, hasY As Boolean, hasZ As Boolean)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8025, "Do_set_3d_rotation", "shape not found"
+    On Error Resume Next
+    If hasX Then sh.ThreeD.RotationX = rotX
+    If hasY Then sh.ThreeD.RotationY = rotY
+    If hasZ Then sh.ThreeD.RotationZ = rotZ
+    On Error GoTo 0
+End Sub

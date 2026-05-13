@@ -600,6 +600,103 @@ Private Function ValidateAction(act As Object) As String
         Case "set_run_strikethrough"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        ' --- New granular actions (paragraph / shape / effects / slide / table / chart) ---
+        Case "set_paragraph_bold", "set_paragraph_italic", "set_paragraph_underline"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_paragraph_font_name"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then
+                If Len(Trim(CStr(act("value")))) = 0 Then ValidateAction = "value: empty font name"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_paragraph_space_before", "set_paragraph_space_after"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
+            If Len(ValidateAction) = 0 Then
+                If Not IsNumeric(act("value")) Then ValidateAction = "value: must be a number"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "clear_paragraph_formatting"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_run_highlight"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_shape_name"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If Len(ValidateAction) = 0 Then
+                If Len(Trim(CStr(act("value")))) = 0 Then ValidateAction = "value: empty shape name"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_pos"
+            ' At least one of left/top/width/height must be present
+            ValidateAction = RequireFields(act, Array("slide", "shape_id"))
+            If Len(ValidateAction) = 0 Then
+                If Not (act.Exists("left") Or act.Exists("top") Or act.Exists("width") Or act.Exists("height")) Then
+                    ValidateAction = "set_pos: at least one of left/top/width/height required"
+                End If
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_shape_alt_text"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "lock_aspect_ratio"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "clear_shadow", "clear_glow", "clear_reflection", "clear_all_effects"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_soft_edge"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "radius_pt"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_3d_rotation"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id"))
+            If Len(ValidateAction) = 0 Then
+                If Not (act.Exists("x") Or act.Exists("y") Or act.Exists("z")) Then
+                    ValidateAction = "set_3d_rotation: at least one of x/y/z required"
+                End If
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_slide_hidden"
+            ValidateAction = RequireFields(act, Array("slide", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "clear_speaker_notes"
+            ValidateAction = RequireFields(act, Array("slide"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "set_slide_name"
+            ValidateAction = RequireFields(act, Array("slide", "value"))
+            If Len(ValidateAction) = 0 Then
+                If Len(Trim(CStr(act("value")))) = 0 Then ValidateAction = "value: empty slide name"
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
+        Case "set_cell_padding"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "left", "right", "top", "bottom"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "clear_cell_text"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_table_style_options"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id"))
+            If Len(ValidateAction) = 0 Then
+                If Not (act.Exists("header_row") Or act.Exists("total_row") Or _
+                        act.Exists("banded_rows") Or act.Exists("first_column") Or _
+                        act.Exists("last_column") Or act.Exists("banded_columns")) Then
+                    ValidateAction = "set_table_style_options: pass at least one of header_row/total_row/banded_rows/first_column/last_column/banded_columns"
+                End If
+            End If
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_chart_data_table"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "visible"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_line_smoothing"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "series_index", "value"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "delete_series"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "series_index"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "add_series"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "name", "values"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -1035,8 +1132,10 @@ Private Sub DispatchAction(act As Object)
         Case "set_chart_title"
             Dim cte As Boolean: cte = True
             If act.Exists("enabled") Then cte = modActions.ToBool(act("enabled"))
+            Dim cttProps As Object
+            If act.Exists("props") Then Set cttProps = act("props")
             modActionsChart.Do_set_chart_title CLng(act("slide")), CLng(act("shape_id")), _
-                                               CStr(act("value")), cte
+                                               CStr(act("value")), cte, cttProps
         Case "set_chart_axis_title"
             modActionsChart.Do_set_chart_axis_title CLng(act("slide")), CLng(act("shape_id")), _
                                                     CStr(act("axis")), CStr(act("value"))
@@ -1310,6 +1409,136 @@ Private Sub DispatchAction(act As Object)
         Case "set_run_strikethrough"
             modActionsRun.Do_set_run_strikethrough CLng(act("slide")), CLng(act("shape_id")), _
                 CLng(act("paragraph_index")), CLng(act("run_index")), modActions.ToBool(act("value"))
+        ' --- Granular paragraph-level toggles -----------------------------
+        Case "set_paragraph_bold"
+            modActionsText.Do_set_paragraph_bold CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("paragraph_index")), modActions.ToBool(act("value"))
+        Case "set_paragraph_italic"
+            modActionsText.Do_set_paragraph_italic CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("paragraph_index")), modActions.ToBool(act("value"))
+        Case "set_paragraph_underline"
+            modActionsText.Do_set_paragraph_underline CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("paragraph_index")), modActions.ToBool(act("value"))
+        Case "set_paragraph_font_name"
+            modActionsText.Do_set_paragraph_font_name CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("paragraph_index")), CStr(act("value"))
+        Case "set_paragraph_space_before"
+            modActionsText.Do_set_paragraph_space_before CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("paragraph_index")), CDbl(act("value"))
+        Case "set_paragraph_space_after"
+            modActionsText.Do_set_paragraph_space_after CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("paragraph_index")), CDbl(act("value"))
+        Case "clear_paragraph_formatting"
+            modActionsText.Do_clear_paragraph_formatting CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("paragraph_index"))
+        ' --- Run-level highlight ------------------------------------------
+        Case "set_run_highlight"
+            modActionsRun.Do_set_run_highlight CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("paragraph_index")), CLng(act("run_index")), CStr(act("value"))
+        ' --- Shape-level granular -----------------------------------------
+        Case "set_shape_name"
+            modActions.Do_set_shape_name CLng(act("slide")), CLng(act("shape_id")), CStr(act("value"))
+        Case "set_pos"
+            Dim spLeft As Single: spLeft = 0
+            Dim spTop As Single: spTop = 0
+            Dim spWidth As Single: spWidth = 0
+            Dim spHeight As Single: spHeight = 0
+            Dim spHasLeft As Boolean: spHasLeft = act.Exists("left")
+            Dim spHasTop As Boolean: spHasTop = act.Exists("top")
+            Dim spHasWidth As Boolean: spHasWidth = act.Exists("width")
+            Dim spHasHeight As Boolean: spHasHeight = act.Exists("height")
+            If spHasLeft Then spLeft = CSng(act("left"))
+            If spHasTop Then spTop = CSng(act("top"))
+            If spHasWidth Then spWidth = CSng(act("width"))
+            If spHasHeight Then spHeight = CSng(act("height"))
+            modActions.Do_set_pos CLng(act("slide")), CLng(act("shape_id")), _
+                spLeft, spTop, spWidth, spHeight, _
+                spHasLeft, spHasTop, spHasWidth, spHasHeight
+        Case "set_shape_alt_text"
+            modActions.Do_set_shape_alt_text CLng(act("slide")), CLng(act("shape_id")), CStr(act("value"))
+        Case "lock_aspect_ratio"
+            modActions.Do_lock_aspect_ratio CLng(act("slide")), CLng(act("shape_id")), _
+                modActions.ToBool(act("value"))
+        ' --- Effects clearers ---------------------------------------------
+        Case "clear_shadow"
+            modActionsEffects.Do_clear_shadow CLng(act("slide")), CLng(act("shape_id"))
+        Case "clear_glow"
+            modActionsEffects.Do_clear_glow CLng(act("slide")), CLng(act("shape_id"))
+        Case "clear_reflection"
+            modActionsEffects.Do_clear_reflection CLng(act("slide")), CLng(act("shape_id"))
+        Case "clear_all_effects"
+            modActionsEffects.Do_clear_all_effects CLng(act("slide")), CLng(act("shape_id"))
+        Case "set_soft_edge"
+            modActionsEffects.Do_set_soft_edge CLng(act("slide")), CLng(act("shape_id")), _
+                CDbl(act("radius_pt"))
+        Case "set_3d_rotation"
+            Dim rotX As Double: rotX = 0
+            Dim rotY As Double: rotY = 0
+            Dim rotZ As Double: rotZ = 0
+            Dim hasRX As Boolean: hasRX = act.Exists("x")
+            Dim hasRY As Boolean: hasRY = act.Exists("y")
+            Dim hasRZ As Boolean: hasRZ = act.Exists("z")
+            If hasRX Then rotX = CDbl(act("x"))
+            If hasRY Then rotY = CDbl(act("y"))
+            If hasRZ Then rotZ = CDbl(act("z"))
+            modActionsEffects.Do_set_3d_rotation CLng(act("slide")), CLng(act("shape_id")), _
+                rotX, rotY, rotZ, hasRX, hasRY, hasRZ
+        ' --- Slide-level granular -----------------------------------------
+        Case "set_slide_hidden"
+            modActionsSlide.Do_set_slide_hidden CLng(act("slide")), modActions.ToBool(act("value"))
+        Case "clear_speaker_notes"
+            modActionsSlide.Do_clear_speaker_notes CLng(act("slide"))
+        Case "set_slide_name"
+            modActionsSlide.Do_set_slide_name CLng(act("slide")), CStr(act("value"))
+        ' --- Table-level granular -----------------------------------------
+        Case "set_cell_padding"
+            modActionsTable.Do_set_cell_padding CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), _
+                CDbl(act("left")), CDbl(act("right")), _
+                CDbl(act("top")), CDbl(act("bottom"))
+        Case "clear_cell_text"
+            modActionsTable.Do_clear_cell_text CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col"))
+        Case "set_table_style_options"
+            Dim tsHasHeader As Boolean: tsHasHeader = act.Exists("header_row")
+            Dim tsHasTotal As Boolean: tsHasTotal = act.Exists("total_row")
+            Dim tsHasBandR As Boolean: tsHasBandR = act.Exists("banded_rows")
+            Dim tsHasFirstC As Boolean: tsHasFirstC = act.Exists("first_column")
+            Dim tsHasLastC As Boolean: tsHasLastC = act.Exists("last_column")
+            Dim tsHasBandC As Boolean: tsHasBandC = act.Exists("banded_columns")
+            Dim tsHeader As Boolean: tsHeader = False
+            Dim tsTotal As Boolean: tsTotal = False
+            Dim tsBandR As Boolean: tsBandR = False
+            Dim tsFirstC As Boolean: tsFirstC = False
+            Dim tsLastC As Boolean: tsLastC = False
+            Dim tsBandC As Boolean: tsBandC = False
+            If tsHasHeader Then tsHeader = modActions.ToBool(act("header_row"))
+            If tsHasTotal Then tsTotal = modActions.ToBool(act("total_row"))
+            If tsHasBandR Then tsBandR = modActions.ToBool(act("banded_rows"))
+            If tsHasFirstC Then tsFirstC = modActions.ToBool(act("first_column"))
+            If tsHasLastC Then tsLastC = modActions.ToBool(act("last_column"))
+            If tsHasBandC Then tsBandC = modActions.ToBool(act("banded_columns"))
+            modActionsTable.Do_set_table_style_options CLng(act("slide")), CLng(act("shape_id")), _
+                tsHasHeader, tsHeader, tsHasTotal, tsTotal, _
+                tsHasBandR, tsBandR, tsHasFirstC, tsFirstC, _
+                tsHasLastC, tsLastC, tsHasBandC, tsBandC
+        ' --- Chart-level granular -----------------------------------------
+        Case "set_chart_data_table"
+            Dim cdtProps As Object
+            If act.Exists("props") Then Set cdtProps = act("props")
+            modActionsChart.Do_set_chart_data_table CLng(act("slide")), CLng(act("shape_id")), _
+                modActions.ToBool(act("visible")), cdtProps
+        Case "set_line_smoothing"
+            modActionsChart.Do_set_line_smoothing CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("series_index")), modActions.ToBool(act("value"))
+        Case "delete_series"
+            modActionsChart.Do_delete_series CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("series_index"))
+        Case "add_series"
+            Dim asColor As String: asColor = ""
+            If act.Exists("color") Then asColor = CStr(act("color"))
+            modActionsChart.Do_add_series CLng(act("slide")), CLng(act("shape_id")), _
+                CStr(act("name")), act("values"), asColor
     End Select
 End Sub
 

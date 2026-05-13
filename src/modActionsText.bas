@@ -361,3 +361,79 @@ Public Sub Do_set_text_margin(slideNum As Long, shapeId As Long, _
     sh.TextFrame.MarginTop    = topPt
     sh.TextFrame.MarginBottom = bottomPt
 End Sub
+
+' --- Paragraph-level granular formatting --------------------------------------
+' These mirror the run-level toggles but apply to an entire paragraph at once,
+' which is more convenient when the paragraph has only one run anyway and
+' avoids hunting for run_index.
+
+Public Sub Do_set_paragraph_bold(slideNum As Long, shapeId As Long, _
+                                  paragraphIndex As Long, value As Boolean)
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 6010, "Do_set_paragraph_bold", "paragraph not found"
+    p.Font.Bold = IIf(value, msoTrue, msoFalse)
+End Sub
+
+Public Sub Do_set_paragraph_italic(slideNum As Long, shapeId As Long, _
+                                    paragraphIndex As Long, value As Boolean)
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 6011, "Do_set_paragraph_italic", "paragraph not found"
+    p.Font.Italic = IIf(value, msoTrue, msoFalse)
+End Sub
+
+Public Sub Do_set_paragraph_underline(slideNum As Long, shapeId As Long, _
+                                       paragraphIndex As Long, value As Boolean)
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 6012, "Do_set_paragraph_underline", "paragraph not found"
+    p.Font.Underline = IIf(value, msoTrue, msoFalse)
+End Sub
+
+Public Sub Do_set_paragraph_font_name(slideNum As Long, shapeId As Long, _
+                                       paragraphIndex As Long, fontName As String)
+    If Len(Trim(fontName)) = 0 Then Err.Raise vbObjectError + 6013, "Do_set_paragraph_font_name", "font name empty"
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 6013, "Do_set_paragraph_font_name", "paragraph not found"
+    p.Font.Name = fontName
+End Sub
+
+' Space BEFORE a paragraph in points. Useful for spacing bullets without
+' affecting their line-height. Negative values are clamped to 0.
+Public Sub Do_set_paragraph_space_before(slideNum As Long, shapeId As Long, _
+                                          paragraphIndex As Long, ptValue As Double)
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 6014, "Do_set_paragraph_space_before", "paragraph not found"
+    If ptValue < 0 Then ptValue = 0
+    p.ParagraphFormat.SpaceBefore = ptValue
+End Sub
+
+Public Sub Do_set_paragraph_space_after(slideNum As Long, shapeId As Long, _
+                                         paragraphIndex As Long, ptValue As Double)
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 6015, "Do_set_paragraph_space_after", "paragraph not found"
+    If ptValue < 0 Then ptValue = 0
+    p.ParagraphFormat.SpaceAfter = ptValue
+End Sub
+
+' Reset a paragraph's character formatting to defaults. Useful before applying
+' a new style to an existing paragraph (e.g. demoting a heading back to a bullet
+' before re-styling). Resets bold/italic/underline/strikethrough/baseline offset
+' but PRESERVES font size and color (use set_paragraph_font_size/color to wipe those).
+Public Sub Do_clear_paragraph_formatting(slideNum As Long, shapeId As Long, _
+                                          paragraphIndex As Long)
+    Dim p As TextRange: Set p = FindParagraph(slideNum, shapeId, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 6016, "Do_clear_paragraph_formatting", "paragraph not found"
+    On Error Resume Next
+    p.Font.Bold = msoFalse
+    p.Font.Italic = msoFalse
+    p.Font.Underline = msoFalse
+    p.Font.BaselineOffset = 0
+    ' Strikethrough lives on Font2; clear via TextFrame2 path
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If Not sh Is Nothing Then
+        Dim tr2 As Object: Set tr2 = sh.TextFrame2.TextRange
+        If paragraphIndex + 1 <= tr2.Paragraphs.Count Then
+            tr2.Paragraphs(paragraphIndex + 1).Font.Strikethrough = msoFalse
+        End If
+    End If
+    On Error GoTo 0
+End Sub

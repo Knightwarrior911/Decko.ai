@@ -347,3 +347,61 @@ Public Sub Do_append_speaker_notes(slideNum As Long, value As String)
     Next i
 End Sub
 
+' Rename a shape. The new name then works as a ref_name in later actions
+' (via shape_name aliases). Useful when the LLM forgot to set ref_name on
+' add_shape and now needs to address it semantically.
+Public Sub Do_set_shape_name(slideNum As Long, shapeId As Long, newName As String)
+    Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 2010, "Do_set_shape_name", "shape not found"
+    If Len(Trim(newName)) = 0 Then Err.Raise vbObjectError + 2010, "Do_set_shape_name", "name empty"
+    ' Reject duplicates on same slide — FindShapeByName picks first match and
+    ' would silently shadow another shape with the same name.
+    Dim existing As Shape: Set existing = FindShapeByName(slideNum, newName)
+    If Not existing Is Nothing Then
+        If existing.Id <> shapeId Then
+            Err.Raise vbObjectError + 2010, "Do_set_shape_name", _
+                      "name already in use on slide " & slideNum & ": " & newName
+        End If
+    End If
+    sh.Name = newName
+End Sub
+
+' Atomic move + resize. Any of left/top/width/height may be omitted (pass a
+' value < 0 via the dispatcher's sentinel logic); only specified fields change.
+' The dispatcher decides which fields are present.
+Public Sub Do_set_pos(slideNum As Long, shapeId As Long, _
+                      leftPt As Single, topPt As Single, _
+                      widthPt As Single, heightPt As Single, _
+                      hasLeft As Boolean, hasTop As Boolean, _
+                      hasWidth As Boolean, hasHeight As Boolean)
+    Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 2011, "Do_set_pos", "shape not found"
+    If hasWidth Or hasHeight Then sh.LockAspectRatio = msoFalse
+    If hasLeft Then sh.Left = leftPt
+    If hasTop Then sh.Top = topPt
+    If hasWidth Then sh.Width = widthPt
+    If hasHeight Then sh.Height = heightPt
+End Sub
+
+' Set the shape's alt-text / accessibility description. Surfaces in screen
+' readers and the Accessibility Checker. Pass "" to clear.
+Public Sub Do_set_shape_alt_text(slideNum As Long, shapeId As Long, altText As String)
+    Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 2012, "Do_set_shape_alt_text", "shape not found"
+    On Error Resume Next
+    sh.AlternativeText = altText
+    ' Title (the short "name" surfaced to screen readers) lives on Title in
+    ' newer PowerPoint versions; mirror altText into it so single-source works.
+    sh.Title = altText
+    On Error GoTo 0
+End Sub
+
+' Toggle aspect-ratio lock on a shape. When locked, later resize_shape / set_pos
+' with both width+height will still enforce the original aspect ratio. Mostly
+' useful for pictures.
+Public Sub Do_lock_aspect_ratio(slideNum As Long, shapeId As Long, value As Boolean)
+    Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 2013, "Do_lock_aspect_ratio", "shape not found"
+    sh.LockAspectRatio = IIf(value, msoTrue, msoFalse)
+End Sub
+

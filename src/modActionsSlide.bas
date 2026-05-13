@@ -115,3 +115,42 @@ Private Function FileExistsLocal(p As String) As Boolean
     Set fso = CreateObject("Scripting.FileSystemObject")
     FileExistsLocal = fso.FileExists(p)
 End Function
+
+' Hide a slide from the slideshow (still visible in editor, skipped during play).
+' Useful for backup-detail slides or speaker-only references.
+Public Sub Do_set_slide_hidden(slideNum As Long, value As Boolean)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 7060, "Do_set_slide_hidden", "slide_out_of_range"
+    End If
+    pres.Slides(slideNum).SlideShowTransition.Hidden = IIf(value, msoTrue, msoFalse)
+End Sub
+
+' Clear speaker notes on a slide (set body placeholder text to empty).
+Public Sub Do_clear_speaker_notes(slideNum As Long)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 7061, "Do_clear_speaker_notes", "slide_out_of_range"
+    End If
+    Dim sl As Slide: Set sl = pres.Slides(slideNum)
+    Dim ph As Object
+    Dim i As Long
+    For i = 1 To sl.NotesPage.Shapes.Placeholders.Count
+        Set ph = sl.NotesPage.Shapes.Placeholders(i)
+        If ph.PlaceholderFormat.Type = ppPlaceholderBody Then
+            ph.TextFrame.TextRange.Text = ""
+            Exit Sub
+        End If
+    Next i
+End Sub
+
+' Rename a slide. PowerPoint exposes Slide.Name; visible in the slide-sorter
+' tooltip and useful for the snapshot to label slides semantically.
+Public Sub Do_set_slide_name(slideNum As Long, newName As String)
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 7062, "Do_set_slide_name", "slide_out_of_range"
+    End If
+    If Len(Trim(newName)) = 0 Then Err.Raise vbObjectError + 7062, "Do_set_slide_name", "name empty"
+    pres.Slides(slideNum).Name = newName
+End Sub

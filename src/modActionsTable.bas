@@ -219,6 +219,61 @@ Public Sub Do_set_cell_fill(slideNum As Long, shapeId As Long, _
     cell.Shape.Fill.ForeColor.RGB = modActions.HexToRgb(hexColor)
 End Sub
 
+' Per-cell internal padding. All four sides; pass 0 for tight cells.
+Public Sub Do_set_cell_padding(slideNum As Long, shapeId As Long, _
+                                rowNum As Long, colNum As Long, _
+                                leftPt As Double, rightPt As Double, _
+                                topPt As Double, bottomPt As Double)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8003, "Do_set_cell_padding", "shape not found"
+    If Not sh.HasTable Then Err.Raise vbObjectError + 8003, "Do_set_cell_padding", "shape is not a table"
+    If leftPt < 0 Or rightPt < 0 Or topPt < 0 Or bottomPt < 0 Then _
+        Err.Raise vbObjectError + 8003, "Do_set_cell_padding", "padding must be >= 0"
+    Dim cell As Object: Set cell = sh.Table.Cell(rowNum, colNum)
+    Dim cs As Shape: Set cs = cell.Shape
+    If Not cs.HasTextFrame Then Exit Sub
+    cs.TextFrame.MarginLeft   = leftPt
+    cs.TextFrame.MarginRight  = rightPt
+    cs.TextFrame.MarginTop    = topPt
+    cs.TextFrame.MarginBottom = bottomPt
+End Sub
+
+' Empty a cell's text without removing the cell.
+Public Sub Do_clear_cell_text(slideNum As Long, shapeId As Long, _
+                                rowNum As Long, colNum As Long)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8004, "Do_clear_cell_text", "shape not found"
+    If Not sh.HasTable Then Err.Raise vbObjectError + 8004, "Do_clear_cell_text", "shape is not a table"
+    Dim cell As Object: Set cell = sh.Table.Cell(rowNum, colNum)
+    On Error Resume Next
+    cell.Shape.TextFrame.TextRange.Text = ""
+    On Error GoTo 0
+End Sub
+
+' Toggle table style options independently of apply_table_style.
+' Supports: header_row, total_row, banded_rows, first_column, last_column, banded_columns.
+' All optional booleans — only the toggles you pass change.
+Public Sub Do_set_table_style_options(slideNum As Long, shapeId As Long, _
+                                       hasHeader As Boolean, headerVal As Boolean, _
+                                       hasTotal As Boolean, totalVal As Boolean, _
+                                       hasBandRows As Boolean, bandRowsVal As Boolean, _
+                                       hasFirstCol As Boolean, firstColVal As Boolean, _
+                                       hasLastCol As Boolean, lastColVal As Boolean, _
+                                       hasBandCols As Boolean, bandColsVal As Boolean)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 8005, "Do_set_table_style_options", "shape not found"
+    If Not sh.HasTable Then Err.Raise vbObjectError + 8005, "Do_set_table_style_options", "shape is not a table"
+    Dim tbl As Table: Set tbl = sh.Table
+    On Error Resume Next
+    If hasHeader Then tbl.FirstRow = headerVal
+    If hasTotal Then tbl.LastRow = totalVal
+    If hasBandRows Then tbl.HorizBanding = bandRowsVal
+    If hasFirstCol Then tbl.FirstCol = firstColVal
+    If hasLastCol Then tbl.LastCol = lastColVal
+    If hasBandCols Then tbl.VertBanding = bandColsVal
+    On Error GoTo 0
+End Sub
+
 ' Build a 2-column "image + bullets" table populated from a rows array.
 ' Per-row layout in the image_col cell: an image overlay plus a name caption
 ' anchored at the cell's top or bottom. The desc_col cell receives bullet

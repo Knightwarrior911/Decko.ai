@@ -8,7 +8,7 @@ JSON `actions` array a model should return.
 **If you only read one thing, read [§0 Hard Rules](#0-hard-rules).** Breaking
 any of them makes the whole batch fail.
 
-> **Counts:** ~135 action types across 14 VBA modules. The authoritative source
+> **Counts:** ~165 action types across 14 VBA modules. The authoritative source
 > of truth is `src/modExecuteInstructions.bas` (`ValidateAction` = required
 > fields, `DispatchAction` = how each field is read). This document mirrors it.
 > When in doubt, the dispatcher wins — file a doc fix.
@@ -246,6 +246,12 @@ Format: **`action_name`** — what it does.
 - **`z_order`** — `req:` `slide`, `shape_id`, `order`(`front`|`back`|`forward`|`backward`).
 - **`copy_formatting`** — copy fill/line/font/effects from one shape to another.
   `req:` `slide`, `source_shape_id`, `target_shape_id`.
+- **`set_shape_name`** — rename a shape (the new name then works as a `ref_name` / `shape_name` alias in later actions). `req:` `slide`, `shape_id`, `value`(string, non-empty, unique on the slide).
+- **`set_pos`** — atomic combined move+resize. Any subset of `left`/`top`/`width`/`height` may be passed; only specified fields change. `req:` `slide`, `shape_id`, and at least one of `left`/`top`/`width`/`height`(num pt).
+  `ex:` move only → `{"type":"set_pos","slide":1,"shape_id":3,"left":100,"top":120}`
+  `ex:` resize only → `{"type":"set_pos","slide":1,"shape_id":3,"width":300,"height":200}`
+- **`set_shape_alt_text`** — accessibility / screen-reader description. `req:` `slide`, `shape_id`, `value`(string; `""` clears).
+- **`lock_aspect_ratio`** — toggle aspect-lock. When true, later `resize_shape`/`set_pos` with both width+height will preserve aspect. Mostly useful for pictures. `req:` `slide`, `shape_id`, `value`(bool).
 
 ### 3.2 Add new shapes / text boxes / lines
 
@@ -280,6 +286,10 @@ All take `slide`, `shape_id`, `paragraph_index`(0-based).
 - **`set_paragraph_font_color`** — `req:` … `value`(`#RRGGBB`).
 - **`set_paragraph_alignment`** — `req:` … `value`(`left`|`center`|`right`|`justify`).
 - **`set_paragraph_line_spacing`** — `req:` … `value`(num, multiple e.g. 1.0, 1.5).
+- **`set_paragraph_bold`** / **`set_paragraph_italic`** / **`set_paragraph_underline`** — toggle on one paragraph (more convenient than `set_run_*` when the para has a single run). `req:` … `value`(bool).
+- **`set_paragraph_font_name`** — change font face for one paragraph. `req:` … `value`(string, non-empty).
+- **`set_paragraph_space_before`** / **`set_paragraph_space_after`** — vertical gap (pt) before/after the paragraph. `req:` … `value`(num, >=0). Useful for spacing bullets without changing line height.
+- **`clear_paragraph_formatting`** — reset bold/italic/underline/strikethrough/baseline-offset on one paragraph. PRESERVES font size and color. `req:` `slide`, `shape_id`, `paragraph_index`.
 
 ### 3.4 Run-level formatting (sub-paragraph precision)
 
@@ -291,6 +301,8 @@ description) — they touch only the named run.
 - **`set_run_font_color`** — `req:` … `value`(`#RRGGBB`).
 - **`set_run_font_size`** — `req:` … `value`(int).
 - **`set_run_font_name`** — `req:` … `value`(string font name).
+- **`set_run_highlight`** — character-background highlight (yellow-marker effect). `req:` `slide`, `shape_id`, `paragraph_index`, `run_index`, `value`(`#RRGGBB` or `""` to clear).
+  `ex:` `{"type":"set_run_highlight","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":"#FFF59D"}`
 - **`set_run_hyperlink`** — `req:` … `value`(string — MUST start with `http://`, `https://`, `mailto:`, or `#slide:N`; OR pass `""` to clear an existing link). Any other value is rejected at validation.
   `ex:` external → `{"type":"set_run_hyperlink","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":"https://example.com"}`
   `ex:` internal jump → `{"type":"set_run_hyperlink","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":"#slide:5"}`
@@ -370,6 +382,11 @@ string is also accepted per element).
   `no_style_no_grid`, `no_style_with_grid`, `themed_style_1`, `themed_style_1_accent1`, `themed_style_1_accent2`, `themed_style_2`, `themed_style_2_accent1`, `medium_style_2`, `medium_style_2_accent1`, `medium_style_2_accent2`, `dark_style_2`, `dark_style_2_accent1`, `light_style_1`, `light_style_1_accent1`, `light_style_2`, `light_style_2_accent1`.
   `ex:` `{"type":"apply_table_style","slide":2,"shape_id":7,"style_id":"medium_style_2_accent1"}`
 - **`build_image_grid_table`** — build a 2-column image+caption table from a row spec. See full schema in §3.12.
+- **`set_cell_padding`** — per-cell internal padding (text frame margins). `req:` `slide`, `shape_id`, `row`, `col`, `left`, `right`, `top`, `bottom`(num pt, all >=0). Use small values for tight tables (e.g. `2`); `0` removes padding entirely.
+- **`clear_cell_text`** — empty a cell's text without removing the cell. `req:` `slide`, `shape_id`, `row`, `col`.
+- **`set_table_style_options`** — toggle Office "Table Style Options" checkboxes independently of `apply_table_style`. `req:` `slide`, `shape_id`, and **at least one** of the optional toggles below.
+  `opt:` `header_row`(bool), `total_row`(bool), `banded_rows`(bool), `first_column`(bool), `last_column`(bool), `banded_columns`(bool).
+  `ex:` `{"type":"set_table_style_options","slide":1,"shape_id":4,"header_row":true,"banded_rows":true,"first_column":false}`
 
 ### 3.11 Charts
 
@@ -394,7 +411,8 @@ string is also accepted per element).
    "title":"Revenue & EBITDA","show_legend":true,"value_format":"$#,##0\"M\""}
   ```
 - **`set_chart_type`** — `req:` `slide`, `shape_id`(the chart), `value`(chart type string).
-- **`set_chart_title`** — `req:` `slide`, `shape_id`, `value`(string). `opt:` `enabled`(bool)=true.
+- **`set_chart_title`** — `req:` `slide`, `shape_id`, `value`(string). `opt:` `enabled`(bool)=true, `props`(object — font styling: `font_size`(int), `font_color`(`#RRGGBB`), `font_bold`(bool), `font_italic`(bool), `position`(`above`|`overlay`|`left`|`right`)).
+  `ex:` `{"type":"set_chart_title","slide":1,"shape_id":4,"value":"FY25 Revenue","props":{"font_size":18,"font_bold":true,"font_color":"#15283C","position":"above"}}`
 - **`set_chart_axis_title`** — `req:` `slide`, `shape_id`, `axis`(`category`|`value` / `x`|`y`), `value`(string).
 - **`set_chart_legend_position`** — `req:` `slide`, `shape_id`, `value`(`top`|`right`|`bottom`|`left`|`none`).
 - **`set_series_color`** — `req:` `slide`, `shape_id`, `series_index`(1-based), `value`(`#RRGGBB`).
@@ -437,6 +455,12 @@ string is also accepted per element).
   > Compared to `set_chart_legend_position`, this action's `position` vocab drops `none` but adds `corner`. To hide the legend, pass `visible:false` here OR pass `value:"none"` to `set_chart_legend_position`.
 - **`add_chart_trendline`** — `req:` `slide`, `shape_id`, `series_index`, `props`(object — `kind`(`linear`|`log`|`polynomial`|`power`|`exponential`|`moving_avg`), `order`(int, for polynomial), `period`(int, for moving_avg), `display_equation`(bool), `display_r2`(bool), `dash`(`solid`|`dash`|`dot`|`round_dot`|`dash_dot`|`long_dash`|`long_dash_dot`), `color`(`#RRGGBB`))).
 - **`set_chart_error_bars`** — `req:` `slide`, `shape_id`, `series_index`, `props`(object — `direction`(`x`|`y`|`both`), `include`(`both`|`plus`|`minus`), `type`(`fixed`|`percent`|`stdev`|`stderr`|`custom`), `amount`(num), `end_style`(`cap`|`no_cap`))).
+- **`set_chart_data_table`** — show/hide the spreadsheet-style data grid under a chart. `req:` `slide`, `shape_id`, `visible`(bool). `opt:` `props`(object — `show_legend_key`(bool), `horizontal_border`(bool), `vertical_border`(bool), `outline_border`(bool), `font_size`(int), `font_color`(`#RRGGBB`)).
+  `ex:` `{"type":"set_chart_data_table","slide":1,"shape_id":4,"visible":true,"props":{"font_size":9,"horizontal_border":true}}`
+- **`set_line_smoothing`** — toggle Bezier smoothing on a line/scatter series. `req:` `slide`, `shape_id`, `series_index`(1-based), `value`(bool — `true` smooths, `false` straightens).
+- **`delete_series`** — remove one series from a chart. `req:` `slide`, `shape_id`, `series_index`(1-based). Indices of later series shift down by 1.
+- **`add_series`** — append a new series to an existing chart. `req:` `slide`, `shape_id`, `name`(string — series label), `values`(array of numbers, length must match existing categories). `opt:` `color`(`#RRGGBB`).
+  `ex:` `{"type":"add_series","slide":1,"shape_id":4,"name":"Forecast","values":[180,195,210,225],"color":"#A6A6A6"}`
 
 ### 3.12 Images & web
 
@@ -503,11 +527,14 @@ string is also accepted per element).
 - **`bulk_insert_text_box`** — same text box on multiple slides. `req:` `slide_indices`(array), `text`(string), `left`,`top`,`width`,`height`(num).
 - **`set_slide_background_color`** — solid background on a slide. `req:` `slide`, `color`(`#RRGGBB`).
 - **`insert_slide_number`** — add a slide-number text placeholder. `req:` `slide`, `pos`. `opt:` `ref_name`(string), `font_color`(`#RRGGBB`), `font_size`(int).
+- **`set_slide_hidden`** — hide a slide from the slideshow (still visible in editor; skipped during play). `req:` `slide`, `value`(bool — `true` hides, `false` un-hides).
+- **`set_slide_name`** — rename a slide (visible in slide-sorter tooltip; useful for snapshots). `req:` `slide`, `value`(string, non-empty).
 
 ### 3.14 Speaker notes
 
 - **`set_speaker_notes`** — replace a slide's notes. `req:` `slide`, `value`(string).
 - **`append_speaker_notes`** — append to existing notes. `req:` `slide`, `value`(string).
+- **`clear_speaker_notes`** — empty a slide's notes. `req:` `slide`.
 
 ### 3.15 Visual effects (shapes & pictures)
 
@@ -525,6 +552,11 @@ string is also accepted per element).
 - **`recolor_picture`** — `req:` `slide`, `shape_id`, `color_type`(`grayscale`|`sepia`|`washout`|`bw`|`auto`).
 - **`set_brightness`** — `req:` `slide`, `shape_id`, `value`(num -1.0–1.0).
 - **`set_contrast`** — `req:` `slide`, `shape_id`, `value`(num -1.0–1.0).
+- **`clear_shadow`** / **`clear_glow`** / **`clear_reflection`** — remove one effect type from a shape. `req:` `slide`, `shape_id`.
+- **`clear_all_effects`** — strip shadow + glow + reflection + 3D bevel + soft edges in one call. `req:` `slide`, `shape_id`.
+- **`set_soft_edge`** — feathered border. `req:` `slide`, `shape_id`, `radius_pt`(num pt; pass `0` to clear).
+- **`set_3d_rotation`** — rotate shape around X/Y/Z axes (degrees). Any axis you omit stays at its current value. `req:` `slide`, `shape_id`, and at least one of `x`/`y`/`z`(num deg).
+  `ex:` isometric tilt → `{"type":"set_3d_rotation","slide":1,"shape_id":3,"x":20,"y":-30}`
 
 ---
 

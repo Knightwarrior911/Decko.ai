@@ -124,3 +124,31 @@ Public Sub Do_set_run_hyperlink(slideNum As Long, shapeId As Long, _
         r.ActionSettings(1).Hyperlink.Address = url
     End If
 End Sub
+
+' Text highlight (background fill behind characters). Lives on Font2/TextFrame2.
+' Pass "" to clear the highlight. Caller-side range is one run, mirroring all
+' other run-level actions.
+Public Sub Do_set_run_highlight(slideNum As Long, shapeId As Long, _
+                                paragraphIndex As Long, runIndex As Long, hexValue As String)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 5012, "Do_set_run_highlight", "shape not found"
+    If Not sh.HasTextFrame Then Err.Raise vbObjectError + 5012, "Do_set_run_highlight", "no text frame"
+    Dim tr2 As Object: Set tr2 = sh.TextFrame2.TextRange
+    If paragraphIndex + 1 > tr2.Paragraphs.Count Then
+        Err.Raise vbObjectError + 5012, "Do_set_run_highlight", "paragraph_index out of range"
+    End If
+    Dim p2 As Object: Set p2 = tr2.Paragraphs(paragraphIndex + 1)
+    If runIndex + 1 > p2.Runs.Count Then
+        Err.Raise vbObjectError + 5012, "Do_set_run_highlight", "run_index out of range"
+    End If
+    Dim run2 As Object: Set run2 = p2.Runs(runIndex + 1)
+    On Error Resume Next
+    If Len(hexValue) = 0 Then
+        run2.Font.Highlight.RGB = RGB(255, 255, 255)
+        run2.Font.Highlight.Visible = msoFalse
+    Else
+        run2.Font.Highlight.RGB = modActions.HexToRgb(hexValue)
+        run2.Font.Highlight.Visible = msoTrue
+    End If
+    On Error GoTo 0
+End Sub

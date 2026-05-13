@@ -1324,3 +1324,77 @@ Private Function NormalizeStringArray(v As Variant, ByRef out() As String) As Lo
         NormalizeStringArray = 1
     End If
 End Function
+
+' Show or hide the data table beneath a chart (the spreadsheet-style grid that
+' lists categories and series values under the plot). Props lets you optionally
+' style it.
+Public Sub Do_set_chart_data_table(slideNum As Long, shapeId As Long, visible As Boolean, _
+                                    Optional ByVal props As Object = Nothing)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 11030, "Do_set_chart_data_table", "shape not found"
+    If Not sh.HasChart Then Err.Raise vbObjectError + 11030, "Do_set_chart_data_table", "not a chart"
+    Dim ch As Object: Set ch = sh.Chart
+    ch.HasDataTable = visible
+    If Not visible Then Exit Sub
+    If props Is Nothing Then Exit Sub
+    On Error Resume Next
+    Dim dt As Object: Set dt = ch.DataTable
+    If props.Exists("show_legend_key") Then dt.ShowLegendKey = modActions.ToBool(props("show_legend_key"))
+    If props.Exists("horizontal_border") Then dt.HasBorderHorizontal = modActions.ToBool(props("horizontal_border"))
+    If props.Exists("vertical_border") Then dt.HasBorderVertical = modActions.ToBool(props("vertical_border"))
+    If props.Exists("outline_border") Then dt.HasBorderOutline = modActions.ToBool(props("outline_border"))
+    If props.Exists("font_size") Then dt.Font.Size = modActions.ToLong(props("font_size"))
+    If props.Exists("font_color") Then dt.Font.Color.RGB = modActions.HexToRgb(CStr(props("font_color")))
+    On Error GoTo 0
+End Sub
+
+' Smooth/unsmooth a line series. value=true draws a Bezier curve; false (default)
+' draws straight segments. Only meaningful for line and xy-scatter charts.
+Public Sub Do_set_line_smoothing(slideNum As Long, shapeId As Long, _
+                                  seriesIndex As Long, value As Boolean)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 11031, "Do_set_line_smoothing", "shape not found"
+    If Not sh.HasChart Then Err.Raise vbObjectError + 11031, "Do_set_line_smoothing", "not a chart"
+    Dim ch As Object: Set ch = sh.Chart
+    If seriesIndex < 1 Or seriesIndex > ch.SeriesCollection.Count Then
+        Err.Raise vbObjectError + 11031, "Do_set_line_smoothing", "series_index out of range"
+    End If
+    On Error Resume Next
+    ch.SeriesCollection(seriesIndex).Smooth = value
+    On Error GoTo 0
+End Sub
+
+' Delete a series from the chart. seriesIndex 1-based.
+Public Sub Do_delete_series(slideNum As Long, shapeId As Long, seriesIndex As Long)
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 11032, "Do_delete_series", "shape not found"
+    If Not sh.HasChart Then Err.Raise vbObjectError + 11032, "Do_delete_series", "not a chart"
+    Dim ch As Object: Set ch = sh.Chart
+    If seriesIndex < 1 Or seriesIndex > ch.SeriesCollection.Count Then
+        Err.Raise vbObjectError + 11032, "Do_delete_series", "series_index out of range"
+    End If
+    ch.SeriesCollection(seriesIndex).Delete
+End Sub
+
+' Append a new series to an existing chart. categories array is optional —
+' if omitted, uses the first series' XValues.
+Public Sub Do_add_series(slideNum As Long, shapeId As Long, _
+                          seriesName As String, values As Variant, _
+                          Optional ByVal seriesColor As String = "")
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 11033, "Do_add_series", "shape not found"
+    If Not sh.HasChart Then Err.Raise vbObjectError + 11033, "Do_add_series", "not a chart"
+    Dim ch As Object: Set ch = sh.Chart
+    Dim arr() As Double
+    Dim n As Long: n = NormalizeDoubleArray(values, arr)
+    If n < 1 Then Err.Raise vbObjectError + 11033, "Do_add_series", "values: empty"
+    Dim newSer As Object: Set newSer = ch.SeriesCollection.NewSeries
+    newSer.Name = seriesName
+    newSer.Values = arr
+    If Len(seriesColor) > 0 Then
+        On Error Resume Next
+        newSer.Format.Fill.ForeColor.RGB = modActions.HexToRgb(seriesColor)
+        newSer.Format.Line.ForeColor.RGB = modActions.HexToRgb(seriesColor)
+        On Error GoTo 0
+    End If
+End Sub
