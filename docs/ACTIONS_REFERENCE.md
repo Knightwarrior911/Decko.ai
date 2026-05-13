@@ -445,3 +445,122 @@ string is also accepted per element).
 
 See **`docs/PROMPTING_GUIDE.md`** for worked end-to-end examples (VP English →
 snapshot excerpt → exact `actions` JSON) and a step-by-step recipe.
+
+
+---
+
+## Common Mistakes (read before writing any actions)
+
+These are the most frequent errors from LLMs — each one causes silent skips or
+formatting destruction that is hard to debug.
+
+### Mistake 1 — Wrong field name: `"text"` instead of `"value"`
+
+The payload field for ALL text-setting actions is `"value"`, never `"text"`,
+`"content"`, `"color"`, `"size"`, or `"fill"`.
+
+```json
+// WRONG
+{"type":"set_paragraph_text","slide":1,"shape_id":3,"paragraph_index":0,"text":"Hello"}
+{"type":"add_paragraph","slide":1,"shape_id":3,"after_paragraph_index":2,"text":"Hello"}
+{"type":"set_font_color","slide":1,"shape_id":3,"color":"#FF0000"}
+
+// RIGHT
+{"type":"set_paragraph_text","slide":1,"shape_id":3,"paragraph_index":0,"value":"Hello"}
+{"type":"add_paragraph","slide":1,"shape_id":3,"after_paragraph_index":2,"value":"Hello"}
+{"type":"set_font_color","slide":1,"shape_id":3,"value":"#FF0000"}
+```
+
+### Mistake 2 — `scope` on shape-level actions
+
+`scope` is only valid on 8 deck/slide-sweep actions:
+`find_replace_text`, `find_replace_regex`, `recolor_palette_deck_wide`,
+`recolor_fill_match`, `recolor_font_match`, `delete_shapes_match`,
+`enable_text_shrink_for_overflow`, `swap_font_deck_wide`.
+
+Any action that has a `slide` field must NOT have `scope`. The parser reads
+`scope` as the slide specifier and then fails to find `slide`, causing
+"missing_field: slide".
+
+```json
+// WRONG — scope on a shape-level action
+{"type":"set_paragraph_text","scope":"slide:1","slide":1,"shape_id":3,"paragraph_index":0,"value":"Hello"}
+
+// RIGHT
+{"type":"set_paragraph_text","slide":1,"shape_id":3,"paragraph_index":0,"value":"Hello"}
+```
+
+### Mistake 3 — `set_text` on a multi-paragraph / multi-level bullet box
+
+`set_text` replaces the entire text frame as a single string. It destroys all
+per-paragraph formatting — every paragraph inherits the first paragraph's color,
+size, and bold, making all bullets look like the heading.
+
+Use `set_paragraph_text` (per paragraph_index) when the shape has multiple
+paragraphs with different formatting. Only use `set_text` for plain single-style
+shapes or when the user explicitly says "replace everything".
+
+```json
+// WRONG — destroys all per-paragraph colors/sizes
+{"type":"set_text","slide":1,"shape_id":3,"value":"Heading\nBullet 1\nBullet 2"}
+
+// RIGHT — text changes only; existing per-paragraph formatting preserved
+{"type":"set_paragraph_text","slide":1,"shape_id":3,"paragraph_index":0,"value":"Heading"}
+{"type":"set_paragraph_text","slide":1,"shape_id":3,"paragraph_index":1,"value":"Bullet 1"}
+{"type":"set_paragraph_text","slide":1,"shape_id":3,"paragraph_index":2,"value":"Bullet 2"}
+```
+
+### Mistake 4 — Setting font on existing bullet paragraphs when only text changes
+
+If the snapshot already shows the right colors/sizes per paragraph level, only
+emit `set_paragraph_text`. Adding `set_font_color`/`set_font_size` resets the
+formatting and overwrites the per-level styling.
+
+**Exception:** NEW paragraphs added with `add_paragraph` have no inherited
+formatting and MUST have `set_paragraph_font_color`, `set_paragraph_font_size`,
+`set_indent_level` set explicitly.
+
+```json
+// WRONG — existing para already has correct color; setting it again may override
+{"type":"set_paragraph_text","slide":1,"shape_id":3,"paragraph_index":1,"value":"New text"}
+{"type":"set_font_color","slide":1,"shape_id":3,"value":"#000000"}   // <-- resets ALL paragraphs
+
+// RIGHT — existing para: text only
+{"type":"set_paragraph_text","slide":1,"shape_id":3,"paragraph_index":1,"value":"New text"}
+
+// RIGHT — new added para: needs explicit font
+{"type":"add_paragraph","slide":1,"shape_id":3,"after_paragraph_index":3,"value":"New bullet"}
+{"type":"set_indent_level","slide":1,"shape_id":3,"paragraph_index":4,"value":1}
+{"type":"set_paragraph_font_color","slide":1,"shape_id":3,"paragraph_index":4,"value":"#000000"}
+{"type":"set_paragraph_font_size","slide":1,"shape_id":3,"paragraph_index":4,"value":10}
+```
+
+### Mistake 5 — Shape-level font actions on multi-paragraph shapes
+
+`set_font_size` and `set_font_color` without `paragraph_index` apply to the
+**entire shape** — all paragraphs get the same size/color, erasing the
+per-level differences (heading navy, L1 black, L2 blue, L3 gray).
+
+Use `set_paragraph_font_size` / `set_paragraph_font_color` with a specific
+`paragraph_index` to change only one paragraph's font.
+
+```json
+// WRONG — flattens all paragraph colors to one value
+{"type":"set_font_color","slide":1,"shape_id":3,"value":"#1F3864"}
+
+// RIGHT — changes only paragraph 0 (the heading)
+{"type":"set_paragraph_font_color","slide":1,"shape_id":3,"paragraph_index":0,"value":"#1F3864"}
+```
+
+### Pattern: populate bullet box with variable-length refined text
+
+Use this sequence regardless of how many bullets the refinement produces:
+
+1. `set_paragraph_text` for p0 (heading) — text only, no font actions
+2. `set_paragraph_text` for each existing paragraph p1…pN — text only
+3. For refined text that has MORE points than existing paragraphs:
+   - `add_paragraph` with `after_paragraph_index` = last written index
+   - `set_indent_level` on the new paragraph
+   - `set_paragraph_font_color` matching the level (L1=#000000, L2=#264F82, L3=#707070)
+   - `set_paragraph_font_size` = same pt as existing bullets (read from snapshot)
+4. Last action: `enable_text_shrink_for_overflow` on the slide

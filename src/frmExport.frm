@@ -41,6 +41,46 @@ Public Function PromptTemplate() As String
     s = s & "Each action is one of EXACTLY these schemas. Field names are STRICT - do not" & vbCrLf
     s = s & "rename ""value"" to ""text""/""color""/""size""/""fill"". Use names verbatim." & vbCrLf & vbCrLf
 
+    s = s & "=============================" & vbCrLf
+    s = s & "CRITICAL MISTAKES - READ FIRST" & vbCrLf
+    s = s & "=============================" & vbCrLf & vbCrLf
+    s = s & "MISTAKE 1 - Wrong field name. The text payload field is ALWAYS ""value""." & vbCrLf
+    s = s & "  WRONG:  {""type"":""set_paragraph_text"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""text"":""Hello""}" & vbCrLf
+    s = s & "  WRONG:  {""type"":""add_paragraph"",""slide"":1,""shape_id"":3,""after_paragraph_index"":2,""text"":""Hello""}" & vbCrLf
+    s = s & "  WRONG:  {""type"":""set_text"",""slide"":1,""shape_id"":3,""content"":""Hello""}" & vbCrLf
+    s = s & "  RIGHT:  {""type"":""set_paragraph_text"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""value"":""Hello""}" & vbCrLf
+    s = s & "  RIGHT:  {""type"":""add_paragraph"",""slide"":1,""shape_id"":3,""after_paragraph_index"":2,""value"":""Hello""}" & vbCrLf & vbCrLf
+    s = s & "MISTAKE 2 - Adding 'scope' to shape-level actions. scope IS FORBIDDEN on" & vbCrLf
+    s = s & "  any action that has a 'slide' field. Only these actions ever use scope:" & vbCrLf
+    s = s & "    find_replace_text, find_replace_regex, recolor_palette_deck_wide," & vbCrLf
+    s = s & "    recolor_fill_match, recolor_font_match, delete_shapes_match," & vbCrLf
+    s = s & "    enable_text_shrink_for_overflow, swap_font_deck_wide." & vbCrLf
+    s = s & "  WRONG:  {""type"":""set_paragraph_text"",""scope"":""slide:1"",""slide"":1,...}" & vbCrLf
+    s = s & "  WRONG:  {""type"":""set_font_color"",""scope"":""slide:1"",""slide"":1,...}" & vbCrLf
+    s = s & "  RIGHT:  {""type"":""set_paragraph_text"",""slide"":1,""shape_id"":3,...}" & vbCrLf & vbCrLf
+    s = s & "MISTAKE 3 - Using set_text on a shape that has multi-level bullets." & vbCrLf
+    s = s & "  set_text DESTROYS all per-paragraph formatting (colors, sizes, indent" & vbCrLf
+    s = s & "  levels). Every paragraph becomes a clone of the first paragraph's style." & vbCrLf
+    s = s & "  WRONG:  {""type"":""set_text"",""slide"":1,""shape_id"":3,""value"":""line1\nline2""}" & vbCrLf
+    s = s & "  RIGHT:  use set_paragraph_text per paragraph_index to change text only," & vbCrLf
+    s = s & "          keeping each paragraph's existing color/size/bold intact." & vbCrLf & vbCrLf
+    s = s & "MISTAKE 4 - Setting font properties on EXISTING bullet paragraphs when" & vbCrLf
+    s = s & "  the task only asks to change the text. Existing paragraphs already have" & vbCrLf
+    s = s & "  the right color and size. Adding set_font_color/set_font_size resets" & vbCrLf
+    s = s & "  them and overwrites the per-level formatting." & vbCrLf
+    s = s & "  WRONG (existing para):  set_font_color + set_font_size + set_paragraph_text" & vbCrLf
+    s = s & "  RIGHT (existing para):  set_paragraph_text ONLY — text changes, font stays." & vbCrLf
+    s = s & "  RIGHT (NEW added para): DO set_font_color + set_font_size + set_indent_level" & vbCrLf
+    s = s & "          because new paragraphs inherit nothing and need explicit styling." & vbCrLf & vbCrLf
+    s = s & "MISTAKE 5 - Using set_font_size / set_font_color WITHOUT paragraph_index" & vbCrLf
+    s = s & "  on a shape that has multiple paragraphs. Shape-level font actions apply" & vbCrLf
+    s = s & "  a single style to ALL paragraphs, erasing per-paragraph differences." & vbCrLf
+    s = s & "  To change font on ONE paragraph use set_paragraph_font_size /" & vbCrLf
+    s = s & "  set_paragraph_font_color with the exact paragraph_index." & vbCrLf
+    s = s & "  WRONG:  {""type"":""set_font_color"",""slide"":1,""shape_id"":3,""value"":""#000000""}" & vbCrLf
+    s = s & "  RIGHT:  {""type"":""set_paragraph_font_color"",""slide"":1,""shape_id"":3,""paragraph_index"":2,""value"":""#000000""}" & vbCrLf & vbCrLf
+    s = s & "=============================" & vbCrLf & vbCrLf
+
     s = s & "ATOMIC OPS (V1):" & vbCrLf
     s = s & "  {""type"":""set_text"",""slide"":1,""shape_id"":3,""value"":""Hello""}" & vbCrLf
     s = s & "  {""type"":""set_font_size"",""slide"":1,""shape_id"":3,""value"":28}" & vbCrLf
@@ -235,14 +275,15 @@ Public Function PromptTemplate() As String
     s = s & "- Escape backslashes as `\\` and double-quotes as `\""` inside string values." & vbCrLf
     s = s & "- Trailing commas are forbidden (e.g. `[1, 2, 3,]` is invalid)." & vbCrLf & vbCrLf
 
-    s = s & "SCOPE GUIDANCE - get the slide number RIGHT:" & vbCrLf
-    s = s & "- For find_replace_text and find_replace_regex, ``scope`` must reference the" & vbCrLf
-    s = s & "  slide where the text actually lives. Read the snapshot to find the correct" & vbCrLf
-    s = s & "  slide_number BEFORE writing the action." & vbCrLf
-    s = s & "- If you are editing a single specific slide, use ``""scope"":""slide:N""`` with" & vbCrLf
-    s = s & "  N being that slide's 1-based index in the snapshot." & vbCrLf
-    s = s & "- If you want a sweep across the whole presentation, use ``""scope"":""deck""``." & vbCrLf
-    s = s & "- Never assume slide:1 unless slide 1 is genuinely the target." & vbCrLf & vbCrLf
+    s = s & "SCOPE GUIDANCE:" & vbCrLf
+    s = s & "scope IS ONLY VALID on these 8 actions (ALL others must never have scope):" & vbCrLf
+    s = s & "  find_replace_text, find_replace_regex, recolor_palette_deck_wide," & vbCrLf
+    s = s & "  recolor_fill_match, recolor_font_match, delete_shapes_match," & vbCrLf
+    s = s & "  enable_text_shrink_for_overflow, swap_font_deck_wide." & vbCrLf
+    s = s & "scope values: ""deck"" (whole deck) or ""slide:N"" (1-based slide index)." & vbCrLf
+    s = s & "- For find_replace_text, read the snapshot to find which slide the text" & vbCrLf
+    s = s & "  lives on and set scope to that slide. Use ""deck"" for deck-wide replace." & vbCrLf
+    s = s & "- Never assume slide:1 unless the snapshot confirms slide 1 is the target." & vbCrLf & vbCrLf
 
     s = s & "AUTONOMOUS EDIT POLICY - do not require the user to spell out details:" & vbCrLf
     s = s & "The user's request will often be a high-level instruction such as ""rebuild" & vbCrLf
