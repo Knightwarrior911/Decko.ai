@@ -851,6 +851,24 @@ Public Sub Do_delete_cell_paragraph(slideNum As Long, shapeId As Long, _
     p.Delete
 End Sub
 
+Public Sub Do_set_cell_indent_level(slideNum As Long, shapeId As Long, _
+                                     rowNum As Long, colNum As Long, _
+                                     paragraphIndex As Long, indentLevel As Long)
+    ' ParagraphFormat.IndentLevel triggers a UI dialog for table cells in PowerPoint
+    ' and cannot be set via COM automation.  The lvl= XML attribute must be written
+    ' directly via python-pptx after saving.  This stub validates params and raises
+    ' a descriptive error so the caller knows to use the python-pptx path.
+    If indentLevel < 0 Or indentLevel > 4 Then
+        Err.Raise vbObjectError + 8159, "Do_set_cell_indent_level", "indent_level must be 0-4"
+    End If
+    Dim p As TextRange: Set p = FindCellParagraph(slideNum, shapeId, rowNum, colNum, paragraphIndex)
+    If p Is Nothing Then Err.Raise vbObjectError + 8159, "Do_set_cell_indent_level", "cell paragraph not found"
+    ' Intentionally NOT calling p.ParagraphFormat.IndentLevel — triggers dialog.
+    ' Use python-pptx: para._p.get_or_add_pPr().set("lvl", str(indentLevel))
+    Err.Raise vbObjectError + 8159, "Do_set_cell_indent_level", _
+        "table cell IndentLevel requires python-pptx path: para._p.get_or_add_pPr().set('lvl', str(n))"
+End Sub
+
 ' Append a line to existing cell text. Each call adds a new paragraph break + value.
 Public Sub Do_append_cell_text(slideNum As Long, shapeId As Long, _
                                 rowNum As Long, colNum As Long, value As String)

@@ -182,3 +182,47 @@ Public Sub Do_set_run_highlight(slideNum As Long, shapeId As Long, _
     End If
     On Error GoTo 0
 End Sub
+
+' Append a new run at the end of a paragraph, preserving all existing run
+' formatting.  Uses Characters(pos,0).Text insertion so tr.Text is never
+' rebuilt and no existing formatting is lost.
+Public Sub Do_add_run(slideNum As Long, shapeId As Long, _
+                      paragraphIndex As Long, value As String, _
+                      Optional bold As Long = -1, _
+                      Optional italic As Long = -1, _
+                      Optional colorHex As String = "", _
+                      Optional fontName As String = "", _
+                      Optional fontSize As Long = 0, _
+                      Optional underline As Long = -1)
+    If Len(value) = 0 Then Exit Sub
+    Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
+    If sh Is Nothing Then Err.Raise vbObjectError + 5020, "Do_add_run", "shape not found"
+    If Not sh.HasTextFrame Then Err.Raise vbObjectError + 5020, "Do_add_run", "no text frame"
+
+    Dim tr As TextRange: Set tr = sh.TextFrame.TextRange
+    Dim n As Long: n = tr.Paragraphs().Count
+    If paragraphIndex < 0 Or paragraphIndex >= n Then
+        Err.Raise vbObjectError + 5020, "Do_add_run", "paragraph_index out of range"
+    End If
+
+    Dim p As TextRange: Set p = tr.Paragraphs(paragraphIndex + 1)
+    ' p.Length includes the trailing Chr(13).  Insert value just before it.
+    Dim insertAt As Long
+    insertAt = p.Start + p.Length - 1
+
+    tr.Characters(insertAt, 0).Text = value
+
+    ' Select the just-inserted characters and apply optional formatting.
+    Dim newChars As TextRange
+    Set newChars = tr.Characters(insertAt, Len(value))
+
+    If bold = 1 Then newChars.Font.Bold = msoTrue
+    If bold = 0 Then newChars.Font.Bold = msoFalse
+    If italic = 1 Then newChars.Font.Italic = msoTrue
+    If italic = 0 Then newChars.Font.Italic = msoFalse
+    If underline = 1 Then newChars.Font.Underline = msoTrue
+    If underline = 0 Then newChars.Font.Underline = msoFalse
+    If Len(colorHex) > 0 Then newChars.Font.Color.RGB = modActions.HexToRgb(colorHex)
+    If Len(fontName) > 0 Then newChars.Font.Name = fontName
+    If fontSize > 0 Then newChars.Font.Size = fontSize
+End Sub

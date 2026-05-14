@@ -336,6 +336,8 @@ Private Function ValidateAction(act As Object) As String
             End If
         Case "set_run_text"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
+        Case "add_run"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "value"))
         Case "set_run_hyperlink"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "paragraph_index", "run_index", "value"))
             If ValidateAction = "" Then
@@ -840,6 +842,9 @@ Private Function ValidateAction(act As Object) As String
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "delete_cell_paragraph"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "paragraph_index"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
+        Case "set_cell_indent_level"
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "paragraph_index", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "append_cell_text"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "row", "col", "value"))
@@ -1444,6 +1449,22 @@ Private Sub DispatchAction(act As Object)
             modActionsRun.Do_set_run_text CLng(act("slide")), CLng(act("shape_id")), _
                                           CLng(act("paragraph_index")), CLng(act("run_index")), _
                                           CStr(act("value"))
+        Case "add_run"
+            Dim arBold As Long: arBold = -1
+            Dim arItalic As Long: arItalic = -1
+            Dim arUnder As Long: arUnder = -1
+            If act.Exists("bold") Then arBold = IIf(CBool(act("bold")), 1, 0)
+            If act.Exists("italic") Then arItalic = IIf(CBool(act("italic")), 1, 0)
+            If act.Exists("underline") Then arUnder = IIf(CBool(act("underline")), 1, 0)
+            Dim arColor As String: arColor = ""
+            Dim arFont As String: arFont = ""
+            Dim arSize As Long: arSize = 0
+            If act.Exists("color") Then arColor = CStr(act("color"))
+            If act.Exists("font_name") Then arFont = CStr(act("font_name"))
+            If act.Exists("font_size") Then arSize = CLng(act("font_size"))
+            modActionsRun.Do_add_run CLng(act("slide")), CLng(act("shape_id")), _
+                                     CLng(act("paragraph_index")), CStr(act("value")), _
+                                     arBold, arItalic, arColor, arFont, arSize, arUnder
         Case "set_run_hyperlink"
             modActionsRun.Do_set_run_hyperlink CLng(act("slide")), CLng(act("shape_id")), _
                                                CLng(act("paragraph_index")), CLng(act("run_index")), _
@@ -1935,6 +1956,9 @@ Private Sub DispatchAction(act As Object)
         Case "delete_cell_paragraph"
             modActionsTable.Do_delete_cell_paragraph CLng(act("slide")), CLng(act("shape_id")), _
                 CLng(act("row")), CLng(act("col")), CLng(act("paragraph_index"))
+        Case "set_cell_indent_level"
+            modActionsTable.Do_set_cell_indent_level CLng(act("slide")), CLng(act("shape_id")), _
+                CLng(act("row")), CLng(act("col")), CLng(act("paragraph_index")), CLng(act("value"))
         Case "append_cell_text"
             modActionsTable.Do_append_cell_text CLng(act("slide")), CLng(act("shape_id")), _
                 CLng(act("row")), CLng(act("col")), CStr(act("value"))
@@ -2207,7 +2231,7 @@ Public Function GetAllActionTypes() As String
     s = s & "set_paragraph_line_spacing,set_paragraph_bold,set_paragraph_italic,"
     s = s & "set_paragraph_underline,set_paragraph_font_name,set_paragraph_space_before,"
     s = s & "set_paragraph_space_after,clear_paragraph_formatting,set_bullet_start_number,"
-    s = s & "set_run_bold,set_run_italic,set_run_underline,set_run_strikethrough,set_run_text,"
+    s = s & "set_run_bold,set_run_italic,set_run_underline,set_run_strikethrough,set_run_text,add_run,"
     s = s & "set_run_subscript,set_run_superscript,set_run_font_color,set_run_font_size,"
     s = s & "set_run_font_name,set_run_hyperlink,set_run_highlight,set_run_kerning,"
     s = s & "set_run_baseline_offset,"
@@ -2243,7 +2267,7 @@ Private Function GetAllActionTypes_Part2() As String
     s = s & "set_row_borders,set_column_borders,fit_cell_to_content,set_cell_paragraph_text,"
     s = s & "set_cell_paragraph_font_size,set_cell_paragraph_font_color,set_cell_paragraph_bold,"
     s = s & "set_cell_paragraph_italic,set_cell_paragraph_alignment,set_cell_bullet_style,"
-    s = s & "add_cell_paragraph,delete_cell_paragraph,append_cell_text,set_cell,"
+    s = s & "add_cell_paragraph,delete_cell_paragraph,set_cell_indent_level,append_cell_text,set_cell,"
     GetAllActionTypes_Part2 = s & GetAllActionTypes_Part3()
 End Function
 
@@ -2338,6 +2362,12 @@ Public Function GetActionGuidance(actionType As String) As String
                 "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(string)" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""set_run_text"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":""Revenue""}" & vbCrLf & _
                 "  NOTE: paragraph_index AND run_index are both 0-based."
+        Case "add_run"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, value(string)" & vbCrLf & _
+                "  OPTIONAL: bold(bool), italic(bool), underline(bool), color(#RRGGBB), font_name(string), font_size(int)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_run"",""slide"":1,""shape_id"":3,""paragraph_index"":1,""value"":""18% YoY"",""bold"":true,""color"":""#C00000""}" & vbCrLf & _
+                "  NOTE: appends a new run at the END of the paragraph; does not rebuild tr.Text so existing run formatting is preserved."
         Case "set_run_font_name"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(string, non-empty font name)" & vbCrLf & _
@@ -2869,6 +2899,12 @@ Public Function GetActionGuidance(actionType As String) As String
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, row, col, paragraph_index" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""delete_cell_paragraph"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""paragraph_index"":1}"
+        Case "set_cell_indent_level"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, row, col, paragraph_index, value(int 0-4)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_cell_indent_level"",""slide"":1,""shape_id"":4,""row"":1,""col"":1,""paragraph_index"":1,""value"":1}" & vbCrLf & _
+                "  NOTE: PowerPoint COM cannot set cell paragraph level via VBA. This action raises an " & _
+                "error. Use python-pptx post-save: para._p.get_or_add_pPr().set('lvl', str(n))"
         Case "append_cell_text"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, row, col, value(string — appended after newline to existing cell text)" & vbCrLf & _
