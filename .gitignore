@@ -55,3 +55,10 @@ tests/demo_pngs/
 
 # Local ad-hoc test deck
 tests/quad_test.pptx
+
+# think-cell overview demo outputs (binary artifacts + downloaded images)
+test_decks/thinkcell_overview*
+assets/
+
+# Stress test outputs
+tests/stress_bullets/output/
