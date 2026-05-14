@@ -475,6 +475,20 @@ Private Function ValidateAction(act As Object) As String
                 If tg <> "fill" And tg <> "font" And tg <> "both" Then _
                     ValidateAction = "target: must be fill/font/both"
             End If
+        Case "recolor_deck"
+            ValidateAction = RequireFields(act, Array("mappings"))
+            If ValidateAction = "" Then
+                Dim rdMappings As Object: Set rdMappings = act("mappings")
+                If rdMappings Is Nothing Or rdMappings.Count = 0 Then _
+                    ValidateAction = "mappings: must be non-empty array of {from,to} objects"
+            End If
+        Case "scan_palette"
+            ' no required fields; validate optional scope
+            If act.Exists("scope") Then
+                Dim spScope As String: spScope = LCase(CStr(act("scope")))
+                If spScope <> "deck" And Left(spScope, 6) <> "slide:" Then _
+                    ValidateAction = "scope: must be 'deck' or 'slide:N'"
+            End If
         Case "apply_theme"
             ValidateAction = RequireFields(act, Array("theme_path"))
             If ValidateAction = "" Then
@@ -1529,6 +1543,15 @@ Private Sub DispatchAction(act As Object)
             modActionsDeck.Do_swap_font_deck_wide CStr(act("from_name")), CStr(act("to_name"))
         Case "recolor_palette_deck_wide"
             modActionsDeck.Do_recolor_palette_deck_wide CStr(act("from_hex")), CStr(act("to_hex")), CStr(act("target"))
+        Case "recolor_deck"
+            Dim rdMap As Object: Set rdMap = act("mappings")
+            Dim rdScope As String: rdScope = ""
+            If act.Exists("scope") Then rdScope = CStr(act("scope"))
+            modActionsDeck.Do_recolor_deck rdMap, rdScope
+        Case "scan_palette"
+            Dim spSc As String: spSc = "deck"
+            If act.Exists("scope") Then spSc = CStr(act("scope"))
+            modActionsDeck.Do_scan_palette spSc
         Case "apply_theme"
             modActionsDeck.Do_apply_theme CStr(act("theme_path"))
         Case "set_slide_size"
@@ -2243,7 +2266,7 @@ Public Function GetAllActionTypes() As String
     s = s & "equalize_spacing,uniform_size,match_size,match_position,swap_positions,"
     s = s & "group_by_overlap,fit_to_slide_margins,move_shape_relative,nudge,snap_to_grid,"
     s = s & "align_to_slide_center,clear_slide,recolor_fill_match,recolor_font_match,"
-    s = s & "delete_shapes_match,recolor_palette_deck_wide,swap_font_deck_wide,"
+    s = s & "delete_shapes_match,recolor_palette_deck_wide,recolor_deck,scan_palette,swap_font_deck_wide,"
     ' Connectors / groups
     s = s & "add_connector,reconnect_connector,group_shapes,ungroup,"
     GetAllActionTypes = s & GetAllActionTypes_Part2()
@@ -2679,6 +2702,21 @@ Public Function GetActionGuidance(actionType As String) As String
             GetActionGuidance = _
                 "  REQUIRED: from_hex(#RRGGBB), to_hex(#RRGGBB), target(""fill""|""font""|""both"")" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""recolor_palette_deck_wide"",""from_hex"":""#FF0000"",""to_hex"":""#15283C"",""target"":""both""}"
+        Case "recolor_deck"
+            GetActionGuidance = _
+                "  Batch palette remap — N from->to pairs in one deck pass. Covers shape fill/border/font, table fill/border/font, chart series, slide backgrounds, groups." & vbCrLf & _
+                "  REQUIRED: mappings(array of {from:#RRGGBB, to:#RRGGBB})" & vbCrLf & _
+                "  OPTIONAL: scope(""all""|""fill""|""font""|""border""|""table_fill""|""table_font""|""table_border""|""chart"") default all" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""recolor_deck"",""mappings"":[{""from"":""#FF0000"",""to"":""#003087""},{""from"":""#FFFFFF"",""to"":""#F5F5F5""}]}"
+        Case "scan_palette"
+            GetActionGuidance = _
+                "  Scan active deck for all explicit RGB colors. Writes role-tagged JSON to Windows clipboard AND to %TEMP%\decko_palette.json." & vbCrLf & _
+                "  Use before recolor_deck to discover what colors to remap." & vbCrLf & _
+                "  NO REQUIRED FIELDS." & vbCrLf & _
+                "  OPTIONAL: scope(""deck"" default | ""slide:N"" for single slide)" & vbCrLf & _
+                "  OUTPUT: JSON array [{""hex"":""#RRGGBB"",""count"":N,""roles"":[""fill""|""font""|""border""]}] sorted by count desc" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""scan_palette""}" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""scan_palette"",""scope"":""slide:1""}"
         ' ---- connectors / groups ----
         Case "group_shapes"
             GetActionGuidance = _

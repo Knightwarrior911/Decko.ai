@@ -788,7 +788,7 @@ This appendix is auto-extracted from `modExecuteInstructions.GetActionGuidance` 
 
 If a new action is added to the dispatcher, update GetActionGuidance and GetAllActionTypes, then re-run the sync script.
 
-**Action types covered: 236.**
+**Action types covered: 238.**
 
 ### `add_cell_paragraph`
 
@@ -1416,6 +1416,15 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
   TIP: use this instead of N separate set_cell_text calls â€” avoids column-shift bugs.
 ```
 
+### `recolor_deck`
+
+```
+  Batch palette remap â€” N from->to pairs in one deck pass. Covers shape fill/border/font, table fill/border/font, chart series, slide backgrounds, groups.
+  REQUIRED: mappings(array of {from:#RRGGBB, to:#RRGGBB})
+  OPTIONAL: scope("all"|"fill"|"font"|"border"|"table_fill"|"table_font"|"table_border"|"chart") default all
+  EXAMPLE:  {"type":"recolor_deck","mappings":[{"from":"#FF0000","to":"#003087"},{"from":"#FFFFFF","to":"#F5F5F5"}]}
+```
+
 ### `recolor_fill_match`
 
 ```
@@ -1492,6 +1501,18 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   OPTIONAL: scope("deck"|"slide:N")="deck", max_warnings(int)=100
   EXAMPLE:  {"type":"run_verification","scope":"deck"}
+```
+
+### `scan_palette`
+
+```
+  Scan active deck for all explicit RGB colors. Writes role-tagged JSON to Windows clipboard AND to %TEMP%\decko_palette.json.
+  Use before recolor_deck to discover what colors to remap.
+  NO REQUIRED FIELDS.
+  OPTIONAL: scope("deck" default | "slide:N" for single slide)
+  OUTPUT: JSON array [{"hex":"#RRGGBB","count":N,"roles":["fill"|"font"|"border"]}] sorted by count desc
+  EXAMPLE:  {"type":"scan_palette"}
+  EXAMPLE:  {"type":"scan_palette","scope":"slide:1"}
 ```
 
 ### `set_3d_bevel`
@@ -1605,7 +1626,7 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: slide, shape_id, row, col, paragraph_index, value(int 0-4)
   EXAMPLE:  {"type":"set_cell_indent_level","slide":1,"shape_id":4,"row":1,"col":1,"paragraph_index":1,"value":1}
-  NOTE: sets IndentLevel on the paragraph inside a table cell (0=top level).
+  NOTE: PowerPoint COM cannot set cell paragraph level via VBA. This action raises an error. Use python-pptx post-save: para._p.get_or_add_pPr().set('lvl', str(n))
 ```
 
 ### `set_cell_padding`

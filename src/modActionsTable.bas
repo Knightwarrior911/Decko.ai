@@ -405,16 +405,23 @@ Public Sub Do_populate_table_cells(slideNum As Long, shapeId As Long, _
     For r = 1 To rowsN
         Dim absRow As Long: absRow = startRow + r - 1
         If absRow > tbl.Rows.Count Then Exit For
-        Dim rowArr As Variant: rowArr = ArrayAt(values, r)
-        Dim colsN As Long: colsN = ArrayCount(rowArr)
+        ' Use Set to get the inner Collection without triggering default-property expansion.
+        Dim rowObj As Object
+        On Error Resume Next
+        Set rowObj = values(r)
+        On Error GoTo 0
+        If rowObj Is Nothing Then GoTo SkipRow
+        Dim colsN As Long: colsN = rowObj.Count
         For c = 1 To colsN
             Dim absCol As Long: absCol = startCol + c - 1
             If absCol > tbl.Columns.Count Then Exit For
             Dim cell As Object: Set cell = tbl.Cell(absRow, absCol)
             On Error Resume Next
-            cell.Shape.TextFrame.TextRange.Text = CStr(ArrayAt(rowArr, c))
+            cell.Shape.TextFrame.TextRange.Text = CStr(rowObj(c))
             On Error GoTo 0
         Next c
+        SkipRow:
+        Set rowObj = Nothing
     Next r
 End Sub
 

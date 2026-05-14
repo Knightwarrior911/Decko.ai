@@ -673,7 +673,7 @@ any model.
 | `modActionsConnector.bas` | 1 | add_connector |
 | `modActionsGroup.bas` | 2 | group/ungroup |
 | `modActionsSlide.bas` | ~6 | move/extract/import slides, slide background, slide number |
-| `modActionsDeck.bas` | ~10 | Regex find/replace, font swap, theme, recolor palette, slide size, bulk insert, layout apply |
+| `modActionsDeck.bas` | ~12 | Regex find/replace, font swap, theme, recolor palette, batch palette remap (`recolor_deck`), palette scanner (`scan_palette`), slide size, bulk insert, layout apply |
 | `modActionsEffects.bas` | ~17 | Rotate/flip, line color/weight/style, shadow, glow, reflection, transparency, gradient, 3-D bevel, preset effect, crop/recolor/brightness/contrast picture, shape adjustment |
 | `modActionsIcon.bas` | 1 | insert_icon (Fluent UI SVG) |
 | `modActionsWeb.bas` | ~3 | fetch_page_images, download_image, open_image_picker |
@@ -856,7 +856,9 @@ if no exact match exists it picks the nearest semantic equivalent.
 |--------|------|
 | `find_replace_regex` | Regex find/replace across deck or slide. |
 | `swap_font_deck_wide` | Replace one font name everywhere. |
-| `recolor_palette_deck_wide` | Replace color across fill/font/both. |
+| `recolor_palette_deck_wide` | Replace one color across fill/font/both. |
+| `recolor_deck` | Batch palette remap — N color pairs in one pass. Covers fills, fonts, borders, tables, charts, slide backgrounds, groups. |
+| `scan_palette` | Scan active deck for explicit RGB colors; writes role-tagged JSON to clipboard. Use before `recolor_deck` to discover what colors exist. |
 | `apply_theme` | Apply .thmx or .potx theme file. |
 | `set_slide_size` | Set slide dimensions (pt) or preset (16:9 / 4:3). |
 | `set_theme_font` | Set major/minor theme fonts. |
@@ -1126,6 +1128,93 @@ three sections flush with their respective table columns."
 
 ---
 
+### Palette Retheme Workflow
+
+Use this workflow when the VP wants to apply a client's brand colors to an existing deck. It requires no Python — only the VBA `scan_palette` action and this LLM.
+
+#### Steps (user side)
+
+1. **Open the source deck** (client brand palette slide) in PowerPoint alongside `PPT_AI_Editor.pptm`.
+2. Run: `{"actions":[{"type":"scan_palette","scope":"slide:1"}]}` — this writes a JSON color list to the clipboard. Copy it.
+3. **Open the destination deck** (the deck to recolor) and make it active.
+4. Run: `{"actions":[{"type":"scan_palette"}]}` — writes destination color list to clipboard. Copy it.
+5. Send both lists to the LLM with the request below.
+6. Paste the LLM's `recolor_deck` action into Execute. Apply.
+
+#### LLM prompt template
+
+```
+SOURCE PALETTE (colors I want to use):
+<paste scan_palette output from brand/source deck>
+
+DESTINATION PALETTE (current colors in the deck to recolor):
+<paste scan_palette output from destination deck>
+
+Map ALL destination colors to source colors and return a single recolor_deck action.
+Rules:
+1. Role match first: high-count fill colors map to the dominant fill colors in the source; font-only colors map to source font colors.
+2. For unmatched: find the perceptually closest source color by hue + lightness similarity.
+3. If multiple destination colors map to the same source color, preserve their relative lightness as tints/shades of that source color (lightest destination -> lightest tint, darkest -> darkest).
+4. Never leave a destination color unmapped — every entry must appear in the mappings array.
+5. Explain your mapping choices in plain English first, then output ONLY the JSON.
+
+Output format:
+{"actions":[{"type":"recolor_deck","mappings":[{"from":"#RRGGBB","to":"#RRGGBB"}, ...]}]}
+```
+
+#### How the LLM maps colors
+
+The LLM reads **role + count** from the destination palette to understand each color's purpose:
+- High count + `"fill"` role = primary brand fill → maps to the most prominent source fill color
+- Low count + warm/red hue = accent → maps to source accent
+- `"font"` only = body text color → maps to source text color
+- Light/near-neutral `"fill"` = background or subtle fill → maps to source background color
+
+For colors with no clear role match, the LLM computes perceptual distance (hue + lightness) and picks the closest source color. If a source palette has fewer colors than the destination, multiple destination colors may map to the same source color — tint scaling preserves visual hierarchy in that case.
+
+#### Example F — client retheme
+
+*Source palette scan (brand slide):*
+```json
+[
+  {"hex":"#003087","count":3,"roles":["fill"]},
+  {"hex":"#D03027","count":2,"roles":["fill"]},
+  {"hex":"#F5F5F5","count":4,"roles":["fill"]},
+  {"hex":"#1A1A1A","count":3,"roles":["font"]}
+]
+```
+
+*Destination palette scan (deck to recolor):*
+```json
+[
+  {"hex":"#113D63","count":158,"roles":["fill","border"]},
+  {"hex":"#CCD1D7","count":68,"roles":["fill","border"]},
+  {"hex":"#5E7C9E","count":71,"roles":["fill"]},
+  {"hex":"#C0504D","count":53,"roles":["fill"]},
+  {"hex":"#404040","count":42,"roles":["font"]}
+]
+```
+
+*LLM reasoning:*
+- `#113D63` (158 fills) = dominant brand fill → maps to source primary `#003087`
+- `#5E7C9E` (71 fills, medium blue, lighter shade of `#113D63`) = secondary blue → maps to `#003087` tinted ~40% lighter → `#3A6099`
+- `#CCD1D7` (68 fills, near-neutral) = background/subtle → maps to `#F5F5F5`
+- `#C0504D` (53 fills, warm red) = accent → maps to source red `#D03027`
+- `#404040` (42 font-only) = body text → maps to source text `#1A1A1A`
+
+*Output:*
+```json
+{"actions":[{"type":"recolor_deck","mappings":[
+  {"from":"#113D63","to":"#003087"},
+  {"from":"#5E7C9E","to":"#3A6099"},
+  {"from":"#CCD1D7","to":"#F5F5F5"},
+  {"from":"#C0504D","to":"#D03027"},
+  {"from":"#404040","to":"#1A1A1A"}
+]}]}
+```
+
+---
+
 ### Intent → action cheat-sheet
 
 | VP says | Use |
@@ -1137,7 +1226,7 @@ three sections flush with their respective table columns."
 | "Add a logo / picture" | `insert_picture` (local path) or `replace_picture` |
 | "Pull images from their website" | `fetch_page_images` → `build_image_picker_slide` and/or `build_image_grid_table` |
 | "Add an icon / pictogram" | `insert_icon` — give the concept; use a name from the Fluent UI set / the allow-list in the export prompt |
-| "Recolor the deck / rebrand colors" | `recolor_palette_deck_wide` (and `recolor_fill_match` / `recolor_font_match` for finer scopes) |
+| "Recolor the deck / rebrand colors" | Full retheme: `scan_palette` on source deck + `scan_palette` on destination → LLM maps palettes → `recolor_deck` (one action, all N pairs). Quick single-swap: `recolor_palette_deck_wide`. |
 | "Change the font everywhere" | `swap_font_deck_wide` (or `set_theme_font` for theme-driven decks) |
 | "Align / space out these shapes" | `align_shapes` + `distribute_horizontal` / `distribute_vertical` (or `tile_grid`, `smart_spacing`, `uniform_size`) |
 | "Make a table" | `add_table` → `set_cell_text` per cell → `apply_table_style` |
