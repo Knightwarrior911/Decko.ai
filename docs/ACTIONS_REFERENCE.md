@@ -967,6 +967,7 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: slide, pos({left,top,width,height}), rows(array of row objects)
   Each row object: {name, image_path OR image_url, bullets:[strings]}
+  EXAMPLE:  {"type":"build_image_grid_table","slide":1,"pos":{"left":60,"top":120,"width":800,"height":400},"rows":[{"name":"John Smith","image_path":"C:/imgs/j.png","bullets":["Coverage MD","12 yrs"]}]}
   See ACTIONS_REFERENCE.md Â§3.12 for full schema (image_col, name_position, name_font, etc.)
 ```
 
@@ -2068,16 +2069,16 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ### `set_run_bold`
 
 ```
-  REQUIRED: slide, shape_id, paragraph_index, run_index, value
-  EXAMPLE:  {"type":"set_run_bold","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":<value>}
+  REQUIRED: slide, shape_id, paragraph_index, run_index, value(bool)
+  EXAMPLE:  {"type":"set_run_bold","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":true}
   NOTE: paragraph_index AND run_index are both 0-based.
 ```
 
 ### `set_run_font_color`
 
 ```
-  REQUIRED: slide, shape_id, paragraph_index, run_index, value
-  EXAMPLE:  {"type":"set_run_font_color","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":<value>}
+  REQUIRED: slide, shape_id, paragraph_index, run_index, value(#RRGGBB)
+  EXAMPLE:  {"type":"set_run_font_color","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":"#15283C"}
   NOTE: paragraph_index AND run_index are both 0-based.
 ```
 
@@ -2091,8 +2092,8 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ### `set_run_font_size`
 
 ```
-  REQUIRED: slide, shape_id, paragraph_index, run_index, value
-  EXAMPLE:  {"type":"set_run_font_size","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":<value>}
+  REQUIRED: slide, shape_id, paragraph_index, run_index, value(int>0)
+  EXAMPLE:  {"type":"set_run_font_size","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":12}
   NOTE: paragraph_index AND run_index are both 0-based.
 ```
 
@@ -2113,8 +2114,8 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ### `set_run_italic`
 
 ```
-  REQUIRED: slide, shape_id, paragraph_index, run_index, value
-  EXAMPLE:  {"type":"set_run_italic","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":<value>}
+  REQUIRED: slide, shape_id, paragraph_index, run_index, value(bool)
+  EXAMPLE:  {"type":"set_run_italic","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":true}
   NOTE: paragraph_index AND run_index are both 0-based.
 ```
 
@@ -2128,8 +2129,8 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ### `set_run_strikethrough`
 
 ```
-  REQUIRED: slide, shape_id, paragraph_index, run_index, value
-  EXAMPLE:  {"type":"set_run_strikethrough","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":<value>}
+  REQUIRED: slide, shape_id, paragraph_index, run_index, value(bool)
+  EXAMPLE:  {"type":"set_run_strikethrough","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":true}
   NOTE: paragraph_index AND run_index are both 0-based.
 ```
 
@@ -2150,16 +2151,16 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ### `set_run_text`
 
 ```
-  REQUIRED: slide, shape_id, paragraph_index, run_index, value
-  EXAMPLE:  {"type":"set_run_text","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":<value>}
+  REQUIRED: slide, shape_id, paragraph_index, run_index, value(string)
+  EXAMPLE:  {"type":"set_run_text","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":"Revenue"}
   NOTE: paragraph_index AND run_index are both 0-based.
 ```
 
 ### `set_run_underline`
 
 ```
-  REQUIRED: slide, shape_id, paragraph_index, run_index, value
-  EXAMPLE:  {"type":"set_run_underline","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":<value>}
+  REQUIRED: slide, shape_id, paragraph_index, run_index, value(bool)
+  EXAMPLE:  {"type":"set_run_underline","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":true}
   NOTE: paragraph_index AND run_index are both 0-based.
 ```
 

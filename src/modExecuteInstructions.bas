@@ -2318,12 +2318,25 @@ Public Function GetActionGuidance(actionType As String) As String
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, paragraph_index, value(#RRGGBB)" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""set_paragraph_font_color"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""value"":""#15283C""}"
-        Case "set_run_font_color", "set_run_font_size", "set_run_bold", "set_run_italic", _
-             "set_run_underline", "set_run_strikethrough", "set_run_text"
+        Case "set_run_bold", "set_run_italic", "set_run_underline", "set_run_strikethrough"
             GetActionGuidance = _
-                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value" & vbCrLf & _
-                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3," & _
-                """paragraph_index"":0,""run_index"":1,""value"":<value>}" & vbCrLf & _
+                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(bool)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":true}" & vbCrLf & _
+                "  NOTE: paragraph_index AND run_index are both 0-based."
+        Case "set_run_font_color"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(#RRGGBB)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_run_font_color"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":""#15283C""}" & vbCrLf & _
+                "  NOTE: paragraph_index AND run_index are both 0-based."
+        Case "set_run_font_size"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(int>0)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_run_font_size"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":12}" & vbCrLf & _
+                "  NOTE: paragraph_index AND run_index are both 0-based."
+        Case "set_run_text"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_run_text"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":""Revenue""}" & vbCrLf & _
                 "  NOTE: paragraph_index AND run_index are both 0-based."
         Case "set_run_font_name"
             GetActionGuidance = _
@@ -2820,6 +2833,8 @@ Public Function GetActionGuidance(actionType As String) As String
             GetActionGuidance = _
                 "  REQUIRED: slide, pos({left,top,width,height}), rows(array of row objects)" & vbCrLf & _
                 "  Each row object: {name, image_path OR image_url, bullets:[strings]}" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""build_image_grid_table"",""slide"":1,""pos"":{""left"":60,""top"":120,""width"":800,""height"":400}," & _
+                """rows"":[{""name"":""John Smith"",""image_path"":""C:/imgs/j.png"",""bullets"":[""Coverage MD"",""12 yrs""]}]}" & vbCrLf & _
                 "  See ACTIONS_REFERENCE.md §3.12 for full schema (image_col, name_position, name_font, etc.)"
         ' ---- cell paragraph actions ----
         Case "set_cell_paragraph_text"
