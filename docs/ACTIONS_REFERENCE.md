@@ -788,7 +788,7 @@ This appendix is auto-extracted from `modExecuteInstructions.GetActionGuidance` 
 
 If a new action is added to the dispatcher, update GetActionGuidance and GetAllActionTypes, then re-run the sync script.
 
-**Action types covered: 234.**
+**Action types covered: 236.**
 
 ### `add_cell_paragraph`
 
@@ -831,6 +831,15 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: slide, shape_id, after_paragraph_index(int; -1 prepends), value(string)
   EXAMPLE:  {"type":"add_paragraph","slide":1,"shape_id":3,"after_paragraph_index":2,"value":"New bullet"}
+```
+
+### `add_run`
+
+```
+  REQUIRED: slide, shape_id, paragraph_index, value(string)
+  OPTIONAL: bold(bool), italic(bool), underline(bool), color(#RRGGBB), font_name(string), font_size(int)
+  EXAMPLE:  {"type":"add_run","slide":1,"shape_id":3,"paragraph_index":1,"value":"18% YoY","bold":true,"color":"#C00000"}
+  NOTE: appends a new run at the END of the paragraph; does not rebuild tr.Text so existing run formatting is preserved.
 ```
 
 ### `add_section`
@@ -1589,6 +1598,14 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: slide, shape_id, row, col, value(bool)
   EXAMPLE:  {"type":"set_cell_font_underline","slide":1,"shape_id":4,"row":1,"col":1,"value":true}
+```
+
+### `set_cell_indent_level`
+
+```
+  REQUIRED: slide, shape_id, row, col, paragraph_index, value(int 0-4)
+  EXAMPLE:  {"type":"set_cell_indent_level","slide":1,"shape_id":4,"row":1,"col":1,"paragraph_index":1,"value":1}
+  NOTE: sets IndentLevel on the paragraph inside a table cell (0=top level).
 ```
 
 ### `set_cell_padding`
