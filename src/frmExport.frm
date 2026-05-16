@@ -452,6 +452,14 @@ Public Function PromptTemplate() As String
         s = s & iconList & vbCrLf
     End If
 
+    s = s & vbCrLf & "=== DECK DESIGN PRINCIPLES (follow when generating slides) ===" & vbCrLf
+    s = s & "HIERARCHY: exactly 3 tiers per slide - ONE dominant (biggest, strongest contrast), 2-4 supporting, 0-2 accent." & vbCrLf
+    s = s & "CLUSTERING: never a flat 4+ bullet list; group content into 2-3 named clusters." & vbCrLf
+    s = s & "WHITESPACE: >=36pt margins on every side; >=16pt gaps between clusters." & vbCrLf
+    s = s & "TYPOGRAPHIC CONTRAST: hero/stat 36-72pt, section label 14-18pt, body 10-12pt." & vbCrLf
+    s = s & "COLOR AS MEANING: one accent colour marks the single key insight; max 2 fill colours." & vbCrLf
+    s = s & "ANTI-SLOP: no decorative shape that encodes no information; every element earns its place." & vbCrLf
+
     ' Live-injected: your captured templates (read from the registry file
     ' at click time, so new captures appear with zero code change).
     s = s & modActionsCapture.BuildCapturedManifest( _

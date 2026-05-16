@@ -14,6 +14,9 @@ Option Explicit
 
 Private Const M As Single = 36#
 Private Const BUL As String = "" ' set at runtime (ChrW 8226)
+Private Const C_ACC As String = "#2E75B6"
+Private Const C_BODY As String = "#333333"
+Private Const C_NEU As String = "#F2F2F2"
 
 Private Function Bullet() As String
     Bullet = ChrW(8226) & "  "
@@ -207,36 +210,104 @@ End Sub
 
 ' A deliberately distinct layout per preset index (measurably different
 ' geometry + accent). Carries the same slot text so the user/LLM can pick.
+' Principled layout archetypes (NOT cosmetic shuffles). Each is a
+' genuinely different information architecture obeying the design rules:
+'   >=M margins, ONE strictly-dominant (largest-font) element, <=2 fill
+'   colours, single accent, clear size tiers. n cycles the set so the
+'   user sees structurally different options of the SAME content.
 Private Sub RenderVariant(sl As Long, tpl As String, c As Object, idx As Long)
     Dim sw As Single: sw = ActivePresentation.PageSetup.SlideWidth
     Dim sh As Single: sh = ActivePresentation.PageSetup.SlideHeight
-    Dim heading As String, body As String
-    heading = SlotOr(c, Array("title", "heading", "section_title", "quote_text"))
-    body = AllValues(c)
+    Dim heading As String: heading = SlotOr(c, Array("title", "heading", _
+        "section_title", "quote_text"))
+    Dim allv As String: allv = AllValues(c)
 
-    Dim accents As Variant
-    accents = Array("#2E75B6", "#C0392B", "#1E8449", "#6C3483", "#B9770E", "#117A65")
-    Dim acc As String: acc = CStr(accents((idx - 1) Mod 6))
-
-    Dim hx As Single, hy As Single, hAlign As String
-    Select Case ((idx - 1) Mod 3)
-        Case 0: hx = M:                hy = M:          hAlign = "left"
-        Case 1: hx = M:                hy = sh * 0.18:  hAlign = "center"
-        Case 2: hx = sw * 0.12:        hy = M:          hAlign = "left"
+    Select Case ((idx - 1) Mod 5)
+        Case 0: Arch_Hero sl, sw, sh, heading, allv, idx
+        Case 1: Arch_Split sl, sw, sh, heading, allv, idx
+        Case 2: Arch_Stack sl, sw, sh, heading, allv, idx
+        Case 3: Arch_Quote sl, sw, sh, heading, allv, idx
+        Case 4: Arch_Tiles sl, sw, sh, heading, allv, idx
     End Select
+End Sub
 
-    ' accent bar for odd presets -> further geometric distinctness
-    If (idx Mod 2) = 0 Then
-        modActionsLayout.Do_add_shape sl, "rect", M, hy, 6, sh * 0.16, _
-            acc, "", 0, "var_bar_" & idx
-        hx = hx + 14
-    End If
-    modActionsLayout.Do_add_text_box sl, heading, _
-        hx, hy, sw - hx - M, sh * 0.16, "var_head_" & idx, acc, 30, True, _
-        False, hAlign
-    modActionsLayout.Do_add_text_box sl, body, _
-        M, hy + sh * 0.16 + 18, sw - 2 * M, sh - (hy + sh * 0.16 + 18) - M, _
-        "var_body_" & idx, "#333333", 14, False, False, "left"
+Private Sub Arch_Hero(sl As Long, sw As Single, sh As Single, _
+                      h As String, v As String, idx As Long)
+    ' One dominant statement; everything else recedes.
+    modActionsLayout.Do_add_text_box sl, h, M, sh * 0.32, sw - 2 * M, _
+        sh * 0.26, "var_head_" & idx, "#15283C", 60, True, False, "center"
+    modActionsLayout.Do_add_text_box sl, v, M, sh * 0.62, sw - 2 * M, _
+        sh * 0.22, "var_sub_" & idx, C_BODY, 16, False, False, "center"
+End Sub
+
+Private Sub Arch_Split(sl As Long, sw As Single, sh As Single, _
+                       h As String, v As String, idx As Long)
+    modActionsLayout.Do_add_text_box sl, h, M, M, sw - 2 * M, sh * 0.14, _
+        "var_head_" & idx, "#15283C", 28, True, False, "left"
+    Dim y As Single: y = sh * 0.26
+    Dim hgt As Single: hgt = sh - y - M
+    Dim cw As Single: cw = (sw - 2 * M - 24) / 2
+    modActionsLayout.Do_add_shape sl, "rrect", M, y, cw, hgt, _
+        C_NEU, "", 0, "var_pL_" & idx
+    modActionsLayout.Do_add_shape sl, "rrect", M + cw + 24, y, cw, hgt, _
+        C_NEU, "", 0, "var_pR_" & idx
+    modActionsLayout.Do_add_text_box sl, v, M + 12, y + 12, cw - 24, _
+        hgt - 24, "var_bL_" & idx, C_BODY, 14, False, False, "left"
+    modActionsLayout.Do_add_text_box sl, v, M + cw + 36, y + 12, cw - 24, _
+        hgt - 24, "var_bR_" & idx, C_BODY, 14, False, False, "left"
+End Sub
+
+Private Sub Arch_Stack(sl As Long, sw As Single, sh As Single, _
+                       h As String, v As String, idx As Long)
+    modActionsLayout.Do_add_text_box sl, h, M, M, sw - 2 * M, sh * 0.13, _
+        "var_head_" & idx, "#15283C", 28, True, False, "left"
+    Dim parts() As String: parts = Split(v, vbCrLf)
+    Dim y As Single: y = sh * 0.24
+    Dim rowH As Single: rowH = (sh - y - M - 2 * 16) / 3
+    Dim k As Long
+    For k = 0 To 2
+        Dim ry As Single: ry = y + k * (rowH + 16)
+        modActionsLayout.Do_add_shape sl, "rrect", M, ry, sw - 2 * M, rowH, _
+            C_NEU, "", 0, "var_row" & k & "_" & idx
+        Dim t As String: t = ""
+        If k <= UBound(parts) Then t = parts(k)
+        If k = 2 Then t = v   ' last cluster carries the full content
+        modActionsLayout.Do_add_text_box sl, t, M + 14, ry + 10, _
+            sw - 2 * M - 28, rowH - 20, "var_c" & k & "_" & idx, _
+            C_BODY, 14, False, False, "left"
+    Next k
+End Sub
+
+Private Sub Arch_Quote(sl As Long, sw As Single, sh As Single, _
+                       h As String, v As String, idx As Long)
+    modActionsLayout.Do_add_text_box sl, ChrW(8220) & h & ChrW(8221), _
+        M, sh * 0.26, sw - 2 * M, sh * 0.4, "var_q_" & idx, "#15283C", _
+        44, True, False, "left"
+    modActionsLayout.Do_add_text_box sl, v, M, sh * 0.7, sw - 2 * M, _
+        sh * 0.18, "var_a_" & idx, C_ACC, 16, False, True, "left"
+End Sub
+
+Private Sub Arch_Tiles(sl As Long, sw As Single, sh As Single, _
+                       h As String, v As String, idx As Long)
+    modActionsLayout.Do_add_text_box sl, h, M, M, sw - 2 * M, sh * 0.13, _
+        "var_head_" & idx, "#15283C", 30, True, False, "left"
+    Dim parts() As String: parts = Split(v, vbCrLf)
+    Dim n As Long: n = 4
+    Dim y As Single: y = sh * 0.24
+    Dim hgt As Single: hgt = sh - y - M
+    Dim tw As Single: tw = (sw - 2 * M - 3 * 18) / n
+    Dim i As Long
+    For i = 0 To n - 1
+        Dim x As Single: x = M + i * (tw + 18)
+        modActionsLayout.Do_add_shape sl, "rrect", x, y, tw, hgt, _
+            C_NEU, "", 0, "var_t" & i & "_" & idx
+        Dim s As String: s = ""
+        If i <= UBound(parts) Then s = parts(i)
+        If i = 0 Then s = v
+        modActionsLayout.Do_add_text_box sl, s, x + 8, y + hgt * 0.18, _
+            tw - 16, hgt * 0.5, "var_ts" & i & "_" & idx, C_ACC, 20, _
+            True, False, "center"
+    Next i
 End Sub
 
 Private Function SlotOr(c As Object, keys As Variant) As String

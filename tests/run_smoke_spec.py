@@ -124,22 +124,25 @@ def run_session():
         vslides = snap["slides"][-3:]
         if len(vslides) != 3:
             fails.append(("variants", "count", f"{len(vslides)} new slides"))
-        head_pos = []
+        # Principled archetypes keep the heading consistently placed and
+        # differ by information architecture, so distinctness = structural
+        # signature (shape count + font-size multiset), not head position.
+        sigs = []
         for vi, sl in enumerate(vslides):
-            txts = " || ".join((s.get("text") or "") for s in sl["shapes"])
+            shapes = sl["shapes"]
+            txts = " || ".join((s.get("text") or "") for s in shapes)
             for sen in ("V_T", "V_S"):
                 if sen not in txts:
                     fails.append(("variants", f"slide{vi} text",
                                   f"{sen!r} missing"))
-            hs = next((s for s in sl["shapes"]
-                       if "V_T" in (s.get("text") or "")), None)
-            if hs:
-                p = hs.get("pos") or {}
-                head_pos.append((round(p.get("left", -1), 1),
-                                 round(p.get("top", -1), 1)))
-        if len(head_pos) == 3 and len(set(head_pos)) < 3:
+            fsz = tuple(sorted(round(s["font"]["size"]) for s in shapes
+                               if isinstance(s.get("font"), dict)
+                               and isinstance(s["font"].get("size"),
+                                              (int, float))))
+            sigs.append((len(shapes), fsz))
+        if len(sigs) == 3 and len(set(sigs)) < 3:
             fails.append(("variants", "distinct",
-                          f"headline boxes not pairwise distinct: {head_pos}"))
+                          f"archetype signatures not all unique: {sigs}"))
         return fails
     finally:
         for p in (pres, carrier):
