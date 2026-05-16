@@ -426,14 +426,17 @@ Public Function PromptTemplate() As String
     s = s & "  6. End batch with enable_text_shrink_for_overflow." & vbCrLf
 
     s = s & vbCrLf & "ICON ACTION (Microsoft Fluent UI icons, fetched from unpkg CDN):" & vbCrLf
-    s = s & "  Use when user asks for an icon/pictogram on a slide." & vbCrLf
-    s = s & "  HARD RULE: the ""icon"" field MUST be picked verbatim from the allow-list" & vbCrLf
-    s = s & "  at the bottom of this prompt. NEVER invent or guess names." & vbCrLf
-    s = s & "  If the user's concept has no exact match, do a semantic search of the" & vbCrLf
-    s = s & "  allow-list and pick the closest meaning (e.g. 'oil' -> 'drop'," & vbCrLf
-    s = s & "  'traffic' -> 'directions', 'ship' -> 'vehicle_truck_profile')." & vbCrLf
-    s = s & "  Default size=32, style=""regular"" for every icon unless user says otherwise." & vbCrLf
-    s = s & "  color: hex string e.g. ""#15283C"". Omit to keep default dark grey." & vbCrLf
+    s = s & "  Use when the user asks for an icon/pictogram on a slide." & vbCrLf
+    s = s & "  HARD RULE: the ""icon"" field MUST be an EXACT Microsoft Fluent UI" & vbCrLf
+    s = s & "  System Icons name. Verify the exact name at:" & vbCrLf
+    s = s & "  https://unpkg.com/browse/@fluentui/svg-icons/icons/" & vbCrLf
+    s = s & "  File pattern there: {name}_{size}_{style}.svg (default size=32," & vbCrLf
+    s = s & "  style=regular). NEVER invent or guess a name." & vbCrLf
+    s = s & "  If the concept has no exact match, pick the closest SEMANTIC name" & vbCrLf
+    s = s & "  (e.g. 'oil' -> 'drop', 'ship' -> 'vehicle_truck_profile')." & vbCrLf
+    s = s & "  Common valid names: people, globe, building_factory, arrow_right," & vbCrLf
+    s = s & "  checkmark, alert, document, chart, money, settings, calendar, mail." & vbCrLf
+    s = s & "  color: hex e.g. ""#15283C"" (omit = default dark grey)." & vbCrLf
     s = s & "  left/top/width/height all in points." & vbCrLf
     s = s & "    {""type"":""insert_icon"",""slide"":1,""icon"":""building_factory""," & vbCrLf
     s = s & "     ""style"":""regular"",""size"":32,""color"":""#15283C""," & vbCrLf
@@ -444,13 +447,8 @@ Public Function PromptTemplate() As String
     s = s & "  {""type"":""enable_text_shrink_for_overflow"",""scope"":""slide:1""}" & vbCrLf
     s = s & "  {""type"":""enable_text_shrink_for_overflow"",""scope"":""deck"",""include_titles"":""false""}" & vbCrLf
 
-    Dim iconList As String: iconList = LoadIconAllowList()
-    If Len(iconList) > 0 Then
-        s = s & vbCrLf & "==== FLUENT UI ICON ALLOW-LIST (size=32 regular only) ====" & vbCrLf
-        s = s & "All 830 names below are guaranteed to exist at size=32 style=regular on CDN." & vbCrLf
-        s = s & "Pick verbatim. If no exact match, use closest semantic name from this list." & vbCrLf & vbCrLf
-        s = s & iconList & vbCrLf
-    End If
+    ' (Icon allow-list enumeration removed: source names from the CDN
+    ' browse URL above. Keeps the prompt ~10KB smaller.)
 
     s = s & vbCrLf & "=== DECK DESIGN PRINCIPLES (follow when generating slides) ===" & vbCrLf
     s = s & "HIERARCHY: exactly 3 tiers per slide - ONE dominant (biggest, strongest contrast), 2-4 supporting, 0-2 accent." & vbCrLf

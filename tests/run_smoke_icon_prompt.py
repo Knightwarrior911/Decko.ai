@@ -30,19 +30,28 @@ def main():
         prompt = out_path.read_text(encoding="utf-8", errors="replace")
         print(f"prompt size: {len(prompt)} chars")
 
+        # Contract (updated): the exhaustive allow-list is intentionally
+        # gone; concise CDN-sourcing guidance is retained so an off-box
+        # LLM can still pick exact Fluent names.
+        big_list_body = ""
+        allow_txt = REPO_ROOT / "data" / "icons_allowed.txt"
+        if allow_txt.exists():
+            big_list_body = allow_txt.read_text(encoding="utf-8",
+                                                errors="replace")
         checks = [
-            ("manifest header present",
-             "FLUENT UI ICON ALLOW-LIST" in prompt),
+            ("ICON ACTION section present",
+             "ICON ACTION" in prompt),
             ("HARD RULE clause present",
-             "HARD RULE" in prompt and "MUST be picked verbatim" in prompt),
+             "HARD RULE" in prompt and "EXACT Microsoft Fluent UI" in prompt),
+            ("CDN browse URL present",
+             "unpkg.com/browse/@fluentui/svg-icons/icons/" in prompt),
+            ("filename pattern note present",
+             "{name}_{size}_{style}.svg" in prompt),
             ("semantic fallback instruction present",
              "semantic" in prompt.lower()),
-            ("manifest name 'people' present",
-             "\npeople\n" in prompt or "\npeople\r\n" in prompt),
-            ("manifest name 'globe' present",
-             "\nglobe\n" in prompt or "\nglobe\r\n" in prompt),
-            ("manifest name 'building_factory' present",
-             "\nbuilding_factory\n" in prompt or "\nbuilding_factory\r\n" in prompt),
+            ("curated common names present",
+             "Common valid names" in prompt and "people" in prompt
+             and "globe" in prompt and "building_factory" in prompt),
             ("default size=32 stated",
              "size=32" in prompt),
             ("dead URL hint removed",
@@ -50,6 +59,11 @@ def main():
              "fluenticons.co" not in prompt),
             ("schema example uses building_factory",
              "building_factory" in prompt),
+            ("exhaustive allow-list NOT injected",
+             "FLUENT UI ICON ALLOW-LIST" not in prompt
+             and "All 830 names" not in prompt
+             and (len(big_list_body) < 200
+                  or big_list_body.strip() not in prompt)),
         ]
 
         failed = []

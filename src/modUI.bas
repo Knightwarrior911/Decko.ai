@@ -24,29 +24,42 @@ End Sub
 ' Standard-module macro -- no .frx form edit.
 Public Sub CaptureTemplate()
     Dim nm As String
-    nm = InputBox("Template name (saved to your Decko library):", "Capture Template")
+    nm = InputBox( _
+        "Name this captured template (saved to your Decko library)." & vbCrLf & _
+        "The active slide's layout becomes a reusable stamp.", _
+        "Decko - Capture Template")
     If Len(Trim(nm)) = 0 Then Exit Sub
     Dim act As Object: Set act = CreateObject("Scripting.Dictionary")
     act.Add "type", "capture_template"
-    act.Add "name", nm
+    act.Add "name", Trim(nm)
     modActionsCapture.Do_capture_template_act act
-    MsgBox "Captured '" & nm & "'. It appears in the next " & _
-           "Copy snapshot + prompt template.", vbInformation
+    MsgBox "Captured '" & Trim(nm) & "'." & vbCrLf & _
+           "It now appears in 'Copy snapshot + prompt template' so your " & _
+           "LLM can use it.", vbInformation, "Decko"
 End Sub
 
-' Alt+F8: list captured templates; type a name to delete it.
+' Alt+F8: view captured templates (numbered, readable) and delete one.
 Public Sub ManageTemplates()
-    Dim man As String
-    man = modActionsCapture.BuildCapturedManifest( _
+    Dim lst As String
+    lst = modActionsCapture.NumberedTemplateList( _
         modActionsCapture.DefaultRegistryPath())
-    If Len(man) = 0 Then man = "(no captured templates yet)"
+    If Len(lst) = 0 Then
+        MsgBox "No captured templates yet. Run the CaptureTemplate macro " & _
+               "on a slide you like.", vbInformation, _
+               "Decko - Manage Templates"
+        Exit Sub
+    End If
     Dim choice As String
-    choice = InputBox(man & vbCrLf & vbCrLf & _
-        "Type a template name to DELETE it, or Cancel.", "Manage Templates")
+    choice = InputBox( _
+        "YOUR CAPTURED TEMPLATES:" & vbCrLf & vbCrLf & lst & vbCrLf & _
+        "To DELETE one, type its NAME exactly and press OK." & vbCrLf & _
+        "Leave blank or press Cancel to just view (deletes nothing).", _
+        "Decko - Manage Templates")
     If Len(Trim(choice)) = 0 Then Exit Sub
     Dim act As Object: Set act = CreateObject("Scripting.Dictionary")
     act.Add "type", "delete_template"
-    act.Add "name", choice
+    act.Add "name", Trim(choice)
     modActionsCapture.Do_delete_template_act act
-    MsgBox "Deleted '" & choice & "'.", vbInformation
+    MsgBox "Deleted '" & Trim(choice) & "'. Slides already built from it " & _
+           "are unchanged.", vbInformation, "Decko - Manage Templates"
 End Sub

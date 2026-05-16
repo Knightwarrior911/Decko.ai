@@ -305,3 +305,25 @@ Public Function BuildCapturedManifest(registryPath As String) As String
          """content"":{""heading"":""..""}}" & vbCrLf
     BuildCapturedManifest = sb
 End Function
+
+' Numbered, human-readable list ("N. name  --  slots: a, b") for the
+' ManageTemplates dialog. "" when none. Stays readable when long.
+Public Function NumberedTemplateList(registryPath As String) As String
+    Dim reg As Object: Set reg = LoadRegistry(registryPath)
+    Dim templates As Object: Set templates = reg("templates")
+    If templates.Count = 0 Then Exit Function
+    Dim sb As String, i As Long: i = 0
+    Dim k As Variant
+    For Each k In templates.Keys
+        i = i + 1
+        Dim tpl As Object: Set tpl = templates(k)
+        Dim slots As Object: Set slots = tpl("slots")
+        Dim sl As String, j As Long
+        For j = 1 To slots.Count
+            If j > 1 Then sl = sl & ", "
+            sl = sl & CStr(slots(j))
+        Next j
+        sb = sb & i & ". " & CStr(k) & "  --  slots: " & sl & vbCrLf
+    Next k
+    NumberedTemplateList = sb
+End Function
