@@ -121,13 +121,11 @@ REJECT = [
      "specify dims OR preset, not both"),
     ("slide_size_none", {"type": "set_slide_size"}, "width_pt+height_pt or preset"),
     ("recolor_deck_empty", {"type": "recolor_deck", "mappings": []}, "mappings: must be non-empty"),
-    # NOTE: set_3d_bevel's "type" param key collides with the action
-    # discriminator "type" -- a pre-existing schema bug (executor line
-    # ~1939 and the validator both read act("type")). A bad bevel style
-    # is therefore unrepresentable in valid single-keyed JSON, so we test
-    # a representable malformed case (missing required depth_pt) instead.
-    ("bevel_no_depth", {"type": "set_3d_bevel", "slide": 1, "shape_id": 2},
-     "missing_field: depth_pt"),
+    ("bevel_bad_type", {"type": "set_3d_bevel", "slide": 1, "shape_id": 2,
+                        "bevel_type": "wedge", "depth_pt": 3},
+     "bevel_type: must be circle/slope/cross/angle/softround"),
+    ("bevel_no_depth", {"type": "set_3d_bevel", "slide": 1, "shape_id": 2,
+                        "bevel_type": "circle"}, "missing_field: depth_pt"),
     ("preset_effect_range", {"type": "apply_preset_effect", "slide": 1, "shape_id": 2, "preset_index": 99},
      "preset_index: must be 1..24"),
     ("recolor_pic_bad", {"type": "recolor_picture", "slide": 1, "shape_id": 2, "color_type": "neon"},
@@ -233,6 +231,8 @@ VALID = [
     ("set_theme_font", {"type": "set_theme_font", "major": "Arial"}),
     ("set_slide_hidden", {"type": "set_slide_hidden", "slide": 1, "value": True}),
     ("set_speaker_notes", {"type": "set_speaker_notes", "slide": 1, "value": "notes"}),
+    ("set_3d_bevel", {"type": "set_3d_bevel", "slide": 1, "shape_id": 2,
+                      "bevel_type": "circle", "depth_pt": 6}),
 ]
 
 

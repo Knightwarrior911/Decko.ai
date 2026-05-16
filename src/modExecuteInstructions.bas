@@ -836,11 +836,11 @@ Private Function ValidateAction(act As Object) As String
         Case "set_gradient_fill"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "color1", "color2", "angle"))
         Case "set_3d_bevel"
-            ValidateAction = RequireFields(act, Array("slide", "shape_id", "type", "depth_pt"))
+            ValidateAction = RequireFields(act, Array("slide", "shape_id", "bevel_type", "depth_pt"))
             If ValidateAction = "" Then
-                Dim bv As String: bv = LCase(CStr(act("type")))
+                Dim bv As String: bv = LCase(CStr(act("bevel_type")))
                 If bv <> "circle" And bv <> "slope" And bv <> "cross" And bv <> "angle" And bv <> "softround" Then _
-                    ValidateAction = "type: must be circle/slope/cross/angle/softround"
+                    ValidateAction = "bevel_type: must be circle/slope/cross/angle/softround"
             End If
         Case "apply_preset_effect"
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "preset_index"))
@@ -1936,7 +1936,7 @@ Private Sub DispatchAction(act As Object)
                 CStr(act("color1")), CStr(act("color2")), CDbl(act("angle"))
         Case "set_3d_bevel"
             modActionsEffects.Do_set_3d_bevel CLng(act("slide")), CLng(act("shape_id")), _
-                CStr(act("type")), CDbl(act("depth_pt"))
+                CStr(act("bevel_type")), CDbl(act("depth_pt"))
         Case "apply_preset_effect"
             modActionsEffects.Do_apply_preset_effect CLng(act("slide")), CLng(act("shape_id")), CLng(act("preset_index"))
         Case "crop_picture"
@@ -3510,8 +3510,8 @@ Public Function GetActionGuidance(actionType As String) As String
                 "  EXAMPLE:  {""type"":""set_gradient_fill"",""slide"":1,""shape_id"":3,""color1"":""#15283C"",""color2"":""#2A4F82"",""angle"":90}"
         Case "set_3d_bevel"
             GetActionGuidance = _
-                "  REQUIRED: slide, shape_id, type(""circle""|""slope""|""cross""|""angle""|""softround""), depth_pt(num)" & vbCrLf & _
-                "  EXAMPLE:  {""type"":""set_3d_bevel"",""slide"":1,""shape_id"":3,""type"":""circle"",""depth_pt"":6}"
+                "  REQUIRED: slide, shape_id, bevel_type(""circle""|""slope""|""cross""|""angle""|""softround""), depth_pt(num)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_3d_bevel"",""slide"":1,""shape_id"":3,""bevel_type"":""circle"",""depth_pt"":6}"
         Case "set_3d_rotation"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, AND at least one of: x(deg), y(deg), z(deg)" & vbCrLf & _
