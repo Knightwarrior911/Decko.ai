@@ -736,7 +736,7 @@ Notes: (1) `set_chart_gridlines {major:false}` defaults to the value (y) axis â€
 {"actions":[
   {"type":"set_gradient_fill","slide":2,"shape_id":15,"color1":"#15283C","color2":"#2E75B6","angle":0},
   {"type":"set_transparency","slide":2,"shape_id":15,"value":0.15},
-  {"type":"set_3d_bevel","slide":2,"shape_id":15,"type":"circle","depth_pt":4}
+  {"type":"set_3d_bevel","slide":2,"shape_id":15,"bevel_type":"circle","depth_pt":4}
 ]}
 ```
 

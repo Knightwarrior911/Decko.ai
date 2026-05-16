@@ -48,7 +48,19 @@ The LLM responds with a JSON block (a structured list of instructions). Copy it.
 
 ### Step 3 — Apply
 
-Press `Alt + F8`, run **`ExecuteInstructions`**. Paste. Click **Parse**, review the action count, click **Apply**.
+Press `Alt + F8`, run **`ExecuteInstructions`**. Paste. Click **Parse**.
+
+Parse shows a **`WILL DO (preview)`** block: a plain-language, numbered
+description of exactly what each action will do — read-only, nothing has
+changed yet. Read it. If it is not what you meant, click **Fix Errors**:
+when the actions are valid it copies a *re-steer* prompt (the plan + a
+"this is not what I meant, revise the actions" template) to your
+clipboard — paste into your LLM, get a corrected batch, re-Parse.
+
+When the preview looks right, click **Apply**. There is no undo and no
+auto-backup — Apply mutates the open deck in place. The returned summary
+shows applied/skipped counts; on any failure a `FAILURES (N):` block
+names each failed action's exact index, type, and reason.
 
 Done. Hit `Ctrl+S` if you like the result.
 

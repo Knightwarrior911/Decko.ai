@@ -31,6 +31,10 @@ Public Function ExecuteFromString(jsonText As String) As String
 
     Dim applied As Long, skipped As Long
     applied = 0: skipped = 0
+    ' Per-failure report appended to the returned summary so the caller
+    ' sees exactly which action failed and why -- not just a count, and
+    ' never a silent swallow. Index is the executed (post-reorder) order.
+    Dim failReport As String: failReport = ""
 
     Dim i As Long
     For i = 1 To actions.Count
@@ -48,15 +52,20 @@ Public Function ExecuteFromString(jsonText As String) As String
                                 GetVar(act, "slide"), GetVar(act, "shape_id"), _
                                 paramsJson, "skipped", invalidReason
             skipped = skipped + 1
+            failReport = failReport & vbCrLf & "action #" & i & " " & _
+                         GetStr(act, "type") & ": " & invalidReason
         Else
             On Error Resume Next
             DispatchAction act
             If Err.Number <> 0 Then
+                Dim errDesc As String: errDesc = Err.Description
                 modBackup.LogAction deckPath, GetStr(act, "type"), _
                                     GetVar(act, "slide"), GetVar(act, "shape_id"), _
-                                    paramsJson, "error", Err.Description
+                                    paramsJson, "error", errDesc
                 Err.Clear
                 skipped = skipped + 1
+                failReport = failReport & vbCrLf & "action #" & i & " " & _
+                             GetStr(act, "type") & ": " & errDesc
             Else
                 modBackup.LogAction deckPath, GetStr(act, "type"), _
                                     GetVar(act, "slide"), GetVar(act, "shape_id"), _
@@ -92,6 +101,10 @@ Public Function ExecuteFromString(jsonText As String) As String
 
     ExecuteFromString = applied & " applied, " & skipped & " skipped. " & _
                         "Log: " & deckPath & ".action_log.jsonl" & verifyMsg
+    If Len(failReport) > 0 Then
+        ExecuteFromString = ExecuteFromString & vbCrLf & _
+                            "FAILURES (" & skipped & "):" & failReport
+    End If
 End Function
 
 ' Write the warnings JSON to <deckPath>.warnings.json so a human or downstream

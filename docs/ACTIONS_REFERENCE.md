@@ -128,7 +128,7 @@ A snapshot is a plain-text dump the VP exports from Decko (Alt+F8 →
 | Z-order (`z_order` `order`) | `front` `back` `forward` `backward` |
 | Recolor target (`recolor_palette_deck_wide` `target`) | `fill` `font` `both` |
 | Picture recolor (`recolor_picture` `color_type`) | `grayscale` `sepia` `washout` `bw` `auto` |
-| 3D bevel (`set_3d_bevel` `type`) | `circle` `slope` `cross` `angle` `softround` |
+| 3D bevel (`set_3d_bevel` `bevel_type`) | `circle` `slope` `cross` `angle` `softround` |
 | Nudge direction (`nudge` `direction`) | `l` `r` `u` `d` |
 | Flip / center axis | `h` `v` (`align_to_slide_center` also accepts `both`) |
 | Slide-size preset (`set_slide_size` `preset`) | `16:9` `4:3` |
@@ -553,7 +553,7 @@ string is also accepted per element).
 - **`set_reflection`** — `req:` `slide`, `shape_id`, `size`(num 0.0–1.0), `transparency`(num 0.0–1.0), `distance`(num pt).
 - **`set_transparency`** — fill transparency. `req:` `slide`, `shape_id`, `value`(num 0.0–1.0).
 - **`set_gradient_fill`** — two-color gradient. `req:` `slide`, `shape_id`, `color1`(`#RRGGBB`), `color2`(`#RRGGBB`), `angle`(num degrees).
-- **`set_3d_bevel`** — `req:` `slide`, `shape_id`, `type`(`circle`|`slope`|`cross`|`angle`|`softround`), `depth_pt`(num).
+- **`set_3d_bevel`** — `req:` `slide`, `shape_id`, `bevel_type`(`circle`|`slope`|`cross`|`angle`|`softround`), `depth_pt`(num).
 - **`apply_preset_effect`** — Office texture/preset. `req:` `slide`, `shape_id`, `preset_index`(int 1–24).
 - **`crop_picture`** — crop edges. `req:` `slide`, `shape_id`, `left`,`right`,`top`,`bottom`(num pt).
 - **`recolor_picture`** — `req:` `slide`, `shape_id`, `color_type`(`grayscale`|`sepia`|`washout`|`bw`|`auto`).
@@ -1518,8 +1518,8 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ### `set_3d_bevel`
 
 ```
-  REQUIRED: slide, shape_id, type("circle"|"slope"|"cross"|"angle"|"softround"), depth_pt(num)
-  EXAMPLE:  {"type":"set_3d_bevel","slide":1,"shape_id":3,"type":"circle","depth_pt":6}
+  REQUIRED: slide, shape_id, bevel_type("circle"|"slope"|"cross"|"angle"|"softround"), depth_pt(num)
+  EXAMPLE:  {"type":"set_3d_bevel","slide":1,"shape_id":3,"bevel_type":"circle","depth_pt":6}
 ```
 
 ### `set_3d_rotation`

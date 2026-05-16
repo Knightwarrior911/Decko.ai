@@ -72,22 +72,33 @@ Trust Center.
 6. Press Alt+F8 → run `ExecuteInstructions`. Paste the JSON and click
    **Parse**, or — for a large batch — click **"Load from file..."** and pick
    the `.json` file (the text box corrupts big pastes; the file path doesn't).
-   Review the action list — invalid rows are tagged.
+   Review the action list — invalid rows are tagged, and a
+   **`WILL DO (preview)`** block lists, in plain language, exactly what
+   each action will do (read-only; nothing has changed yet). This is your
+   chance to catch intent drift *before* Apply, which has no undo.
 7. **If any action is INVALID** — click **Fix Errors**. The clipboard now
    holds a prompt with each failing action + canonical signature + example.
    Paste into your LLM chat, get a corrected batch back, go to step 6.
-8. **All OK** — click **Apply**. Deck is backed up first, then valid actions
-   execute in order. After actions finish, the 32-check verify loop runs
-   automatically (typically <500 ms). Status line shows applied/skipped counts
-   plus `verification: N warning(s), M info`.
+   *(If all actions are valid but the preview is not what you meant, click
+   **Fix Errors** anyway — it copies a "re-steer" prompt: the plan plus a
+   "this is not what I meant, revise the actions" template.)*
+8. **All OK** — click **Apply**. There is **no auto-backup and no undo** —
+   Apply mutates the currently open deck in place, so save (Ctrl+S) before
+   closing or lose the changes. Valid actions execute in order; the
+   returned summary shows applied/skipped counts, and on any failure a
+   `FAILURES (N):` block naming each failed action's exact batch index,
+   type, and reason (no silent swallow). The verify loop then runs
+   automatically (typically <500 ms): `verification: N warning(s), M info`.
 9. **If verify found warnings** — click **Fix This**. Clipboard holds a prompt
    with each quality issue + a suggested fix action. Paste into LLM, get the
    fix batch, go to step 6.
 
 ## Action types
 
-~130 actions across 14 modules. The tables below are a summary; the **complete
-per-action schema** is in [`docs/ACTIONS_REFERENCE.md`](docs/ACTIONS_REFERENCE.md).
+238 dispatched actions across 14 `modActions*` modules. The tables below are a
+summary; the **complete per-action schema** is in
+[`docs/ACTIONS_REFERENCE.md`](docs/ACTIONS_REFERENCE.md) (auto-generated
+appendix kept in sync via `tools/sync_actions_guidance.py`).
 
 ### Core shape + slide (`modActions.bas`, 17)
 
@@ -328,9 +339,22 @@ pick up.
 ## Tests
 
 ```bash
-python tests/make_test_decks.py     # regenerate test decks
-python update_macros.py             # ensure carrier matches src/
-python tests/run_smoke.py           # end-to-end COM-driven smoke
+python tests/make_test_decks.py        # regenerate test decks
+python update_macros.py                # ensure carrier matches src/
+python tests/run_smoke.py              # end-to-end COM-driven smoke
+```
+
+Targeted, deterministic COM-driven harnesses (each exits non-zero unless its
+metric is met; all are resilient to transient PowerPoint COM errors — they
+retry bring-up / `com_error` only, never an assertion):
+
+```bash
+python tests/run_smoke_sanitizer.py    # SanitizeJsonInput corpus (49/49)
+python tests/run_smoke_verify.py       # modVerify precision/recall = 1.0 vs frozen contract
+python tests/run_smoke_preview.py      # BuildActionPlanSummary: 238 coverage + exact corpus
+python tests/run_smoke_validate.py     # ValidateBatchJson: recognition/rejection/no-false-reject
+python tests/run_smoke_guidance.py     # GetActionGuidance: 238 coverage + schema-valid EXAMPLEs
+python tests/run_smoke_failcontract.py # ExecuteFromString partial-failure contract
 ```
 
 ## Macros (Alt+F8)
