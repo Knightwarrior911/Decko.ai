@@ -87,7 +87,7 @@ delete_section rename_section move_section apply_picture_artistic_effect
 reset_picture set_shape_visible reconnect_connector set_run_kerning
 set_run_baseline_offset set_bullet_start_number set_notes_font_size
 set_notes_font_color set_notes_font_bold set_notes_font_italic set_notes_font_name
-fit_cell_to_content set_data_label_text run_verification
+fit_cell_to_content set_data_label_text run_verification apply_template
 """.split()
 
 
@@ -174,6 +174,10 @@ REJECT = [
                              "paragraph_index": 0, "run_index": 0, "value": "  "},
      "value: empty font name"),
     ("apply_theme_empty", {"type": "apply_theme", "theme_path": ""}, "theme_path: empty"),
+    ("apply_template_bad_name", {"type": "apply_template", "template": "bogus",
+                                 "content": {}}, "template: must be one of"),
+    ("apply_template_missing_slot", {"type": "apply_template", "template": "title",
+                                     "content": {"title": "x"}}, "content.subtitle: required"),
 ]
 
 # (name, action_dict)  -- expected reason == ""
@@ -233,6 +237,8 @@ VALID = [
     ("set_speaker_notes", {"type": "set_speaker_notes", "slide": 1, "value": "notes"}),
     ("set_3d_bevel", {"type": "set_3d_bevel", "slide": 1, "shape_id": 2,
                       "bevel_type": "circle", "depth_pt": 6}),
+    ("apply_template", {"type": "apply_template", "template": "title",
+                        "content": {"title": "a", "subtitle": "b"}}),
 ]
 
 

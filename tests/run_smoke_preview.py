@@ -80,7 +80,7 @@ delete_section rename_section move_section apply_picture_artistic_effect
 reset_picture set_shape_visible reconnect_connector set_run_kerning
 set_run_baseline_offset set_bullet_start_number set_notes_font_size
 set_notes_font_color set_notes_font_bold set_notes_font_italic set_notes_font_name
-fit_cell_to_content set_data_label_text run_verification
+fit_cell_to_content set_data_label_text run_verification apply_template
 """.split()
 
 
@@ -173,6 +173,10 @@ CORPUS = [
     ("set_font_color",
      batch([{"type": "set_font_color", "slide": 1, "shape_id": 2, "value": "#00FF00"}]),
      "1. Slide 1: set font color on shape #2 -> #00FF00"),
+    ("apply_template",
+     batch([{"type": "apply_template", "template": "title",
+             "content": {"title": "X"}}]),
+     '1. apply the "title" slide template'),
 ]
 
 

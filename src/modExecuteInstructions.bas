@@ -296,6 +296,8 @@ Private Function DescribeAction(act As Object) As String
         ' ---- verification ----
         Case "run_verification"
             DescribeAction = "run the slide-quality verification sweep"
+        Case "apply_template"
+            DescribeAction = sp & "apply the " & PlanQ(GetStr(act, "template")) & " slide template"
 
         Case Else
             If PlanIsKnownType(t) Then
@@ -1251,6 +1253,18 @@ Private Function ValidateAction(act As Object) As String
         Case "run_verification"
             ' Optional scope (default "deck") and max_warnings (default 100); no required fields.
             ValidateAction = ""
+        Case "apply_template"
+            If Not act.Exists("template") Then
+                ValidateAction = "missing_field: template"
+            ElseIf InStr("," & modActionsTemplate.TemplateNames() & ",", _
+                         "," & LCase(CStr(act("template"))) & ",") = 0 Then
+                ValidateAction = "template: must be one of " & modActionsTemplate.TemplateNames()
+            ElseIf Not act.Exists("content") Then
+                ValidateAction = "missing_field: content"
+            Else
+                ValidateAction = modActionsTemplate.ValidateTemplateSlots( _
+                    LCase(CStr(act("template"))), act("content"))
+            End If
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
@@ -2414,6 +2428,8 @@ Private Sub DispatchAction(act As Object)
         Case "set_data_label_text"
             modActionsChart.Do_set_data_label_text CLng(act("slide")), CLng(act("shape_id")), _
                 CLng(act("series_index")), CLng(act("point_index")), CStr(act("value"))
+        Case "apply_template"
+            modActionsTemplate.Do_apply_template_act act
         Case "run_verification"
             ' Standalone mid-batch verification trigger. Writes sidecar JSON.
             Dim rvScope As String: rvScope = "deck"
@@ -2662,7 +2678,7 @@ Private Function GetAllActionTypes_Part3() As String
     s = s & "set_transparency,set_gradient_fill,set_3d_bevel,set_3d_rotation,set_soft_edge,"
     s = s & "apply_preset_effect,crop_picture,recolor_picture,set_brightness,set_contrast,"
     s = s & "apply_picture_artistic_effect,reset_picture,clear_shadow,clear_glow,"
-    s = s & "clear_reflection,clear_all_effects,run_verification"
+    s = s & "clear_reflection,clear_all_effects,run_verification,apply_template"
     GetAllActionTypes_Part3 = s
 End Function
 
@@ -3580,6 +3596,10 @@ Public Function GetActionGuidance(actionType As String) As String
             GetActionGuidance = _
                 "  OPTIONAL: scope(""deck""|""slide:N"")=""deck"", max_warnings(int)=100" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""run_verification"",""scope"":""deck""}"
+        Case "apply_template"
+            GetActionGuidance = _
+                "  REQUIRED: template(""title""|""section""|""bullets""|""two_col""|""comparison""|""kpi_dashboard""|""quote""), content(object of the template's slots); OPTIONAL slide(int) targets an existing blank slide else a new slide is appended" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""apply_template"",""template"":""title"",""content"":{""title"":""Q3 Review"",""subtitle"":""FY26""}}"
         Case Else
             ' Fallback for any action whose guidance entry hasn't been added.
             ' This should be rare since the table above covers all ~165 known
