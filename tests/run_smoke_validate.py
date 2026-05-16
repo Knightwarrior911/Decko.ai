@@ -88,6 +88,7 @@ reset_picture set_shape_visible reconnect_connector set_run_kerning
 set_run_baseline_offset set_bullet_start_number set_notes_font_size
 set_notes_font_color set_notes_font_bold set_notes_font_italic set_notes_font_name
 fit_cell_to_content set_data_label_text run_verification apply_template
+build_deck_from_spec extract_spec generate_variants
 """.split()
 
 
@@ -178,6 +179,11 @@ REJECT = [
                                  "content": {}}, "template: must be one of"),
     ("apply_template_missing_slot", {"type": "apply_template", "template": "title",
                                      "content": {"title": "x"}}, "content.subtitle: required"),
+    ("build_spec_empty_deck", {"type": "build_deck_from_spec",
+                               "spec": {"deck": []}}, "spec.deck: must be a non-empty array"),
+    ("build_spec_no_spec", {"type": "build_deck_from_spec"}, "missing_field: spec"),
+    ("variants_bad_n", {"type": "generate_variants", "template": "title",
+                        "content": {"title": "a"}, "n": 9}, "n: must be an integer 2..6"),
 ]
 
 # (name, action_dict)  -- expected reason == ""
@@ -239,6 +245,12 @@ VALID = [
                       "bevel_type": "circle", "depth_pt": 6}),
     ("apply_template", {"type": "apply_template", "template": "title",
                         "content": {"title": "a", "subtitle": "b"}}),
+    ("build_deck_from_spec", {"type": "build_deck_from_spec",
+                              "spec": {"deck": [{"template": "title",
+                                                 "content": {"title": "a", "subtitle": "b"}}]}}),
+    ("extract_spec", {"type": "extract_spec"}),
+    ("generate_variants", {"type": "generate_variants", "template": "title",
+                           "content": {"title": "a"}, "n": 3}),
 ]
 
 

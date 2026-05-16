@@ -81,6 +81,7 @@ reset_picture set_shape_visible reconnect_connector set_run_kerning
 set_run_baseline_offset set_bullet_start_number set_notes_font_size
 set_notes_font_color set_notes_font_bold set_notes_font_italic set_notes_font_name
 fit_cell_to_content set_data_label_text run_verification apply_template
+build_deck_from_spec extract_spec generate_variants
 """.split()
 
 
@@ -177,6 +178,17 @@ CORPUS = [
      batch([{"type": "apply_template", "template": "title",
              "content": {"title": "X"}}]),
      '1. apply the "title" slide template'),
+    ("build_deck_from_spec",
+     batch([{"type": "build_deck_from_spec",
+             "spec": {"deck": [{"template": "title", "content": {}}]}}]),
+     "1. build the deck from the provided spec"),
+    ("extract_spec",
+     batch([{"type": "extract_spec"}]),
+     "1. extract the live deck into a spec (.spec.json)"),
+    ("generate_variants",
+     batch([{"type": "generate_variants", "template": "title",
+             "content": {}, "n": 3}]),
+     '1. generate 3 layout variants of the "title" template'),
 ]
 
 

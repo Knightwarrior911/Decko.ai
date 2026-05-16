@@ -298,6 +298,13 @@ Private Function DescribeAction(act As Object) As String
             DescribeAction = "run the slide-quality verification sweep"
         Case "apply_template"
             DescribeAction = sp & "apply the " & PlanQ(GetStr(act, "template")) & " slide template"
+        Case "build_deck_from_spec"
+            DescribeAction = "build the deck from the provided spec"
+        Case "extract_spec"
+            DescribeAction = "extract the live deck into a spec (.spec.json)"
+        Case "generate_variants"
+            DescribeAction = "generate " & PlanV(act, "n") & " layout variants of the " & _
+                             PlanQ(GetStr(act, "template")) & " template"
 
         Case Else
             If PlanIsKnownType(t) Then
@@ -1264,6 +1271,28 @@ Private Function ValidateAction(act As Object) As String
             Else
                 ValidateAction = modActionsTemplate.ValidateTemplateSlots( _
                     LCase(CStr(act("template"))), act("content"))
+            End If
+        Case "build_deck_from_spec"
+            If Not act.Exists("spec") Then
+                ValidateAction = "missing_field: spec"
+            Else
+                ValidateAction = modActionsSpec.ValidateSpec(act("spec"))
+            End If
+        Case "extract_spec"
+            ' Reads the live deck; no required fields.
+            ValidateAction = ""
+        Case "generate_variants"
+            If Not act.Exists("template") Then
+                ValidateAction = "missing_field: template"
+            ElseIf InStr("," & modActionsTemplate.TemplateNames() & ",", _
+                         "," & LCase(CStr(act("template"))) & ",") = 0 Then
+                ValidateAction = "template: must be one of " & modActionsTemplate.TemplateNames()
+            ElseIf Not act.Exists("content") Then
+                ValidateAction = "missing_field: content"
+            ElseIf Not act.Exists("n") Then
+                ValidateAction = "missing_field: n"
+            ElseIf Not IsNumeric(act("n")) Or CLng(act("n")) < 2 Or CLng(act("n")) > 6 Then
+                ValidateAction = "n: must be an integer 2..6"
             End If
         Case Else
             ValidateAction = "unknown_type: " & t
@@ -2430,6 +2459,12 @@ Private Sub DispatchAction(act As Object)
                 CLng(act("series_index")), CLng(act("point_index")), CStr(act("value"))
         Case "apply_template"
             modActionsTemplate.Do_apply_template_act act
+        Case "build_deck_from_spec"
+            modActionsSpec.Do_build_deck_from_spec_act act
+        Case "extract_spec"
+            modActionsSpec.Do_extract_spec_act act
+        Case "generate_variants"
+            modActionsSpec.Do_generate_variants_act act
         Case "run_verification"
             ' Standalone mid-batch verification trigger. Writes sidecar JSON.
             Dim rvScope As String: rvScope = "deck"
@@ -2678,7 +2713,8 @@ Private Function GetAllActionTypes_Part3() As String
     s = s & "set_transparency,set_gradient_fill,set_3d_bevel,set_3d_rotation,set_soft_edge,"
     s = s & "apply_preset_effect,crop_picture,recolor_picture,set_brightness,set_contrast,"
     s = s & "apply_picture_artistic_effect,reset_picture,clear_shadow,clear_glow,"
-    s = s & "clear_reflection,clear_all_effects,run_verification,apply_template"
+    s = s & "clear_reflection,clear_all_effects,run_verification,apply_template,"
+    s = s & "build_deck_from_spec,extract_spec,generate_variants"
     GetAllActionTypes_Part3 = s
 End Function
 
@@ -3600,6 +3636,18 @@ Public Function GetActionGuidance(actionType As String) As String
             GetActionGuidance = _
                 "  REQUIRED: template(""title""|""section""|""bullets""|""two_col""|""comparison""|""kpi_dashboard""|""quote""), content(object of the template's slots); OPTIONAL slide(int) targets an existing blank slide else a new slide is appended" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""apply_template"",""template"":""title"",""content"":{""title"":""Q3 Review"",""subtitle"":""FY26""}}"
+        Case "build_deck_from_spec"
+            GetActionGuidance = _
+                "  REQUIRED: spec(object {""deck"":[{""template"":..,""content"":{..}}, ..]}); OPTIONAL clear_existing(bool) rebuilds the whole deck" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""build_deck_from_spec"",""spec"":{""deck"":[{""template"":""title"",""content"":{""title"":""A"",""subtitle"":""B""}}]}}"
+        Case "extract_spec"
+            GetActionGuidance = _
+                "  OPTIONAL: none — reads the live deck and writes <deck>.spec.json (and is callable as ExtractDeckSpecJson)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""extract_spec""}"
+        Case "generate_variants"
+            GetActionGuidance = _
+                "  REQUIRED: template(one of the apply_template names), content(object of slots), n(int 2..6)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""generate_variants"",""template"":""title"",""content"":{""title"":""A"",""subtitle"":""B""},""n"":3}"
         Case Else
             ' Fallback for any action whose guidance entry hasn't been added.
             ' This should be rare since the table above covers all ~165 known

@@ -69,23 +69,46 @@ Private Function TargetSlide(act As Object) As Long
             Err.Raise vbObjectError + 9101, "apply_template", "slide_out_of_range"
         End If
     Else
-        ' Append a new slide using the deck's own blank layout (deck-agnostic;
-        ' the CustomLayouts index varies per template, so resolve by name).
-        Dim layouts As Object
-        Set layouts = pres.SlideMaster.CustomLayouts
-        Dim lay As Object, blankLay As Object
-        For Each lay In layouts
-            If InStr(LCase(lay.Name), "blank") > 0 Then
-                Set blankLay = lay
-                Exit For
-            End If
-        Next lay
-        If blankLay Is Nothing Then Set blankLay = layouts(layouts.Count)
-        Dim newSlide As Object
-        Set newSlide = pres.Slides.AddSlide(pres.Slides.Count + 1, blankLay)
-        TargetSlide = newSlide.SlideIndex
+        TargetSlide = AppendBlankSlide()
     End If
 End Function
+
+' Append a fresh slide using the deck's own blank layout (deck-agnostic;
+' the CustomLayouts index varies per design, so resolve by name).
+' Public so the spec / variants module can reuse it.
+Public Function AppendBlankSlide() As Long
+    Dim pres As Presentation: Set pres = ActivePresentation
+    Dim layouts As Object
+    Set layouts = pres.SlideMaster.CustomLayouts
+    Dim lay As Object, blankLay As Object
+    For Each lay In layouts
+        If InStr(LCase(lay.Name), "blank") > 0 Then
+            Set blankLay = lay
+            Exit For
+        End If
+    Next lay
+    If blankLay Is Nothing Then Set blankLay = layouts(layouts.Count)
+    Dim newSlide As Object
+    Set newSlide = pres.Slides.AddSlide(pres.Slides.Count + 1, blankLay)
+    AppendBlankSlide = newSlide.SlideIndex
+End Function
+
+' Render a template's shapes onto an existing slide. Public so the spec /
+' variants module composes templates without duplicating builders.
+Public Sub RenderTemplate(slideNum As Long, tpl As String, c As Object)
+    Select Case LCase(tpl)
+        Case "title":         BuildTitle slideNum, c
+        Case "section":       BuildSection slideNum, c
+        Case "bullets":       BuildBullets slideNum, c
+        Case "two_col":       BuildTwoCol slideNum, c
+        Case "comparison":    BuildComparison slideNum, c
+        Case "kpi_dashboard": BuildKpi slideNum, c
+        Case "quote":         BuildQuote slideNum, c
+        Case Else
+            Err.Raise vbObjectError + 9102, "apply_template", _
+                "unknown template: " & tpl
+    End Select
+End Sub
 
 Private Function CStrSlot(c As Object, key As String) As String
     If Not c Is Nothing Then
@@ -113,19 +136,7 @@ Public Sub Do_apply_template_act(act As Object)
     Dim slideNum As Long: slideNum = TargetSlide(act)
     Dim c As Object
     If act.Exists("content") Then Set c = act("content")
-
-    Select Case tpl
-        Case "title":         BuildTitle slideNum, c
-        Case "section":       BuildSection slideNum, c
-        Case "bullets":       BuildBullets slideNum, c
-        Case "two_col":       BuildTwoCol slideNum, c
-        Case "comparison":    BuildComparison slideNum, c
-        Case "kpi_dashboard": BuildKpi slideNum, c
-        Case "quote":         BuildQuote slideNum, c
-        Case Else
-            Err.Raise vbObjectError + 9102, "apply_template", _
-                "unknown template: " & tpl
-    End Select
+    RenderTemplate slideNum, tpl, c
 End Sub
 
 Private Sub BuildTitle(sl As Long, c As Object)
