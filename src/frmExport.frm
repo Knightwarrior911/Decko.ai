@@ -452,6 +452,11 @@ Public Function PromptTemplate() As String
         s = s & iconList & vbCrLf
     End If
 
+    ' Live-injected: your captured templates (read from the registry file
+    ' at click time, so new captures appear with zero code change).
+    s = s & modActionsCapture.BuildCapturedManifest( _
+        modActionsCapture.DefaultRegistryPath())
+
     PromptTemplate = s
 End Function
 

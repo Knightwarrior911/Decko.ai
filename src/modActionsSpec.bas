@@ -21,6 +21,7 @@ End Function
 
 ' ---- build_deck_from_spec ---------------------------------------------------
 Public Sub Do_build_deck_from_spec_act(act As Object)
+    modActionsCapture.SetActiveRegistry act
     Dim spec As Object: Set spec = act("spec")
     Dim deck As Object: Set deck = spec("deck")
     Dim pres As Presentation: Set pres = ActivePresentation
@@ -178,9 +179,24 @@ End Function
 
 ' ---- generate_variants ------------------------------------------------------
 Public Sub Do_generate_variants_act(act As Object)
-    Dim tpl As String: tpl = LCase(CStr(act("template")))
+    modActionsCapture.SetActiveRegistry act
     Dim c As Object
     If act.Exists("content") Then Set c = act("content")
+
+    ' Form 1: templates:[names] -> render the same content across each
+    ' named template (builtin OR captured) so the user picks.
+    If act.Exists("templates") Then
+        Dim names As Object: Set names = act("templates")
+        Dim j As Long
+        For j = 1 To names.Count
+            Dim slj As Long: slj = modActionsTemplate.AppendBlankSlide()
+            modActionsTemplate.RenderTemplate slj, CStr(names(j)), c
+        Next j
+        Exit Sub
+    End If
+
+    ' Form 2: template + n -> n preset perturbations (builtin layouts).
+    Dim tpl As String: tpl = LCase(CStr(act("template")))
     Dim n As Long: n = CLng(act("n"))
     Dim i As Long
     For i = 1 To n
@@ -275,11 +291,8 @@ Public Function ValidateSpec(spec As Object) As String
             ValidateSpec = "spec.deck[" & i & "].template: required"
             Exit Function
         End If
-        If InStr("," & modActionsTemplate.TemplateNames() & ",", _
-                 "," & LCase(CStr(e("template"))) & ",") = 0 Then
-            ValidateSpec = "spec.deck[" & i & "].template: must be one of " & _
-                modActionsTemplate.TemplateNames()
-            Exit Function
-        End If
+        ' Template name may be a builtin OR a user-captured name; existence
+        ' is a runtime/registry concern (surfaced via FAILURES), not a
+        ' validation error -- so no enum restriction here.
     Next i
 End Function

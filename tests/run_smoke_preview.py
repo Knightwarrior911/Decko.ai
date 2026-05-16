@@ -82,6 +82,7 @@ set_run_baseline_offset set_bullet_start_number set_notes_font_size
 set_notes_font_color set_notes_font_bold set_notes_font_italic set_notes_font_name
 fit_cell_to_content set_data_label_text run_verification apply_template
 build_deck_from_spec extract_spec generate_variants
+capture_template list_templates delete_template rename_template
 """.split()
 
 
@@ -189,6 +190,18 @@ CORPUS = [
      batch([{"type": "generate_variants", "template": "title",
              "content": {}, "n": 3}]),
      '1. generate 3 layout variants of the "title" template'),
+    ("capture_template",
+     batch([{"type": "capture_template", "name": "my_kpi"}]),
+     '1. capture this slide as reusable template "my_kpi"'),
+    ("list_templates",
+     batch([{"type": "list_templates"}]),
+     "1. list your captured templates"),
+    ("delete_template",
+     batch([{"type": "delete_template", "name": "old"}]),
+     '1. delete captured template "old"'),
+    ("rename_template",
+     batch([{"type": "rename_template", "from": "a", "to": "b"}]),
+     '1. rename captured template "a" -> "b"'),
 ]
 
 

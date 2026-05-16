@@ -89,6 +89,7 @@ set_run_baseline_offset set_bullet_start_number set_notes_font_size
 set_notes_font_color set_notes_font_bold set_notes_font_italic set_notes_font_name
 fit_cell_to_content set_data_label_text run_verification apply_template
 build_deck_from_spec extract_spec generate_variants
+capture_template list_templates delete_template rename_template
 """.split()
 
 
@@ -175,10 +176,12 @@ REJECT = [
                              "paragraph_index": 0, "run_index": 0, "value": "  "},
      "value: empty font name"),
     ("apply_theme_empty", {"type": "apply_theme", "theme_path": ""}, "theme_path: empty"),
-    ("apply_template_bad_name", {"type": "apply_template", "template": "bogus",
-                                 "content": {}}, "template: must be one of"),
+    ("apply_template_no_template", {"type": "apply_template", "content": {}},
+     "missing_field: template"),
     ("apply_template_missing_slot", {"type": "apply_template", "template": "title",
                                      "content": {"title": "x"}}, "content.subtitle: required"),
+    ("capture_no_name", {"type": "capture_template"}, "missing_field: name"),
+    ("rename_no_to", {"type": "rename_template", "from": "a"}, "missing_field: to"),
     ("build_spec_empty_deck", {"type": "build_deck_from_spec",
                                "spec": {"deck": []}}, "spec.deck: must be a non-empty array"),
     ("build_spec_no_spec", {"type": "build_deck_from_spec"}, "missing_field: spec"),
@@ -251,6 +254,10 @@ VALID = [
     ("extract_spec", {"type": "extract_spec"}),
     ("generate_variants", {"type": "generate_variants", "template": "title",
                            "content": {"title": "a"}, "n": 3}),
+    ("capture_template", {"type": "capture_template", "name": "x"}),
+    ("list_templates", {"type": "list_templates"}),
+    ("delete_template", {"type": "delete_template", "name": "x"}),
+    ("rename_template", {"type": "rename_template", "from": "a", "to": "b"}),
 ]
 
 

@@ -105,8 +105,14 @@ Public Sub RenderTemplate(slideNum As Long, tpl As String, c As Object)
         Case "kpi_dashboard": BuildKpi slideNum, c
         Case "quote":         BuildQuote slideNum, c
         Case Else
-            Err.Raise vbObjectError + 9102, "apply_template", _
-                "unknown template: " & tpl
+            ' Not a builtin -> a user-captured template (generic renderer).
+            If modActionsCapture.HasCaptured(tpl, modActionsCapture.GetActiveRegistry()) Then
+                modActionsCapture.RenderCapturedTemplate slideNum, tpl, c, _
+                    modActionsCapture.GetActiveRegistry()
+            Else
+                Err.Raise vbObjectError + 9102, "apply_template", _
+                    "unknown template: " & tpl
+            End If
     End Select
 End Sub
 
@@ -131,8 +137,9 @@ Private Function JoinList(c As Object, key As String, bulletPrefix As String) As
 End Function
 
 Public Sub Do_apply_template_act(act As Object)
+    modActionsCapture.SetActiveRegistry act
     Dim tpl As String
-    If act.Exists("template") Then tpl = LCase(CStr(act("template")))
+    If act.Exists("template") Then tpl = CStr(act("template"))
     Dim slideNum As Long: slideNum = TargetSlide(act)
     Dim c As Object
     If act.Exists("content") Then Set c = act("content")

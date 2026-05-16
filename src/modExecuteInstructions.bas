@@ -305,6 +305,15 @@ Private Function DescribeAction(act As Object) As String
         Case "generate_variants"
             DescribeAction = "generate " & PlanV(act, "n") & " layout variants of the " & _
                              PlanQ(GetStr(act, "template")) & " template"
+        Case "capture_template"
+            DescribeAction = "capture this slide as reusable template " & PlanQ(GetStr(act, "name"))
+        Case "list_templates"
+            DescribeAction = "list your captured templates"
+        Case "delete_template"
+            DescribeAction = "delete captured template " & PlanQ(GetStr(act, "name"))
+        Case "rename_template"
+            DescribeAction = "rename captured template " & PlanQ(GetStr(act, "from")) & _
+                             " -> " & PlanQ(GetStr(act, "to"))
 
         Case Else
             If PlanIsKnownType(t) Then
@@ -1263,12 +1272,13 @@ Private Function ValidateAction(act As Object) As String
         Case "apply_template"
             If Not act.Exists("template") Then
                 ValidateAction = "missing_field: template"
-            ElseIf InStr("," & modActionsTemplate.TemplateNames() & ",", _
-                         "," & LCase(CStr(act("template"))) & ",") = 0 Then
-                ValidateAction = "template: must be one of " & modActionsTemplate.TemplateNames()
             ElseIf Not act.Exists("content") Then
                 ValidateAction = "missing_field: content"
-            Else
+            ElseIf InStr("," & modActionsTemplate.TemplateNames() & ",", _
+                         "," & LCase(CStr(act("template"))) & ",") > 0 Then
+                ' Builtin -> enforce its slots. Captured names are valid
+                ' here; existence is a runtime/registry concern surfaced
+                ' via the FAILURES report, not a validation error.
                 ValidateAction = modActionsTemplate.ValidateTemplateSlots( _
                     LCase(CStr(act("template"))), act("content"))
             End If
@@ -1282,17 +1292,29 @@ Private Function ValidateAction(act As Object) As String
             ' Reads the live deck; no required fields.
             ValidateAction = ""
         Case "generate_variants"
-            If Not act.Exists("template") Then
-                ValidateAction = "missing_field: template"
-            ElseIf InStr("," & modActionsTemplate.TemplateNames() & ",", _
-                         "," & LCase(CStr(act("template"))) & ",") = 0 Then
-                ValidateAction = "template: must be one of " & modActionsTemplate.TemplateNames()
-            ElseIf Not act.Exists("content") Then
+            If Not act.Exists("content") Then
                 ValidateAction = "missing_field: content"
+            ElseIf act.Exists("templates") Then
+                ' Form 1: list of template names (builtin or captured).
+                ValidateAction = ""
+            ElseIf Not act.Exists("template") Then
+                ValidateAction = "missing_field: template or templates"
             ElseIf Not act.Exists("n") Then
                 ValidateAction = "missing_field: n"
             ElseIf Not IsNumeric(act("n")) Or CLng(act("n")) < 2 Or CLng(act("n")) > 6 Then
                 ValidateAction = "n: must be an integer 2..6"
+            End If
+        Case "capture_template"
+            If Not act.Exists("name") Then ValidateAction = "missing_field: name"
+        Case "list_templates"
+            ValidateAction = ""
+        Case "delete_template"
+            If Not act.Exists("name") Then ValidateAction = "missing_field: name"
+        Case "rename_template"
+            If Not act.Exists("from") Then
+                ValidateAction = "missing_field: from"
+            ElseIf Not act.Exists("to") Then
+                ValidateAction = "missing_field: to"
             End If
         Case Else
             ValidateAction = "unknown_type: " & t
@@ -2465,6 +2487,14 @@ Private Sub DispatchAction(act As Object)
             modActionsSpec.Do_extract_spec_act act
         Case "generate_variants"
             modActionsSpec.Do_generate_variants_act act
+        Case "capture_template"
+            modActionsCapture.Do_capture_template_act act
+        Case "list_templates"
+            modActionsCapture.Do_list_templates_act act
+        Case "delete_template"
+            modActionsCapture.Do_delete_template_act act
+        Case "rename_template"
+            modActionsCapture.Do_rename_template_act act
         Case "run_verification"
             ' Standalone mid-batch verification trigger. Writes sidecar JSON.
             Dim rvScope As String: rvScope = "deck"
@@ -2714,7 +2744,8 @@ Private Function GetAllActionTypes_Part3() As String
     s = s & "apply_preset_effect,crop_picture,recolor_picture,set_brightness,set_contrast,"
     s = s & "apply_picture_artistic_effect,reset_picture,clear_shadow,clear_glow,"
     s = s & "clear_reflection,clear_all_effects,run_verification,apply_template,"
-    s = s & "build_deck_from_spec,extract_spec,generate_variants"
+    s = s & "build_deck_from_spec,extract_spec,generate_variants,"
+    s = s & "capture_template,list_templates,delete_template,rename_template"
     GetAllActionTypes_Part3 = s
 End Function
 
@@ -3648,6 +3679,22 @@ Public Function GetActionGuidance(actionType As String) As String
             GetActionGuidance = _
                 "  REQUIRED: template(one of the apply_template names), content(object of slots), n(int 2..6)" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""generate_variants"",""template"":""title"",""content"":{""title"":""A"",""subtitle"":""B""},""n"":3}"
+        Case "capture_template"
+            GetActionGuidance = _
+                "  REQUIRED: name(string); OPTIONAL slide(int)=active slide. Captures the slide's shapes as a reusable template; text shapes auto-become slots" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""capture_template"",""name"":""my_kpi"",""slide"":1}"
+        Case "list_templates"
+            GetActionGuidance = _
+                "  OPTIONAL: none — writes the captured-template list next to the deck" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""list_templates""}"
+        Case "delete_template"
+            GetActionGuidance = _
+                "  REQUIRED: name(string) — removes that captured template from the registry (built decks are unaffected)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""delete_template"",""name"":""my_kpi""}"
+        Case "rename_template"
+            GetActionGuidance = _
+                "  REQUIRED: from(string), to(string)" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""rename_template"",""from"":""my_kpi"",""to"":""kpi_v2""}"
         Case Else
             ' Fallback for any action whose guidance entry hasn't been added.
             ' This should be rare since the table above covers all ~165 known

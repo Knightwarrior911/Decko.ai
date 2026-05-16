@@ -99,6 +99,7 @@ set_run_baseline_offset set_bullet_start_number set_notes_font_size
 set_notes_font_color set_notes_font_bold set_notes_font_italic set_notes_font_name
 fit_cell_to_content set_data_label_text run_verification apply_template
 build_deck_from_spec extract_spec generate_variants
+capture_template list_templates delete_template rename_template
 """.split()
 
 
