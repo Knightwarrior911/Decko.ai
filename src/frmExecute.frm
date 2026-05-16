@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmExecute 
-   Caption         =   "Decko.ai • Execute Instructions"
+   Caption         =   "Decko.ai ï¿½ Execute Instructions"
    ClientHeight    =   10400
    ClientLeft      =   90
    ClientTop       =   410
@@ -52,7 +52,24 @@ Private Sub btnFixErrors_Click()
     Dim prompt As String
     prompt = modExecuteInstructions.BuildErrorFixPrompt(json)
     If Len(prompt) = 0 Then
-        lblStatus.Caption = "All actions are valid — nothing to fix."
+        ' No validation errors: the actions are well-formed but may still
+        ' not match what the user meant. Offer an intent re-steer prompt
+        ' (the plain-language plan + a revise template) instead of a
+        ' dead-end message. Same clipboard pattern as the error path.
+        Dim plan As String
+        plan = modExecuteInstructions.BuildActionPlanSummary(json)
+        Dim rprompt As String
+        rprompt = "These PowerPoint actions are valid but may not match my intent." & vbCrLf & _
+                  "Here is exactly what they will do:" & vbCrLf & vbCrLf & _
+                  plan & vbCrLf & vbCrLf & _
+                  "That is NOT what I meant. Revise the actions JSON so it does this instead: " & _
+                  "<describe the correct intent here>. " & _
+                  "Return only the corrected {""actions"":[...]} JSON, no prose."
+        Dim dobjR As MSForms.DataObject
+        Set dobjR = New MSForms.DataObject
+        dobjR.SetText rprompt
+        dobjR.PutInClipboard
+        lblStatus.Caption = "Re-steer prompt copied. Edit the <...> part, paste into your LLM chat."
         Exit Sub
     End If
     Dim dobj As MSForms.DataObject
@@ -154,8 +171,20 @@ Private Sub btnParse_Click()
         lstActions.AddItem row
     Next i
 
-    lblStatus.Caption = actions.count & " actions parsed. " & _
-                        IIf(anyValid, "Click Apply to run valid actions.", _
+    ' Plain-language plan preview (read-only; no mutation). The executor has
+    ' no undo/auto-backup, so this is the user's chance to catch intent
+    ' drift BEFORE Apply. Appended below the validation rows (non-breaking).
+    Dim planTxt As String
+    planTxt = modExecuteInstructions.BuildActionPlanSummary(CurrentJson())
+    lstActions.AddItem "----  WILL DO (preview)  ----"
+    Dim plLines() As String, pli As Long
+    plLines = Split(planTxt, vbCrLf)
+    For pli = LBound(plLines) To UBound(plLines)
+        lstActions.AddItem plLines(pli)
+    Next pli
+
+    lblStatus.Caption = actions.count & " actions parsed. Review the WILL DO preview below. " & _
+                        IIf(anyValid, "Click Apply to run, or 'Fix Errors' to copy a re-steer prompt.", _
                                       "No valid actions; nothing to apply.")
 End Sub
 

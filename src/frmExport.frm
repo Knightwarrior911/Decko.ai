@@ -381,6 +381,50 @@ Public Function PromptTemplate() As String
     s = s & "    Use slide:N when you only edited one slide; deck for multi-slide" & vbCrLf
     s = s & "    edits. This action MUST be last so it sees the final content." & vbCrLf
 
+    s = s & vbCrLf & "=============================" & vbCrLf
+    s = s & "VISUAL DESIGN PRINCIPLES" & vbCrLf
+    s = s & "=============================" & vbCrLf
+    s = s & "Apply when creating slides from scratch or transforming raw text into a layout." & vbCrLf & vbCrLf
+    s = s & "HIERARCHY: Every slide has exactly 3 tiers:" & vbCrLf
+    s = s & "  DOMINANT (1 element): headline or key stat — biggest font, strongest color contrast." & vbCrLf
+    s = s & "  SUPPORTING (2-4 elements): content clusters at readable body size (10-14pt)." & vbCrLf
+    s = s & "  ACCENT (0-2 elements): icons, rule lines, small labels. Never compete with dominant." & vbCrLf & vbCrLf
+    s = s & "CLUSTERING: Never emit a flat bullet list of 4+ items. Group into 2-3 named spatial" & vbCrLf
+    s = s & "  clusters. Each cluster = bounding rrect/rect + bold heading + body text box." & vbCrLf
+    s = s & "  Cluster heading: bold, 12-14pt, accent color. Body: regular, 10-11pt, neutral dark." & vbCrLf & vbCrLf
+    s = s & "WHITESPACE: Min 36pt margin each side. Min 16pt gap between adjacent clusters." & vbCrLf
+    s = s & "  4 well-spaced shapes beats 12 crammed ones. Padding inside shapes: 8-12pt." & vbCrLf & vbCrLf
+    s = s & "TYPOGRAPHIC CONTRAST: Use size range intentionally." & vbCrLf
+    s = s & "  Big stat / headline: 36-72pt. Section label: 14-18pt bold. Body: 10-12pt." & vbCrLf
+    s = s & "  One dominant number or pull-quote per slide creates instant visual anchor." & vbCrLf
+    s = s & "  Example: '+12% YoY' at 60pt in accent color, then supporting narrative at 11pt." & vbCrLf & vbCrLf
+    s = s & "COLOR AS MEANING: Accent color marks the single KEY insight only." & vbCrLf
+    s = s & "  Primary dark color (#15283C or similar): headlines, dominant shapes." & vbCrLf
+    s = s & "  ONE accent (e.g. #2E75B6 blue or #C00000 red): applied to dominant element." & vbCrLf
+    s = s & "  Sibling clusters: neutral fill (#F2F2F2, #EEF2F7, or transparent). Max 2 fill colors." & vbCrLf
+    s = s & "  NEVER apply 3+ different fill colors to sibling shapes — that is visual noise." & vbCrLf & vbCrLf
+    s = s & "ICON ACCENTS: One Fluent icon per cluster (28-36pt), placed top-left of cluster." & vbCrLf
+    s = s & "  Icon must semantically describe its cluster topic. Zero icons is fine — do not force." & vbCrLf
+    s = s & "  Max 4 icons per slide. Color = cluster accent or neutral dark." & vbCrLf & vbCrLf
+    s = s & "LAYOUT TEMPLATES — choose based on content type, never repeat same template twice:" & vbCrLf
+    s = s & "  (A) LEFT-ANCHOR: thin accent rect (40pt wide, full height) at left edge. Headline" & vbCrLf
+    s = s & "      top-right of bar. 2-3 content clusters in right zone. Best for: narrative, risk." & vbCrLf
+    s = s & "  (B) 3-COLUMN GRID: 3 cols ~270pt wide, 24pt gaps, each col has icon+heading+bullets." & vbCrLf
+    s = s & "      Best for: KPIs, parallel pillars, multi-metric data dumps." & vbCrLf
+    s = s & "  (C) BIG-STAT: dominant number/phrase at 60-72pt (accent color) top-left or center." & vbCrLf
+    s = s & "      Adjacent text box with 3-5 supporting points at 11pt. Best for: financial results." & vbCrLf
+    s = s & "  (D) TWO-PANEL SPLIT: halve slide at 480pt. Left=context/risk. Right=data/outcome." & vbCrLf
+    s = s & "      Thin divider line. Best for: before/after, risk vs opportunity, two themes." & vbCrLf
+    s = s & "  (E) FLOW/TIMELINE: 3-5 horizontal connected rects or chevrons across slide." & vbCrLf
+    s = s & "      Each step = shape + label + 1-line descriptor. Best for: process, sequence." & vbCrLf & vbCrLf
+    s = s & "RAW TEXT TRANSFORMATION PROCESS (when user provides unformatted notes):" & vbCrLf
+    s = s & "  1. Extract key facts and numbers. Identify the single most important insight." & vbCrLf
+    s = s & "  2. That insight becomes the DOMINANT element (headline or big stat)." & vbCrLf
+    s = s & "  3. Group remaining points into 2-4 thematic clusters." & vbCrLf
+    s = s & "  4. Choose layout template (A-E) that matches content structure." & vbCrLf
+    s = s & "  5. Build from scratch: clear_slide, then add shapes per chosen template." & vbCrLf
+    s = s & "  6. End batch with enable_text_shrink_for_overflow." & vbCrLf
+
     s = s & vbCrLf & "ICON ACTION (Microsoft Fluent UI icons, fetched from unpkg CDN):" & vbCrLf
     s = s & "  Use when user asks for an icon/pictogram on a slide." & vbCrLf
     s = s & "  HARD RULE: the ""icon"" field MUST be picked verbatim from the allow-list" & vbCrLf

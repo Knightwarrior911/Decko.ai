@@ -19,8 +19,25 @@ DECKS_DIR = REPO_ROOT / "test_decks"
 
 
 def open_app():
+    """Create a PowerPoint Application, retrying the COM bring-up.
+
+    Right after a prior instance Quit()s, DispatchEx can hand back an
+    Application proxy that is not fully initialized yet; setting .Visible
+    then raises AttributeError ("Property ... can not be set"). Poll until
+    the app accepts .Visible, recreating it on each failed attempt.
+    """
     import win32com.client
-    return win32com.client.DispatchEx("PowerPoint.Application")
+
+    last_err = None
+    for attempt in range(15):
+        try:
+            app = win32com.client.DispatchEx("PowerPoint.Application")
+            app.Visible = True
+            return app
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            time.sleep(2.0)
+    raise RuntimeError(f"PowerPoint COM bring-up failed after retries: {last_err!r}")
 
 
 def open_pair(app, deck_name: str):
@@ -34,6 +51,10 @@ def open_pair(app, deck_name: str):
     carrier = app.Presentations.Open(str(CARRIER), WithWindow=True)
     deck = app.Presentations.Open(str(deck_copy), WithWindow=True)
     deck.Windows(1).Activate()
+    # Let the presentation windows/shape trees finish initializing. Without
+    # this, the first Slides/Shapes access can raise the same kind of COM
+    # readiness error as the .Visible bring-up race ("Object does not exist").
+    time.sleep(1.0)
     return deck, carrier, tmpdir
 
 
@@ -51,7 +72,7 @@ def teardown(app, *presentations, tmpdir=None):
         app.Quit()
     except Exception:
         pass
-    time.sleep(0.5)
+    time.sleep(2.0)
     if tmpdir and tmpdir.exists():
         shutil.rmtree(tmpdir, ignore_errors=True)
 
@@ -1010,49 +1031,79 @@ def test_snapshot_v3_text_frame():
         teardown(app, deck, carrier, tmpdir=tmpdir)
 
 
+TESTS = [
+    test_snapshot_smoke_3slide,
+    test_snapshot_full_visual,
+    test_action_set_text,
+    test_action_font_ops,
+    test_action_fill_color,
+    test_action_geometry,
+    test_action_slide_ops,
+    test_action_table_ops,
+    test_executor_end_to_end,
+    test_snapshot_occupied_rects,
+    test_snapshot_speaker_notes,
+    test_snapshot_paragraphs,
+    test_snapshot_table_extra,
+    test_snapshot_group_children,
+    test_snapshot_chart,
+    test_action_set_paragraph_text,
+    test_action_paragraph_add_delete,
+    test_action_bullet_indent,
+    test_action_paragraph_font,
+    test_action_find_replace_text,
+    test_action_align_shapes,
+    test_action_distribute,
+    test_action_tile_and_fit,
+    test_action_add_line_and_shape,
+    test_action_kind_clear_relative,
+    test_action_cross_cutting,
+    test_action_speaker_notes,
+    test_action_images,
+    test_action_move_slide,
+    test_action_extract_slides,
+    test_action_import_slides,
+    test_action_table_row_ops,
+    test_action_table_col_ops,
+    test_action_merge_cells,
+    test_action_group_ungroup,
+    test_action_add_connector,
+    test_action_set_chart_type,
+    test_action_chart_titles,
+    test_action_chart_legend_and_series,
+    test_snapshot_v3_text_frame,
+    test_snapshot_v3_paragraph_layout,
+    test_snapshot_v3_runs,
+]
+
+
 def main() -> int:
-    test_snapshot_smoke_3slide()
-    test_snapshot_full_visual()
-    test_action_set_text()
-    test_action_font_ops()
-    test_action_fill_color()
-    test_action_geometry()
-    test_action_slide_ops()
-    test_action_table_ops()
-    test_executor_end_to_end()
-    test_snapshot_occupied_rects()
-    test_snapshot_speaker_notes()
-    test_snapshot_paragraphs()
-    test_snapshot_table_extra()
-    test_snapshot_group_children()
-    test_snapshot_chart()
-    test_action_set_paragraph_text()
-    test_action_paragraph_add_delete()
-    test_action_bullet_indent()
-    test_action_paragraph_font()
-    test_action_find_replace_text()
-    test_action_align_shapes()
-    test_action_distribute()
-    test_action_tile_and_fit()
-    test_action_add_line_and_shape()
-    test_action_kind_clear_relative()
-    test_action_cross_cutting()
-    test_action_speaker_notes()
-    test_action_images()
-    test_action_move_slide()
-    test_action_extract_slides()
-    test_action_import_slides()
-    test_action_table_row_ops()
-    test_action_table_col_ops()
-    test_action_merge_cells()
-    test_action_group_ungroup()
-    test_action_add_connector()
-    test_action_set_chart_type()
-    test_action_chart_titles()
-    test_action_chart_legend_and_series()
-    test_snapshot_v3_text_frame()
-    test_snapshot_v3_paragraph_layout()
-    test_snapshot_v3_runs()
+    import os
+    import pywintypes
+
+    # Each test is fully self-contained (own open_app/open_pair/teardown).
+    # Over a long single-process run, PowerPoint's COM server degrades and
+    # starts raising transient "Object does not exist" / ".Visible can not
+    # be set" errors on open/enumeration that have nothing to do with the
+    # code under test. Retry ONLY those transient COM errors, killing any
+    # stray PowerPoint first so the next attempt gets a clean server.
+    # AssertionError and SystemExit (assert_eq failures) are real and are
+    # never retried -- this cannot mask a logic regression.
+    transient = (pywintypes.com_error, AttributeError, RuntimeError)
+    for fn in TESTS:
+        for attempt in range(1, 4):
+            try:
+                fn()
+                break
+            except transient as e:  # noqa: PERF203
+                if attempt == 3:
+                    print(f"FAIL [{fn.__name__}] transient COM error persisted "
+                          f"after {attempt} attempts: {e!r}")
+                    return 1
+                print(f"  retry [{fn.__name__}] transient COM error "
+                      f"(attempt {attempt}): {e!r}")
+                os.system("taskkill /F /IM POWERPNT.EXE >NUL 2>&1")
+                time.sleep(5.0)
     print("\nall tests passed")
     return 0
 

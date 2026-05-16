@@ -106,6 +106,274 @@ Private Sub WriteWarningsSidecar(deckPath As String, warningsJson As String)
     On Error GoTo 0
 End Sub
 
+' =============================================================================
+' Plan preview: turn a (possibly messy) action batch into a numbered,
+' plain-language description of exactly what Apply WILL do -- WITHOUT
+' mutating the deck or calling any Do_* handler. Mirrors the executor's
+' sanitize -> parse -> run-order so the preview matches reality. The
+' executor has no undo and no auto-backup, so this is the user's only
+' chance to catch intent drift before it is destructive.
+' =============================================================================
+Public Function BuildActionPlanSummary(jsonText As String) As String
+    Dim cleaned As String: cleaned = SanitizeJsonInput(jsonText)
+    Dim parsed As Object
+    On Error Resume Next
+    Set parsed = modJSON.ParseJson(cleaned)
+    If Err.Number <> 0 Then
+        BuildActionPlanSummary = "ERROR: invalid JSON: " & Err.Description
+        Err.Clear
+        Exit Function
+    End If
+    On Error GoTo 0
+
+    If parsed Is Nothing Then
+        BuildActionPlanSummary = "ERROR: invalid JSON"
+        Exit Function
+    End If
+    If Not parsed.Exists("actions") Then
+        BuildActionPlanSummary = "ERROR: missing top-level 'actions' array"
+        Exit Function
+    End If
+
+    Dim actions As Object
+    Set actions = parsed("actions")
+    Set actions = ReorderForRunIndexSafety(actions)
+
+    If actions.Count = 0 Then
+        BuildActionPlanSummary = "(no actions)"
+        Exit Function
+    End If
+
+    Dim out As String
+    Dim i As Long
+    For i = 1 To actions.Count
+        Dim act As Object: Set act = actions(i)
+        If i > 1 Then out = out & vbCrLf
+        out = out & CStr(i) & ". " & DescribeAction(act)
+    Next i
+    BuildActionPlanSummary = out
+End Function
+
+' One precise sentence for a single action. Specific per type; never a
+' bare "action: <type>" fallback. Unknown -> explicit UNKNOWN ACTION line.
+Private Function DescribeAction(act As Object) As String
+    Dim t As String: t = GetStr(act, "type")
+    If Len(t) = 0 Then
+        DescribeAction = "UNKNOWN ACTION (missing type)"
+        Exit Function
+    End If
+
+    Dim sp As String: sp = PlanSlidePrefix(act)
+    Dim tg As String: tg = PlanTarget(act)
+
+    Select Case t
+        ' ---- text / content ----
+        Case "set_text"
+            DescribeAction = sp & "set text" & PlanOn(tg) & " -> " & PlanQ(GetStr(act, "text"))
+        Case "set_cell_text", "append_cell_text", "clear_cell_text", "set_cell"
+            DescribeAction = sp & PlanWords(t) & " in cell (" & PlanV(act, "row") & "," & PlanV(act, "col") & ")" & PlanOn(tg)
+        Case "set_paragraph_text", "set_cell_paragraph_text"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg) & " -> " & PlanQ(GetStr(act, "text"))
+        Case "set_run_text", "add_run"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg) & " -> " & PlanQ(GetStr(act, "text"))
+        Case "find_replace_text", "find_replace_regex"
+            DescribeAction = sp & PlanWords(t) & " -> replace " & PlanQ(GetStr(act, "find")) & " with " & PlanQ(GetStr(act, "replace"))
+        Case "set_speaker_notes", "append_speaker_notes", "clear_speaker_notes"
+            DescribeAction = sp & PlanWords(t)
+
+        ' ---- font / run / paragraph / cell formatting ----
+        Case "set_font_size", "set_paragraph_font_size", "set_run_font_size", _
+             "set_cell_font_size", "set_row_font_size", "set_column_font_size", _
+             "set_table_font_size", "set_cell_paragraph_font_size", "set_notes_font_size"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg) & " -> " & PlanV(act, "size") & "pt"
+        Case "set_font_color", "set_paragraph_font_color", "set_run_font_color", _
+             "set_cell_font_color", "set_row_font_color", "set_column_font_color", _
+             "set_table_font_color", "set_cell_paragraph_font_color", "set_notes_font_color"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg) & " -> " & PlanColor(act)
+        Case "set_paragraph_font_name", "set_run_font_name", "set_cell_font_name", _
+             "set_table_font_name", "set_notes_font_name", "set_theme_font"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg) & " -> " & PlanQ(GetStr(act, "name"))
+        Case "set_font_bold", "set_paragraph_bold", "set_run_bold", "set_cell_font_bold", _
+             "set_row_font_bold", "set_column_font_bold", "set_cell_paragraph_bold", "set_notes_font_bold", _
+             "set_font_italic", "set_paragraph_italic", "set_run_italic", "set_cell_font_italic", _
+             "set_cell_paragraph_italic", "set_notes_font_italic", _
+             "set_run_underline", "set_paragraph_underline", "set_cell_font_underline", _
+             "set_run_strikethrough", "set_run_subscript", "set_run_superscript"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg) & " -> " & PlanBool(act)
+        Case "set_run_highlight", "set_run_kerning", "set_run_baseline_offset", _
+             "set_paragraph_alignment", "set_cell_paragraph_alignment", "set_paragraph_line_spacing", _
+             "set_paragraph_space_before", "set_paragraph_space_after", "clear_paragraph_formatting", _
+             "set_bullet_style", "set_cell_bullet_style", "set_indent_level", "set_cell_indent_level", _
+             "set_bullet_start_number", "set_run_hyperlink"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg) & PlanArrowVal(act)
+
+        ' ---- geometry / layout ----
+        Case "move_shape", "set_pos", "move_shape_relative"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg) & " -> left " & PlanV(act, "left") & ", top " & PlanV(act, "top")
+        Case "resize_shape"
+            DescribeAction = sp & "resize" & PlanOn(tg) & " -> " & PlanV(act, "width") & " x " & PlanV(act, "height")
+        Case "rotate_shape", "set_3d_rotation"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg) & " -> angle " & PlanV(act, "angle")
+        Case "delete_shape", "duplicate_shape", "group_shapes", "ungroup", "flip_shape", _
+             "lock_aspect_ratio", "z_order", "set_shape_name", "set_shape_alt_text", _
+             "set_shape_kind", "set_shape_visible", "set_shape_hyperlink", "set_shape_adjustment", _
+             "snap_to_grid", "align_to_slide_center", "nudge", "fit_to_content", "set_shape_picture_fill"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg)
+        Case "align_shapes", "distribute_horizontal", "distribute_vertical", "tile_grid", _
+             "fit_to_slide_margins", "match_size", "uniform_size", "smart_spacing", _
+             "equalize_spacing", "match_position", "swap_positions", "group_by_overlap"
+            DescribeAction = sp & PlanWords(t) & " on selected shapes"
+        Case "add_line", "add_shape", "add_text_box", "add_connector", "reconnect_connector"
+            DescribeAction = sp & PlanWords(t) & PlanArrowVal(act)
+        Case "clear_slide"
+            DescribeAction = sp & "clear all shapes on the slide"
+
+        ' ---- effects ----
+        Case "set_line_color", "set_line_weight", "set_line_style", "set_shadow", "set_glow", _
+             "set_reflection", "set_transparency", "set_gradient_fill", "set_3d_bevel", _
+             "apply_preset_effect", "set_soft_edge", "set_fill_color", "clear_fill", "clear_line", _
+             "set_fill_visible", "set_line_visible", "clear_shadow", "clear_glow", "clear_reflection", _
+             "clear_all_effects"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg) & PlanArrowVal(act)
+
+        ' ---- pictures ----
+        Case "insert_picture", "replace_picture", "insert_icon", "crop_picture", "recolor_picture", _
+             "set_brightness", "set_contrast", "apply_picture_artistic_effect", "reset_picture", _
+             "download_image", "fetch_page_images", "open_image_picker", "build_image_picker_slide", _
+             "bulk_insert_image", "build_image_grid_table"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg)
+
+        ' ---- slides / deck / sections ----
+        Case "add_slide", "delete_slide", "duplicate_slide", "move_slide", "set_slide_hidden", _
+             "set_slide_name", "set_slide_transition", "change_slide_layout", "set_slide_background_color", _
+             "insert_slide_number", "apply_layout_to_slides", "set_slide_size", "apply_theme", _
+             "extract_slides", "import_slides_from_deck", "bulk_insert_text_box", "copy_formatting"
+            DescribeAction = sp & PlanWords(t) & PlanArrowVal(act)
+        Case "add_section", "delete_section", "rename_section", "move_section"
+            DescribeAction = PlanWords(t) & " " & PlanQ(GetStr(act, "name"))
+        Case "swap_font_deck_wide", "recolor_palette_deck_wide", "recolor_deck", "scan_palette", _
+             "recolor_fill_match", "recolor_font_match", "delete_shapes_match"
+            DescribeAction = PlanWords(t) & PlanArrowVal(act) & " (deck-wide)"
+
+        ' ---- tables ----
+        Case "add_table", "add_table_row", "delete_table_row", "add_table_col", "delete_table_col", _
+             "merge_cells", "unmerge_cells", "swap_table_columns", "swap_table_rows", _
+             "set_table_col_width", "set_table_row_height", "set_cell_border", "set_cell_text_align", _
+             "set_cell_fill", "apply_table_style", "set_cell_padding", "set_table_style_options", _
+             "populate_table_row", "populate_table_column", "populate_table_cells", _
+             "set_cell_text_orientation", "set_row_fill", "set_column_fill", "clear_row_text", _
+             "clear_column_text", "auto_fit_table_text", "set_table_borders", "set_row_borders", _
+             "set_column_borders", "fit_cell_to_content", "add_cell_paragraph", "delete_cell_paragraph"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg)
+
+        ' ---- charts ----
+        Case "add_chart", "set_chart_type", "set_chart_title", "set_chart_axis_title", _
+             "set_chart_legend_position", "set_chart_legend", "set_series_color", "set_series_values", _
+             "set_chart_categories", "set_series_name", "set_chart_axis", "set_chart_gridlines", _
+             "set_chart_format", "set_chart_series", "add_chart_trendline", "set_chart_error_bars", _
+             "set_chart_data_table", "set_line_smoothing", "delete_series", "add_series", _
+             "set_data_label_text"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg) & PlanArrowVal(act)
+
+        ' ---- text frame / autofit ----
+        Case "set_text_vertical_align", "set_text_autofit", "enable_text_shrink_for_overflow", _
+             "set_text_margin"
+            DescribeAction = sp & PlanWords(t) & PlanOn(tg) & PlanArrowVal(act)
+
+        ' ---- verification ----
+        Case "run_verification"
+            DescribeAction = "run the slide-quality verification sweep"
+
+        Case Else
+            If PlanIsKnownType(t) Then
+                ' Known action with no bespoke template: still specific --
+                ' the verb is derived from the type, plus slide/target/value.
+                DescribeAction = sp & PlanWords(t) & PlanOn(tg) & PlanArrowVal(act)
+            Else
+                DescribeAction = "UNKNOWN ACTION " & t
+            End If
+    End Select
+End Function
+
+' True if t is a dispatched/known action type (reuses the canonical CSV).
+Private Function PlanIsKnownType(t As String) As Boolean
+    PlanIsKnownType = (InStr("," & GetAllActionTypes() & ",", "," & t & ",") > 0)
+End Function
+
+' "Slide N: " when a slide is given, else "".
+Private Function PlanSlidePrefix(act As Object) As String
+    If act.Exists("slide") Then
+        PlanSlidePrefix = "Slide " & CStr(act("slide")) & ": "
+    End If
+End Function
+
+' Quoted shape_name, else "shape #id", else "".
+Private Function PlanTarget(act As Object) As String
+    If act.Exists("shape_name") Then
+        PlanTarget = PlanQ(CStr(act("shape_name")))
+    ElseIf act.Exists("shape_id") Then
+        PlanTarget = "shape #" & CStr(act("shape_id"))
+    End If
+End Function
+
+Private Function PlanOn(tg As String) As String
+    If Len(tg) > 0 Then PlanOn = " on " & tg
+End Function
+
+' Humanize an action type into a verb phrase: drop trailing noise and
+' turn underscores into spaces. Distinct per type, so always specific.
+Private Function PlanWords(t As String) As String
+    PlanWords = Replace(t, "_", " ")
+End Function
+
+Private Function PlanQ(s As String) As String
+    PlanQ = """" & s & """"
+End Function
+
+' Value of a key, or "?" if absent (keeps the sentence readable).
+Private Function PlanV(act As Object, key As String) As String
+    If act.Exists(key) Then
+        PlanV = CStr(act(key))
+    Else
+        PlanV = "?"
+    End If
+End Function
+
+' " -> true/false" for boolean-ish actions (value/bold/enabled/on keys).
+Private Function PlanBool(act As Object) As String
+    Dim k As Variant
+    For Each k In Array("value", "enabled", "on", "bold", "italic", "underline")
+        If act.Exists(k) Then
+            PlanBool = LCase(CStr(act(k)))
+            Exit Function
+        End If
+    Next k
+    PlanBool = "(toggle)"
+End Function
+
+Private Function PlanColor(act As Object) As String
+    If act.Exists("value") Then
+        PlanColor = CStr(act("value"))
+    ElseIf act.Exists("color") Then
+        PlanColor = CStr(act("color"))
+    Else
+        PlanColor = "(color)"
+    End If
+End Function
+
+' " -> <salient value>" using the first present well-known value key.
+Private Function PlanArrowVal(act As Object) As String
+    Dim k As Variant
+    For Each k In Array("value", "text", "name", "color", "layout", _
+                        "size", "count", "amount", "angle", "width", "height", _
+                        "address", "style", "position", "scope")
+        If act.Exists(k) Then
+            PlanArrowVal = " -> " & CStr(act(k))
+            Exit Function
+        End If
+    Next k
+End Function
+
 ' Returns "" if valid, else a reason string.
 Private Function ValidateAction(act As Object) As String
     If Not act.Exists("type") Then
@@ -973,6 +1241,68 @@ Private Function ValidateAction(act As Object) As String
         Case Else
             ValidateAction = "unknown_type: " & t
     End Select
+End Function
+
+' Headless, read-only batch validator: sanitize+parse a batch and run
+' ValidateAction on each action, returning JSON
+' {"results":[{"index":N,"type":"...","reason":"..."}]} where reason ""
+' means valid. Does NOT mutate the deck or call any Do_* handler.
+' (ValidateShape may inject a numeric shape_id into the in-memory act
+' dict when a shape_name is given -- that is in-memory only.)
+Public Function ValidateBatchJson(jsonText As String) As String
+    Dim res As Object: Set res = CreateObject("Scripting.Dictionary")
+    Dim arr As Object: Set arr = New Collection
+    res.Add "results", arr
+
+    Dim cleaned As String: cleaned = SanitizeJsonInput(jsonText)
+    Dim parsed As Object
+    On Error Resume Next
+    Set parsed = modJSON.ParseJson(cleaned)
+    If Err.Number <> 0 Then
+        arr.Add MakeValRow(0, "", "ERROR: invalid JSON: " & Err.Description)
+        Err.Clear
+        On Error GoTo 0
+        ValidateBatchJson = modJSON.ConvertToJson(res)
+        Exit Function
+    End If
+    On Error GoTo 0
+
+    If parsed Is Nothing Then
+        arr.Add MakeValRow(0, "", "ERROR: invalid JSON")
+        ValidateBatchJson = modJSON.ConvertToJson(res)
+        Exit Function
+    End If
+    If Not parsed.Exists("actions") Then
+        arr.Add MakeValRow(0, "", "ERROR: missing top-level 'actions' array")
+        ValidateBatchJson = modJSON.ConvertToJson(res)
+        Exit Function
+    End If
+
+    Dim actions As Object: Set actions = parsed("actions")
+    Dim i As Long
+    For i = 1 To actions.Count
+        Dim act As Object: Set act = actions(i)
+        Dim t As String: t = GetStr(act, "type")
+        Dim reason As String
+        On Error Resume Next
+        reason = ValidateAction(act)
+        If Err.Number <> 0 Then
+            reason = "ERROR: validator raised: " & Err.Description
+            Err.Clear
+        End If
+        On Error GoTo 0
+        arr.Add MakeValRow(i, t, reason)
+    Next i
+
+    ValidateBatchJson = modJSON.ConvertToJson(res)
+End Function
+
+Private Function MakeValRow(idx As Long, t As String, reason As String) As Object
+    Dim d As Object: Set d = CreateObject("Scripting.Dictionary")
+    d.Add "index", idx
+    d.Add "type", t
+    d.Add "reason", reason
+    Set MakeValRow = d
 End Function
 
 Private Function RequireFields(act As Object, fields As Variant) As String
@@ -3276,29 +3606,19 @@ Public Function SanitizeJsonInput(raw As String) As String
     s = ReplaceCaseInsensitive(s, "```json", "")
     s = Replace(s, "```", "")
 
-    ' Find first { or [ - that's where JSON starts.
-    Dim openPos As Long
-    Dim posBrace As Long: posBrace = InStr(s, "{")
-    Dim posBracket As Long: posBracket = InStr(s, "[")
-    If posBrace = 0 And posBracket = 0 Then
+    ' Extract the JSON region. Prose, rejected drafts, or worked examples
+    ' around the real payload can carry their own { } / [ ] (e.g. an LLM
+    ' showing a draft before the final answer, or "replace {placeholder}"
+    ' after it), so a naive first-{ ... last-} span splices unrelated text
+    ' together and breaks the parse. Instead collect every top-level
+    ' balanced bracket region (string- and comment-aware) and keep the
+    ' longest -- the real batch is essentially always the largest region.
+    Dim span As String: span = ExtractJsonSpan(s)
+    If Len(span) = 0 Then
         SanitizeJsonInput = raw
         Exit Function
     End If
-    If posBrace = 0 Then
-        openPos = posBracket
-    ElseIf posBracket = 0 Then
-        openPos = posBrace
-    Else
-        openPos = IIf(posBrace < posBracket, posBrace, posBracket)
-    End If
-    s = Mid(s, openPos)
-
-    ' Find last } or ] - that's where JSON ends.
-    Dim closePos As Long
-    Dim lastBrace As Long: lastBrace = InStrRev(s, "}")
-    Dim lastBracket As Long: lastBracket = InStrRev(s, "]")
-    closePos = IIf(lastBrace > lastBracket, lastBrace, lastBracket)
-    If closePos > 0 Then s = Left(s, closePos)
+    s = span
 
     ' Strip JS-style comments. Preserve // and /* sequences when they appear
     ' inside string literals; only strip outside strings.
@@ -3308,6 +3628,102 @@ Public Function SanitizeJsonInput(raw As String) As String
     s = StripTrailingCommas(s)
 
     SanitizeJsonInput = s
+End Function
+
+' Return the longest top-level balanced { } or [ ] region in s, scanning
+' string-aware and comment-aware so brackets inside JSON strings or JS
+' comments never affect nesting depth. Returns "" if none found (which
+' preserves the documented "no { or [" -> return original contract).
+Private Function ExtractJsonSpan(s As String) As String
+    Dim n As Long: n = Len(s)
+    Dim i As Long: i = 1
+    Dim best As String: best = ""
+    Dim ch As String
+    Do While i <= n
+        ch = Mid(s, i, 1)
+        If ch = "{" Or ch = "[" Then
+            Dim endPos As Long: endPos = ScanBalancedEnd(s, i)
+            Dim cand As String
+            If endPos > 0 Then
+                cand = Mid(s, i, endPos - i + 1)
+                If Len(cand) > Len(best) Then best = cand
+                i = endPos + 1
+            Else
+                ' Never rebalances from here: the remainder is the only
+                ' candidate at this position and nothing later can be longer.
+                cand = Mid(s, i)
+                If Len(cand) > Len(best) Then best = cand
+                Exit Do
+            End If
+        Else
+            i = i + 1
+        End If
+    Loop
+    ExtractJsonSpan = best
+End Function
+
+' Starting at an opening { or [ at startPos, return the position of its
+' matching close, or 0 if it never rebalances. String-aware (double-quoted,
+' backslash escapes) and JS-comment-aware (// line, /* block */).
+Private Function ScanBalancedEnd(s As String, ByVal startPos As Long) As Long
+    Dim n As Long: n = Len(s)
+    Dim depth As Long: depth = 0
+    Dim inString As Boolean: inString = False
+    Dim i As Long: i = startPos
+    Dim ch As String, ch2 As String
+    Do While i <= n
+        ch = Mid(s, i, 1)
+        If inString Then
+            If ch = "\" And i < n Then
+                i = i + 2
+            ElseIf ch = """" Then
+                inString = False
+                i = i + 1
+            Else
+                i = i + 1
+            End If
+        Else
+            If ch = """" Then
+                inString = True
+                i = i + 1
+            ElseIf ch = "/" And i < n Then
+                ch2 = Mid(s, i + 1, 1)
+                If ch2 = "/" Then
+                    Dim j As Long: j = i + 2
+                    Do While j <= n
+                        If Mid(s, j, 1) = vbLf Or Mid(s, j, 1) = vbCr Then Exit Do
+                        j = j + 1
+                    Loop
+                    i = j
+                ElseIf ch2 = "*" Then
+                    Dim k As Long: k = i + 2
+                    Do While k < n
+                        If Mid(s, k, 1) = "*" And Mid(s, k + 1, 1) = "/" Then
+                            k = k + 2
+                            Exit Do
+                        End If
+                        k = k + 1
+                    Loop
+                    i = k
+                Else
+                    i = i + 1
+                End If
+            ElseIf ch = "{" Or ch = "[" Then
+                depth = depth + 1
+                i = i + 1
+            ElseIf ch = "}" Or ch = "]" Then
+                depth = depth - 1
+                If depth = 0 Then
+                    ScanBalancedEnd = i
+                    Exit Function
+                End If
+                i = i + 1
+            Else
+                i = i + 1
+            End If
+        End If
+    Loop
+    ScanBalancedEnd = 0
 End Function
 
 ' Walk JSON string-aware, removing commas that appear immediately before
