@@ -71,9 +71,12 @@ Layers:
     UUID primary keys, `updated_at`, soft-delete columns.
   - `Secrets` — API keys in Windows Credential Manager via `keyring`
     (never in SQLite or plaintext).
-- Carrier ships inside the app; first run copies it to
-  `%APPDATA%\Decko\engine\PPT_AI_Editor.pptm` (writable). `update_macros`
-  is **not** run at runtime — the carrier is prebuilt at package time.
+- Carrier provenance: the **packaging pipeline runs `update_macros.py`
+  once at build time** to bake the current `src/*.bas` + `*.frm` into the
+  bundled `PPT_AI_Editor.pptm`, so every `.exe` ships the latest engine.
+  At runtime the app copies that prebuilt carrier to
+  `%APPDATA%\Decko\engine\PPT_AI_Editor.pptm` (writable) on first run.
+  `update_macros` is **never** run on the end user's machine.
 
 ## 5. SP1 Components
 
