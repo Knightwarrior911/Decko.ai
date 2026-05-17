@@ -12,7 +12,7 @@ broken hyperlinks, etc.). Two one-click buttons — **Fix Errors** (pre-Apply)
 and **Fix This** (post-Apply) — copy LLM-ready repair prompts to the clipboard
 so the user never reads raw error text or opens a JSON file by hand.
 
-**Fix Errors covers every action type** (~165, 234 dispatch labels) with
+**Fix Errors covers every action type** (246 canonical types) with
 canonical signature + working example, so even a weak LLM that produced
 malformed JSON gets enough context to self-correct without the user typing
 anything. When the LLM invents an action name that doesn't exist, Fix Errors
@@ -32,9 +32,10 @@ button mechanics.
   requests, worked examples, and a section for AI assistants on turning a VP
   request into the `actions` JSON.
 - **[`docs/ACTIONS_REFERENCE.md`](docs/ACTIONS_REFERENCE.md)** — the complete,
-  machine-precise schema for all ~165 actions (required/optional fields, value
+  machine-precise schema for all 246 actions (required/optional fields, value
   vocabularies, examples). Read this literally; you don't need to have built
-  Decko to use it.
+  Decko to use it. The auto-appendix covers every action including the
+  high-level authoring layer (templates, decks-as-code, Deck DNA).
 - **[`docs/VERIFICATION.md`](docs/VERIFICATION.md)** — quality-check loop and
   the two Fix buttons explained end-to-end (what runs, when, what each warning
   looks like, opt-out flags, performance limits).
@@ -95,10 +96,56 @@ Trust Center.
 
 ## Action types
 
-238 dispatched actions across 14 `modActions*` modules. The tables below are a
+246 dispatched actions across 17 `modActions*` modules. The tables below are a
 summary; the **complete per-action schema** is in
 [`docs/ACTIONS_REFERENCE.md`](docs/ACTIONS_REFERENCE.md) (auto-generated
 appendix kept in sync via `tools/sync_actions_guidance.py`).
+
+### High-level authoring: templates, decks-as-code, Deck DNA
+
+These actions build whole slides/decks in one shot instead of placing
+individual shapes — use them first when the request is "make a slide that
+does X" rather than "move this box".
+
+**Built-in templates (`modActionsTemplate.bas`, 7 layouts)**
+
+| Action | Effect |
+|---|---|
+| `apply_template` | Build a slide from a named layout in ONE action. `template` ∈ `title` (`title,subtitle`), `section` (`section_number,section_title`), `bullets` (`heading,bullets[]`), `two_col` (`heading,left_body,right_body`), `comparison` (`heading,left_label,left_body,right_label,right_body`), `kpi_dashboard` (`heading,tiles[]` of `{stat,label}`), `quote` (`quote_text,attribution`) — or any captured-template name. `content` holds those literal slots. Optional `slide:N` to replace, else appends. |
+
+**Decks-as-code (`modActionsSpec.bas`)**
+
+| Action | Effect |
+|---|---|
+| `build_deck_from_spec` | Build a multi-slide deck from a compact `spec` (array of `{template, content}` slide objects). One action → full deck. |
+| `extract_spec` | Reverse: read the deck back out as a `spec` JSON (round-trips with `build_deck_from_spec`). Use to clone/restyle an existing deck. |
+| `generate_variants` | Re-render given content into N distinct **principled layout archetypes** (Hero / Split / Stack / Quote / Tiles, cycling) — NOT a cosmetic position shuffle. Form A: `template`+`n` (heading pulled from `title`/`heading`/`section_title`/`quote_text`, rest → body). Form B: `templates:[names]` renders the same content across each named template. |
+
+**Deck DNA — user-captured templates (`modActionsCapture.bas`)**
+
+A captured template is a real slide the user liked, saved as a reusable
+stamp. The registry is external JSON data at
+`%APPDATA%\Decko\templates.json` (NOT code) and a live manifest of captured
+names is appended to the snapshot prompt so the LLM can target them by name.
+
+| Action | Effect |
+|---|---|
+| `capture_template` | Save a slide's layout+style as a named reusable template. `name` + `slide:N` (default active). Auto-derives content slots. |
+| `list_templates` | Return the captured-template registry (names + slot summary). |
+| `delete_template` | Remove a captured template by `name`. Slides already built from it are unchanged. |
+| `rename_template` | Rename a captured template — params `from` → `to` (not `name`/`new_name`). |
+
+Once captured, a template name is valid in `apply_template` /
+`build_deck_from_spec` exactly like a built-in.
+
+**DECK DESIGN PRINCIPLES** — the snapshot prompt now ends with an injected
+design-principles block (hierarchy, contrast, alignment, restraint) so the
+LLM produces well-composed slides without the user re-explaining taste.
+
+**Icons** — the prompt no longer ships an exhaustive Fluent allow-list. It
+gives concise CDN-sourcing guidance + a short curated name list; the LLM
+sources icon SVGs by semantic name from the CDN. Works on locked-down work
+machines where the old allow-list path failed.
 
 ### Core shape + slide (`modActions.bas`, 17)
 
@@ -351,10 +398,17 @@ retry bring-up / `com_error` only, never an assertion):
 ```bash
 python tests/run_smoke_sanitizer.py    # SanitizeJsonInput corpus (49/49)
 python tests/run_smoke_verify.py       # modVerify precision/recall = 1.0 vs frozen contract
-python tests/run_smoke_preview.py      # BuildActionPlanSummary: 238 coverage + exact corpus
+python tests/run_smoke_preview.py      # BuildActionPlanSummary: 246 coverage + exact corpus
 python tests/run_smoke_validate.py     # ValidateBatchJson: recognition/rejection/no-false-reject
-python tests/run_smoke_guidance.py     # GetActionGuidance: 238 coverage + schema-valid EXAMPLEs
+python tests/run_smoke_guidance.py     # GetActionGuidance: 246 coverage + schema-valid EXAMPLEs
 python tests/run_smoke_failcontract.py # ExecuteFromString partial-failure contract
+python tests/run_smoke_schema_audit.py # cross-surface key-consistency lint
+python tests/run_smoke_template.py     # apply_template: 7 builtin layouts
+python tests/run_smoke_spec.py         # build_deck_from_spec / extract_spec round-trip
+python tests/run_smoke_variants.py     # generate_variants: distinct principled archetypes
+python tests/run_smoke_capture.py      # capture/list/delete/rename_template registry
+python tests/run_smoke_dialogs.py      # Capture/Manage dialogs + icon-trim
+python tests/run_smoke_icon_prompt.py  # prompt ships CDN guidance, not the allow-list
 ```
 
 ## Macros (Alt+F8)
@@ -364,6 +418,8 @@ python tests/run_smoke_failcontract.py # ExecuteFromString partial-failure contr
 | `ExportSnapshot` | `frmExport` | Build deck snapshot JSON; copy snapshot + prompt to clipboard. |
 | `ExecuteInstructions` | `frmExecute` | Paste instructions JSON, parse, review, apply. |
 | `ImportSlides` | `frmImportSlides` | Import slides from another deck at a given position. |
+| `CaptureTemplate` | InputBox | Save the active slide as a named Deck DNA template (registry JSON). |
+| `ManageTemplates` | InputBox | View captured templates (numbered) and delete one by name. |
 
 ## Files
 
@@ -387,6 +443,9 @@ src/
   modActionsSlide.bas             ← move/extract/import slides (3)
   modActionsDeck.bas              ← deck-wide ops (regex/font swap/recolor/theme/size/bulk) (9)
   modActionsEffects.bas           ← visual polish + picture effects (16)
+  modActionsTemplate.bas          ← apply_template: 7 builtin slide layouts
+  modActionsSpec.bas              ← decks-as-code: build_deck_from_spec/extract_spec/generate_variants
+  modActionsCapture.bas           ← Deck DNA: capture/list/delete/rename_template + registry JSON
   frmExport.frm/.frx              ← snapshot UserForm
   frmExecute.frm/.frx             ← instructions UserForm
   frmImportSlides.frm/.frx        ← import UserForm

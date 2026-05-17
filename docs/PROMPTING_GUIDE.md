@@ -659,10 +659,13 @@ a minimal example per action), use **[`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.
 — that file is the single source of truth and is meant to be read literally by
 any model.
 
-### Action Categories & Counts (~130 total, 14 modules)
+### Action Categories & Counts (246 total, 17 modules)
 
 | Module | Count | What it does |
 |--------|-------|--------------|
+| `modActionsTemplate.bas` | 1 | `apply_template` — build a whole slide from a named layout in one action |
+| `modActionsSpec.bas` | 3 | Decks-as-code: `build_deck_from_spec`, `extract_spec`, `generate_variants` |
+| `modActionsCapture.bas` | 4 | Deck DNA: `capture_template` / `list_templates` / `delete_template` / `rename_template` |
 | `modActions.bas` | ~17 | Core shape/slide/notes/table-cell ops |
 | `modActionsText.bas` | ~17 | Paragraph text, bullets, alignment, autofit, find/replace |
 | `modActionsRun.bas` | ~11 | Run-level formatting (bold/italic/color/size/font/hyperlink/strikethrough) |
@@ -679,6 +682,40 @@ any model.
 | `modActionsWeb.bas` | ~3 | fetch_page_images, download_image, open_image_picker |
 
 ### Action Quick-Reference
+
+#### High-Level Authoring — TRY THESE FIRST
+
+When the request is "make a slide that …" or "build a deck about …" (not
+"move/recolor this existing box"), reach for these BEFORE placing
+individual shapes. One action replaces 10–30 atomic ops and produces a
+composed, on-brand slide.
+
+| Action | When to suggest |
+|--------|----------------|
+| `apply_template` | "Make a title / section / bullets / two-column / comparison / KPI / quote slide." `template` is ONE literal name + its literal slots: `title`(`title,subtitle`), `section`(`section_number,section_title`), `bullets`(`heading,bullets[]`), `two_col`(`heading,left_body,right_body`), `comparison`(`heading,left_label,left_body,right_label,right_body`), `kpi_dashboard`(`heading,tiles[]`={stat,label}), `quote`(`quote_text,attribution`) — or any captured-template name. `content` holds those exact slots. `"slide":N` replaces; omit to append. **No `two_column`/`image_caption` — use names above verbatim.** |
+| `build_deck_from_spec` | "Build me a 5-slide deck on X." Pass `spec` = array of `{"template":"…","content":{…}}` (one per slide). `"clear_existing":true` replaces the deck; omit to append. Whole deck in ONE action. |
+| `extract_spec` | "Clone / restyle this deck." Reads the current deck back out as a `spec` you can edit and feed to `build_deck_from_spec`. Round-trips. |
+| `generate_variants` | "Show me a few different layouts of this." Renders the content as N distinct **principled archetypes** — Hero, Split, Stack, Quote, Tiles (cycling). Form A: `template`+`n` (heading taken from `title`/`heading`/`section_title`/`quote_text`, rest → body). Form B: `templates:[names]` renders the SAME content across each named template (content must satisfy all their slots). NOT a position shuffle. |
+| `capture_template` | "I like this slide, save it as a template." Requires `name`; optional `slide:N` (default active). Stored in the Deck DNA registry; thereafter usable as a `template` value in `apply_template`/`build_deck_from_spec`. |
+| `list_templates` | "What templates do I have?" Returns the captured registry (names + slots). |
+| `delete_template` | "Delete the X template." Requires `name`. |
+| `rename_template` | "Rename template X to Y." Params **`from`** and **`to`** (NOT `name`/`new_name`). |
+
+**Captured-template manifest:** the snapshot prompt you were given ends with
+a live list of the user's captured Deck DNA templates and their content
+slots. If the user references a template by name, target it directly — its
+slots are listed there; you do not need to guess.
+
+**DECK DESIGN PRINCIPLES:** the prompt also ends with an injected
+design-principles block (visual hierarchy, contrast, alignment, restraint).
+Treat it as binding: when you emit `apply_template`/`build_deck_from_spec`
+content, follow those principles — don't over-stuff slots, keep one idea
+per slide, respect contrast.
+
+**Icons:** there is no exhaustive allow-list. To add an icon, source the
+SVG by semantic name from the CDN per the guidance in the prompt and use
+`insert_icon`. Prefer the short curated names listed; for anything else,
+pick the closest semantic Fluent name.
 
 #### Atomic Ops
 | Action | When to suggest |
@@ -912,20 +949,28 @@ and the schema in [`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md) **literally**.
 2. **Restate the request as concrete edits.** "Make it look cleaner" → which
    slides? which shapes? remove what / align what / recolor to what? If the VP
    was vague, ask one clarifying question rather than guessing.
-3. **Pick the smallest action for each edit.** Prefer `find_replace_text` over
+3. **Build-a-slide / build-a-deck? Use High-Level Authoring first.** If the
+   request is "make a slide that …" or "build a deck about …" (creating new
+   content, not tweaking an existing box), emit ONE `apply_template` or
+   `build_deck_from_spec` instead of 20 atomic shape ops. Check the
+   captured-template manifest at the end of the prompt — if the user has a
+   matching Deck DNA template, use its name. Only drop to atomic ops for
+   edits the templates can't express. See
+   [High-Level Authoring](#high-level-authoring--try-these-first).
+4. **Pick the smallest action for each edit.** Prefer `find_replace_text` over
    `set_text`; `set_run_text` over `set_paragraph_text` when formatting is mixed.
    Use the [Quick-Reference](#action-quick-reference) and
    [`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md) to match intent → action.
-4. **Order the actions.** Creates first, then edits/format on the created
+5. **Order the actions.** Creates first, then edits/format on the created
    things, then layout/alignment last (alignment needs final sizes).
-5. **Fill every required field; add optional fields only when the request asks
+6. **Fill every required field; add optional fields only when the request asks
    for them.** Copy field names exactly from the schema.
-6. **For new layouts, compute coordinates.** 16:9 = 960 × 540 pt. Leave ~40 pt
+7. **For new layouts, compute coordinates.** 16:9 = 960 × 540 pt. Leave ~40 pt
    margins. A 3-up row at top 120: boxes at left 60 / 360 / 660, width ~240.
-7. **Wrap in `{"actions":[ ... ]}` and output ONLY that JSON** — no prose, no
+8. **Wrap in `{"actions":[ ... ]}` and output ONLY that JSON** — no prose, no
    markdown fences. (Decko's sanitizer tolerates fences/prose, but clean output
    is safer, especially for weaker models.)
-8. **If the batch is large, output one action object per line** so the VP can
+9. **If the batch is large, output one action object per line** so the VP can
    paste it without the text box mangling it (or tell them to save it to a
    `.json` file and use "Load from file...").
 

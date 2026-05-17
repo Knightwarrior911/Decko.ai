@@ -788,7 +788,7 @@ This appendix is auto-extracted from `modExecuteInstructions.GetActionGuidance` 
 
 If a new action is added to the dispatcher, update GetActionGuidance and GetAllActionTypes, then re-run the sync script.
 
-**Action types covered: 238.**
+**Action types covered: 246.**
 
 ### `add_cell_paragraph`
 
@@ -957,6 +957,13 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
   EXAMPLE:  {"type":"apply_table_style","slide":1,"shape_id":4,"style_id":"medium_style_2_accent1"}
 ```
 
+### `apply_template`
+
+```
+  REQUIRED: template("title"|"section"|"bullets"|"two_col"|"comparison"|"kpi_dashboard"|"quote"), content(object of the template's slots); OPTIONAL slide(int) targets an existing blank slide else a new slide is appended
+  EXAMPLE:  {"type":"apply_template","template":"title","content":{"title":"Q3 Review","subtitle":"FY26"}}
+```
+
 ### `apply_theme`
 
 ```
@@ -969,6 +976,13 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: slide, shape_id  -- enables shrink-to-fit on every cell
   EXAMPLE:  {"type":"auto_fit_table_text","slide":1,"shape_id":4}
+```
+
+### `build_deck_from_spec`
+
+```
+  REQUIRED: spec(object {"deck":[{"template":..,"content":{..}}, ..]}); OPTIONAL clear_existing(bool) rebuilds the whole deck
+  EXAMPLE:  {"type":"build_deck_from_spec","spec":{"deck":[{"template":"title","content":{"title":"A","subtitle":"B"}}]}}
 ```
 
 ### `build_image_grid_table`
@@ -999,6 +1013,13 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: slide_indices(array of ints), text(string), left, top, width, height (all num pt)
   EXAMPLE:  {"type":"bulk_insert_text_box","slide_indices":[1,2,3],"text":"CONFIDENTIAL","left":800,"top":510,"width":120,"height":20}
+```
+
+### `capture_template`
+
+```
+  REQUIRED: name(string); OPTIONAL slide(int)=active slide. Captures the slide's shapes as a reusable template; text shapes auto-become slots
+  EXAMPLE:  {"type":"capture_template","name":"my_kpi","slide":1}
 ```
 
 ### `change_slide_layout`
@@ -1171,6 +1192,13 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
   EXAMPLE:  {"type":"delete_table_row","slide":1,"shape_id":4,"row":3}
 ```
 
+### `delete_template`
+
+```
+  REQUIRED: name(string) â€” removes that captured template from the registry (built decks are unaffected)
+  EXAMPLE:  {"type":"delete_template","name":"my_kpi"}
+```
+
 ### `distribute_horizontal`
 
 ```
@@ -1229,6 +1257,13 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
   EXAMPLE:  {"type":"extract_slides","slide_indices":[1,3,5],"output_path":"C:\\extracted.pptx"}
 ```
 
+### `extract_spec`
+
+```
+  OPTIONAL: none â€” reads the live deck and writes <deck>.spec.json (and is callable as ExtractDeckSpecJson)
+  EXAMPLE:  {"type":"extract_spec"}
+```
+
 ### `fetch_page_images`
 
 ```
@@ -1280,6 +1315,13 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
   EXAMPLE:  {"type":"flip_shape","slide":1,"shape_id":3,"axis":"h"}
 ```
 
+### `generate_variants`
+
+```
+  REQUIRED: template(one of the apply_template names), content(object of slots), n(int 2..6)
+  EXAMPLE:  {"type":"generate_variants","template":"title","content":{"title":"A","subtitle":"B"},"n":3}
+```
+
 ### `group_by_overlap`
 
 ```
@@ -1322,6 +1364,13 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
   REQUIRED: slide, pos({left,top,width,height})
   OPTIONAL: ref_name, font_color, font_size
   EXAMPLE:  {"type":"insert_slide_number","slide":1,"pos":{"left":900,"top":520,"width":40,"height":20},"font_size":10}
+```
+
+### `list_templates`
+
+```
+  OPTIONAL: none â€” writes the captured-template list next to the deck
+  EXAMPLE:  {"type":"list_templates"}
 ```
 
 ### `lock_aspect_ratio`
@@ -1466,6 +1515,13 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: section_index(int), name(string)
   EXAMPLE:  {"type":"rename_section","section_index":1,"name":"Intro"}
+```
+
+### `rename_template`
+
+```
+  REQUIRED: from(string), to(string)
+  EXAMPLE:  {"type":"rename_template","from":"my_kpi","to":"kpi_v2"}
 ```
 
 ### `replace_picture`

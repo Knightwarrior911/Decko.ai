@@ -472,6 +472,50 @@ Two lines, full deck refresh.
 
 ---
 
+## Templates & Deck DNA — whole slides in one shot
+
+You no longer have to describe a slide shape-by-shape. Decko ships a
+high-level authoring layer; ask the LLM for it by intent.
+
+**Built-in templates.** Say *"make a section divider that says Q3 Results"*
+or *"a two-column slide comparing Plan vs Actual"* and the LLM emits a
+single `apply_template` action. Seven built-in layouts: **title, section,
+bullets, two_col, comparison, kpi_dashboard, quote**. One action → a
+composed, on-brand slide instead of 20 placement ops.
+
+**Decks-as-code.** *"Build me a 6-slide deck on the FY24 review"* → one
+`build_deck_from_spec` action with a slide-by-slide spec. *"Clone this
+deck's structure but new numbers"* → `extract_spec` reads the deck back
+out as an editable spec. *"Show me three different layouts of this same
+content"* → `generate_variants` re-renders into genuinely different
+**design archetypes** (Hero, Split, Stack, Quote, Tiles) — not the same
+slide with the title nudged around.
+
+**Deck DNA — your own captured templates.** When you build a slide you
+love, save it as a reusable stamp:
+
+- **Alt+F8 → `CaptureTemplate`** — names the active slide and stores it in
+  your personal library (`%APPDATA%\Decko\templates.json`). It then shows
+  up in the snapshot prompt, so your LLM can build new slides "in that
+  style" by name — no re-explaining your taste.
+- **Alt+F8 → `ManageTemplates`** — lists your captured templates (numbered)
+  and lets you delete one: type its name exactly and click OK; leave blank
+  or Cancel to just look. Deleting a template does NOT change slides you
+  already built from it.
+- The LLM can also do this in a batch via `capture_template`,
+  `list_templates`, `delete_template`, `rename_template`.
+
+**Design principles are built in.** The prompt now ends with a short
+design-principles block (hierarchy, contrast, alignment, restraint), so
+the LLM composes cleaner slides without you spelling out good taste.
+
+**Icons just work on locked-down machines.** The old behavior shipped a
+giant icon allow-list that failed on restricted work PCs. Now the prompt
+gives the LLM concise CDN-sourcing guidance + a short curated name list;
+it fetches the right SVG by semantic name. Nothing for you to configure.
+
+---
+
 ## Hidden Power Moves
 
 Things that are not obvious from the feature list:
@@ -575,6 +619,8 @@ This is the full list of what Decko understands. Use these names when reviewing 
 **Deck-wide:** `recolor_fill_match`, `recolor_font_match`, `delete_shapes_match`, `swap_font_deck_wide`, `recolor_palette_deck_wide`, `apply_theme`, `set_slide_size`, `set_theme_font`, `bulk_insert_image`, `bulk_insert_text_box`, `apply_layout_to_slides`
 
 **Notes:** `set_speaker_notes`, `append_speaker_notes`
+
+**High-level authoring:** `apply_template`, `build_deck_from_spec`, `extract_spec`, `generate_variants`, `capture_template`, `list_templates`, `delete_template`, `rename_template`
 
 ---
 
