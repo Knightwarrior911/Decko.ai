@@ -36,6 +36,10 @@ class NoOpenDeckError(RuntimeError):
     pass
 
 
+class EmptyDeckError(RuntimeError):
+    pass
+
+
 class DeckController:
     def __init__(self):
         self.app = None
@@ -75,10 +79,18 @@ class DeckController:
         self.deck.Windows(1).Activate()
         self._mode = "file"
 
+    def _require_nonempty(self):
+        if self.deck is not None and self.deck.Slides.Count == 0:
+            raise EmptyDeckError(
+                "This deck has no slides. Add a slide in PowerPoint "
+                "first, then try again.")
+
     def get_snapshot(self) -> str:
+        self._require_nonempty()
         return self._run("BuildSnapshotJson")
 
     def run_actions(self, actions_json: str) -> str:
+        self._require_nonempty()
         # ExecuteFromString runs the verify loop by default; returns a
         # human summary incl. "FAILURES (N)" contract.
         return self._run("ExecuteFromString", actions_json)
