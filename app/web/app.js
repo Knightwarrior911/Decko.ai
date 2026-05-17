@@ -39,7 +39,7 @@ $("sendBtn").onclick = async () => {
   bubble("user", t);
   $("msg").value = "";
   const r = await api.send(t);
-  if (r.error) { bubble("app fail", r.error); return; }
+  if (r.error) { bubble("fail", r.error); return; }
   const w = r.warnings ? ` <span class="warn">(${r.warnings} warnings)</span>`
                        : "";
   bubble("app", r.summary + w);

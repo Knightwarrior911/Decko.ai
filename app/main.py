@@ -64,6 +64,10 @@ class Api:
         except NoOpenDeckError:
             return {"error": "No deck open in PowerPoint. Open one, or "
                              "choose 'Open file' instead."}
+        if not secrets.has_api_key():
+            self.orch = None
+            return {"error": "Save your LLM API key in the side panel "
+                             "first, then start a session."}
         llm = LLMClient(self.settings, secrets.get_api_key() or "")
         self.orch = ChatOrchestrator(self.dc, llm, self.store)
         return {"ok": True}
