@@ -59,3 +59,27 @@ def test_carrier_copies_to_install_dir_once(tmp_path, monkeypatch):
     dest.write_bytes(b"USER-MODIFIED")          # must NOT be overwritten
     p2 = cm.ensure_carrier()
     assert p2.read_bytes() == b"USER-MODIFIED"
+
+
+def test_orchestrator_turn_persists_and_summarizes(tmp_path):
+    from app.orchestrator import ChatOrchestrator
+    from app.store import Store
+    from tests.app.stub_llm import StubLLM
+
+    class FakeDeck:
+        def __init__(self):
+            self.ran = None
+        def get_snapshot(self):
+            return "{SNAP}"
+        def run_actions(self, j):
+            self.ran = j
+            return "applied 1, skipped 0"
+
+    st = Store(tmp_path / "o.db"); st.init()
+    fd = FakeDeck()
+    orch = ChatOrchestrator(deck=fd, llm=StubLLM(), store=st)
+    res = orch.run("make a title slide")
+    assert res["summary"] == "applied 1, skipped 0"
+    assert '"actions"' in fd.ran
+    rows = st.list_turns()
+    assert len(rows) == 1 and rows[0]["request"] == "make a title slide"
