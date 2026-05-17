@@ -2,8 +2,8 @@ VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmExport 
    Caption         =   "Decko.ai � Export Snapshot"
    ClientHeight    =   7200
-   ClientLeft      =   91
-   ClientTop       =   406
+   ClientLeft      =   90
+   ClientTop       =   410
    ClientWidth     =   10800
    OleObjectBlob   =   "frmExport.frx":0000
    StartUpPosition =   1  'CenterOwner
@@ -13,7 +13,29 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 Option Explicit
+Private Sub btnCopyDeckSpec_Click()
+    On Error GoTo fail
+    Dim js As String
+    js = modActionsSpec.ExtractDeckSpecJson()
+    CopyToClipboard js
+    lblStatus.Caption = "Deck spec copied to clipboard (" & Len(js) & " chars)."
+    Exit Sub
+fail:
+    lblStatus.Caption = "Extract spec failed: " & Err.Description
+End Sub
+
+Private Sub btnScanPalette_Click()
+    On Error GoTo fail
+    Dim r As String
+    r = modExecuteInstructions.ExecuteFromString( _
+        "{""actions"":[{""type"":""scan_palette""}]}")
+    lblStatus.Caption = "Palette scanned -> clipboard + %TEMP%\decko_palette.json"
+    Exit Sub
+fail:
+    lblStatus.Caption = "Scan palette failed: " & Err.Description
+End Sub
 
 Public Function PromptTemplate() As String
     Dim s As String
@@ -477,12 +499,12 @@ Private Function CarrierPath() As String
         Set comp = p.VBProject.VBComponents("modExecuteInstructions")
         On Error GoTo 0
         If Not comp Is Nothing Then
-            CarrierPath = p.Path
+            CarrierPath = p.path
             Exit Function
         End If
     Next p
     On Error Resume Next
-    CarrierPath = Application.ActivePresentation.Path
+    CarrierPath = Application.ActivePresentation.path
     On Error GoTo 0
 End Function
 
@@ -496,7 +518,7 @@ Private Function LoadIconAllowList() As String
         Exit Function
     End If
     Dim path As String: path = baseDir & "\data\icons_allowed.txt"
-    If Dir(path) = "" Then
+    If dir(path) = "" Then
         LoadIconAllowList = "# WARNING: icons_allowed.txt missing. Run tools/build_icon_index.py."
         Exit Function
     End If
@@ -510,9 +532,9 @@ End Function
 Private Sub UserForm_Initialize()
     On Error Resume Next
     Dim scope As String: scope = modExportSnapshot.g_SnapshotScope
-    txtSnapshot.Text = modExportSnapshot.BuildSnapshotJson(scope)
+    txtSnapshot.text = modExportSnapshot.BuildSnapshotJson(scope)
     If Err.Number <> 0 Then
-        txtSnapshot.Text = "ERROR: " & Err.Description
+        txtSnapshot.text = "ERROR: " & Err.Description
         Err.Clear
     End If
     Dim suffix As String
@@ -535,21 +557,21 @@ End Sub
 Public Sub RebuildSnapshot(scope As String)
     modExportSnapshot.g_SnapshotScope = scope
     On Error Resume Next
-    txtSnapshot.Text = modExportSnapshot.BuildSnapshotJson(scope)
+    txtSnapshot.text = modExportSnapshot.BuildSnapshotJson(scope)
     If Err.Number <> 0 Then
-        txtSnapshot.Text = "ERROR: " & Err.Description
+        txtSnapshot.text = "ERROR: " & Err.Description
         Err.Clear
     End If
 End Sub
 
 Private Sub btnCopySnapshot_Click()
-    CopyToClipboard txtSnapshot.Text
+    CopyToClipboard txtSnapshot.text
     lblStatus.Caption = "Snapshot copied to clipboard."
 End Sub
 
 Private Sub btnCopyWithTemplate_Click()
     Dim payload As String
-    payload = Replace(PromptTemplate(), "{snapshot}", txtSnapshot.Text)
+    payload = Replace(PromptTemplate(), "{snapshot}", txtSnapshot.text)
     CopyToClipboard payload
     lblStatus.Caption = "Snapshot + prompt template copied to clipboard."
 End Sub
@@ -562,7 +584,7 @@ Private Sub btnSaveTxt_Click()
 
     Dim f As Integer: f = FreeFile
     Open outPath For Output As #f
-    Print #f, txtSnapshot.Text
+    Print #f, txtSnapshot.text
     Close #f
     lblStatus.Caption = "Saved: " & outPath
 End Sub
