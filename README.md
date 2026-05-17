@@ -48,6 +48,18 @@ button mechanics.
 - **[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)** — practical guide for VPs/MDs.
 - Design specs in `docs/specs/`.
 
+## Desktop app (SP1)
+
+`Decko-Setup.exe` (built via `python packaging/build.py` then
+`packaging/installer.iss`) is a Windows installer requiring only
+Microsoft PowerPoint — no Python. It wraps the same VBA/COM engine in a
+chat + side-panel UI; users supply their own LLM key (Anthropic / OpenAI
+/ generic OpenAI-compatible), stored in Windows Credential Manager.
+Design: `docs/superpowers/specs/2026-05-17-decko-desktop-app-design.md`.
+Plan: `docs/superpowers/plans/2026-05-17-decko-desktop-sp1.md`.
+SP1 gate: `python tests/run_smoke_app.py` (UI visuals are manually
+verified, not in the deterministic gate, per the design's honest scope).
+
 ## One-time developer setup
 
 See [`SETUP.md`](SETUP.md) for the bulletproof checklist. Short version:
