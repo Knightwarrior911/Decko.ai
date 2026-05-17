@@ -41,6 +41,7 @@ class DeckController:
         self.app = None
         self.carrier = None
         self.deck = None
+        self._mode = None
 
     def start(self):
         pythoncom.CoInitialize()
@@ -52,17 +53,27 @@ class DeckController:
             str(ensure_carrier()), WithWindow=False)
 
     def attach_open_deck(self):
-        # The active deck must be a non-carrier presentation.
+        try:
+            ap = self.app.ActivePresentation
+            if ap is not None and ap.FullName != self.carrier.FullName:
+                self.deck = ap
+                ap.Windows(1).Activate()
+                self._mode = "attach"
+                return
+        except Exception:
+            pass
         for p in self.app.Presentations:
             if p.FullName != self.carrier.FullName:
                 self.deck = p
                 p.Windows(1).Activate()
+                self._mode = "attach"
                 return
         raise NoOpenDeckError("No deck open in PowerPoint.")
 
     def open_file(self, path: str):
         self.deck = self.app.Presentations.Open(path, WithWindow=True)
         self.deck.Windows(1).Activate()
+        self._mode = "file"
 
     def get_snapshot(self) -> str:
         return self._run("BuildSnapshotJson")
@@ -84,18 +95,18 @@ class DeckController:
 
     def close(self, save_deck: bool = False):
         try:
-            if self.deck is not None and save_deck:
+            if self.deck is not None and save_deck and self._mode == "file":
                 self.deck.Save()
         finally:
-            for p in (self.carrier,):
-                try:
-                    if p is not None:
-                        p.Saved = True
-                        p.Close()
-                except Exception:
-                    pass
             try:
-                self.app.Quit()
+                if self.carrier is not None:
+                    self.carrier.Saved = True
+                    self.carrier.Close()
             except Exception:
                 pass
+            if self._mode != "attach":
+                try:
+                    self.app.Quit()
+                except Exception:
+                    pass
             time.sleep(1.0)
