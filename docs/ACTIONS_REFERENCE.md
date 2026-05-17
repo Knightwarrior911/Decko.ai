@@ -8,7 +8,7 @@ JSON `actions` array a model should return.
 **If you only read one thing, read [§0 Hard Rules](#0-hard-rules).** Breaking
 any of them makes the whole batch fail.
 
-> **Counts:** ~165 action types across 14 VBA modules. The authoritative source
+> **Counts:** 246 action types across 17 VBA modules. The authoritative source
 > of truth is `src/modExecuteInstructions.bas` (`ValidateAction` = required
 > fields, `DispatchAction` = how each field is read). This document mirrors it.
 > When in doubt, the dispatcher wins — file a doc fix.
@@ -476,7 +476,7 @@ string is also accepted per element).
 - **`insert_icon`** — insert a Microsoft Fluent UI SVG icon.
   `req:` `slide`, `icon`(string — a lowercase_underscore name from the Fluent UI set, e.g. `building_factory`, `people`, `globe`, `chart_multiple`, `arrow_trending`, `money`, `shield`), **`left`, `top`, `width`, `height`** (num pt — all four REQUIRED, no `pos` object). `opt:` `style`(`filled`|`regular`)=`filled`, `size`(16|20|24|28|32|48)=48, `color`(`#RRGGBB`)=`#000000`, `ref_name`(string). Icons fetched from unpkg CDN and cached.
   `ex:` `{"type":"insert_icon","slide":2,"icon":"building_factory","left":60,"top":120,"width":48,"height":48,"color":"#15283C"}`
-  > If unsure of the exact icon name, pick the nearest semantic match. When Decko's Export prompt template injects an allow-list of icon names, use ONLY names from that list.
+  > The Export prompt ships concise CDN-sourcing guidance + a short curated name list (no exhaustive allow-list). Prefer a curated name; if unsure, pick the nearest semantic Fluent UI name.
 - **`fetch_page_images`** — scrape all images from a URL into a local folder. `req:` `url`(string). `opt:` `dest_folder`(string), `ref_name`(string).
 - **`download_image`** — download one image URL to a local path. `req:` `url`(string), `dest_path`(string).
 - **`open_image_picker`** — open Decko's visual image-picker UI on a folder. `req:` (none); `opt:` `folder`(string).

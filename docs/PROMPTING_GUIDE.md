@@ -10,7 +10,7 @@ you can paste or adapt.
 - **AI assistants** (Hermes, OpenClaw, GPT/Claude-class — any model) helping a
   VP — read [§ For AI Assistants](#for-ai-assistants-turning-a-vp-request-into-actions),
   the companion **[`ACTIONS_REFERENCE.md`](ACTIONS_REFERENCE.md)** (the
-  exhaustive, machine-precise schema for all ~130 actions), and
+  exhaustive, machine-precise schema for all 246 actions), and
   **[`EXAMPLES.md`](EXAMPLES.md)** (~45 paired examples: VP prompt → exact
   `actions` JSON, across every category — the best file to learn the mapping
   from). You do **not** need to have built Decko to use it correctly — follow
@@ -43,7 +43,7 @@ you can paste or adapt.
 
 ### What Decko can do (current surface)
 
-~130 actions across 14 modules: text at whole-shape, paragraph, and run level;
+246 actions across 17 modules: text at whole-shape, paragraph, and run level;
 layout & alignment; shapes, lines, connectors, groups; tables (build + cell
 formatting); **native charts — all 39 PowerPoint chart types create real chart
 objects, not images**; images (local insert, web scrape, picker grid); Fluent UI
@@ -229,15 +229,15 @@ then insert it on slide 1 at position left=820, top=20, width=80, height=40.
 
 ### 6. Icons (Microsoft Fluent UI)
 
-The prompt template embeds a curated allow-list of **~664 IB-relevant Fluent UI
-icon names** at export time. You do **not** need to look up icon names manually
-— just describe the concept you want and the LLM picks the closest valid name
-from the list. If no exact match exists (e.g., "oil barrel"), the LLM falls
-back to the nearest semantic equivalent from the allow-list (e.g., `drop`).
+The prompt no longer embeds an exhaustive allow-list (it broke on
+locked-down work machines). It gives the LLM concise CDN-sourcing guidance
+plus a short curated name list. You do **not** need to look up icon names
+manually — describe the concept and the LLM picks the closest curated name
+or sources the SVG by semantic name from the Fluent UI CDN. If no exact
+match exists (e.g., "oil barrel"), it falls back to the nearest semantic
+equivalent (e.g., `drop`).
 
 Icon names are in `lowercase_underscore` format (e.g., `building_factory`).
-The allow-list covers business, finance, technology, infrastructure, and
-industry concepts used in IB pitch books.
 
 **Insert a single icon:**
 ```
@@ -846,13 +846,13 @@ pick the closest semantic Fluent name.
 #### Icons (Microsoft Fluent UI)
 | Action | When |
 |--------|------|
-| `insert_icon` | Add a Fluent UI SVG icon. Describe the concept — the LLM picks from the ~664-icon IB allow-list in the prompt. |
+| `insert_icon` | Add a Fluent UI SVG icon. Describe the concept — the LLM uses a curated name or sources the SVG by semantic name from the Fluent UI CDN (no allow-list shipped). |
 
-Params: `slide`, `icon` (lowercase_underscore name from allow-list), `style` (filled/regular),
+Params: `slide`, `icon` (lowercase_underscore Fluent name), `style` (filled/regular),
 `size` (16/20/24/28/32/48), `color` (#RRGGBB), `left`, `top`, `width`, `height` (all in pt).
 
-Note: the allow-list is injected at export time. LLM must use only names from that list;
-if no exact match exists it picks the nearest semantic equivalent.
+Note: the prompt ships concise CDN-sourcing guidance + a short curated list, not an
+exhaustive allow-list. Prefer a curated name; else pick the nearest semantic Fluent name.
 
 #### Visual Effects
 | Action | When |
@@ -1270,7 +1270,7 @@ For colors with no clear role match, the LLM computes perceptual distance (hue +
 | "Add a chart" | `add_chart` (39 types; data inline for the 32 standard ones) |
 | "Add a logo / picture" | `insert_picture` (local path) or `replace_picture` |
 | "Pull images from their website" | `fetch_page_images` → `build_image_picker_slide` and/or `build_image_grid_table` |
-| "Add an icon / pictogram" | `insert_icon` — give the concept; use a name from the Fluent UI set / the allow-list in the export prompt |
+| "Add an icon / pictogram" | `insert_icon` — give the concept; use a curated name or the nearest semantic Fluent UI name (CDN-sourced; no allow-list shipped) |
 | "Recolor the deck / rebrand colors" | Full retheme: `scan_palette` on source deck + `scan_palette` on destination → LLM maps palettes → `recolor_deck` (one action, all N pairs). Quick single-swap: `recolor_palette_deck_wide`. |
 | "Change the font everywhere" | `swap_font_deck_wide` (or `set_theme_font` for theme-driven decks) |
 | "Align / space out these shapes" | `align_shapes` + `distribute_horizontal` / `distribute_vertical` (or `tile_grid`, `smart_spacing`, `uniform_size`) |

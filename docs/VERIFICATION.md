@@ -150,7 +150,7 @@ runs `PreviewValidate` on each action, then looks up
 `GetActionGuidance(actionType)` for the canonical signature of any failing
 type.
 
-**Coverage:** every one of the ~165 known action types has a canonical
+**Coverage:** every one of the 246 known action types has a canonical
 guidance entry (REQUIRED fields + working example) in `GetActionGuidance`.
 The coverage test `tests/test_guidance_coverage.py` enforces this — it
 parses every Case label in `DispatchAction` and asserts each one returns

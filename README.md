@@ -4,7 +4,7 @@ VBA-based PowerPoint editor driven by natural language via an external LLM.
 
 The user copies a JSON snapshot of the active deck into their LLM tool,
 describes a desired change, copies the LLM's instructions JSON back, and
-clicks Apply. Three macros, three UserForms, no API calls from PowerPoint.
+clicks Apply. A handful of Alt+F8 macros, three UserForms, no API calls from PowerPoint.
 
 After every Apply, an automatic 32-check quality-verification loop sweeps the
 deck and flags problems (off-slide shapes, unreadable contrast, tiny fonts,
@@ -378,10 +378,15 @@ The source of truth is in `src/`. To change behavior:
 2. Run `python update_macros.py` — re-imports modules into the carrier.
 3. Reopen the carrier in PowerPoint to test.
 
-UserForms are built programmatically by `tools/build_forms.py`. To change
-their layout or controls, edit that script and re-run it; the script
-exports the resulting `.frm`/`.frx` to `src/` for `update_macros.py` to
-pick up.
+UserForms: `src/*.frm`/`.frx` is the source of truth. `tools/build_forms.py`
+rebuilds the control **layout** of all three forms and **preserves** the
+VBA code imported from `src/*.frm` (it no longer re-stamps code from a
+constant — that previously caused silent regressions). Edit form *code* in
+`src/*.frm` and run `update_macros.py`. To add a **button** to an existing
+form, do NOT hand-author `.frx`; clone the idempotent installer pattern in
+`tools/add_fix_button.py` / `tools/add_export_buttons.py` (adds the control
+via the VBE Designer, appends the handler via the CodeModule, re-exports
+`.frm`/`.frx`). Only re-run `build_forms.py` for a full layout rebuild.
 
 ## Tests
 
@@ -421,6 +426,11 @@ python tests/run_smoke_icon_prompt.py  # prompt ships CDN guidance, not the allo
 | `CaptureTemplate` | InputBox | Save the active slide as a named Deck DNA template (registry JSON). |
 | `ManageTemplates` | InputBox | View captured templates (numbered) and delete one by name. |
 
+`frmExport` also has two one-click action shortcuts (no JSON typing):
+**Copy deck spec** (`extract_spec` → clipboard) and **Scan palette**
+(`scan_palette` → clipboard). Both operate on the whole deck and work in
+the ACTIVE-SLIDE and ALL-SLIDES export modes alike.
+
 ## Files
 
 ```
@@ -451,7 +461,9 @@ src/
   frmImportSlides.frm/.frx        ← import UserForm
 update_macros.py                  ← sync src/ → carrier
 tools/build_carrier.py            ← bootstrap empty carrier
-tools/build_forms.py              ← rebuild UserForms in carrier; export .frm/.frx to src/
+tools/build_forms.py              ← rebuild UserForm layout; preserves src/*.frm code
+tools/add_fix_button.py           ← idempotent installer: Fix Errors/Fix This on frmExecute
+tools/add_export_buttons.py       ← idempotent installer: Copy deck spec / Scan palette on frmExport
 tools/inspect_form.py             ← inspect UserForm controls via COM
 tools/screenshot_forms.py         ← DPI-aware screenshot of each UserForm
 tools/rebuild_import_slides.py    ← escape hatch for frmImportSlides rebuild

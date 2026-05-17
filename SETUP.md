@@ -27,13 +27,14 @@ pip install -r requirements.txt
 # 2. Sync VBA modules from src/ into the carrier .pptm
 python update_macros.py
 
-# 3. Install the two clipboard buttons on frmExecute.
-#    Idempotent — re-running just repositions / refreshes handler code.
-python tools/add_fix_button.py
+# 3. Install the form buttons (both idempotent — re-running just
+#    repositions / refreshes handler code).
+python tools/add_fix_button.py        # Fix Errors / Fix This on frmExecute
+python tools/add_export_buttons.py    # Copy deck spec / Scan palette on frmExport
 ```
 
 After step 3 the carrier `PPT_AI_Editor.pptm` is fully functional. Open it
-in PowerPoint and press Alt+F8 to see the three macros:
+in PowerPoint and press Alt+F8 to see the macros:
 
 - `ExportSnapshot` — copy deck JSON snapshot + prompt template to clipboard
 - `ExecuteInstructions` — paste LLM-returned actions and Apply
@@ -71,14 +72,14 @@ src/
   modBackup.bas          Auto-backup helper (runs on every Apply)
   modJSON.bas            JSON parser / encoder
   modVerify.bas          Post-Apply quality-check loop (32 checks)
-  modActions*.bas        Action implementations (~165 types across 14 files)
+  modActions*.bas        Action implementations (246 types across 17 files)
   frmExecute.frm/.frx    "Execute Instructions" UserForm (Parse/Apply/
                          Fix Errors/Fix This buttons)
   frmExport.frm/.frx     "Export Snapshot" UserForm
   frmImportSlides.frm    "Import Slides" UserForm
 
 docs/
-  ACTIONS_REFERENCE.md   Complete schema for every action (165+)
+  ACTIONS_REFERENCE.md   Complete schema for every action (246)
   PROMPTING_GUIDE.md     How to write VP requests; LLM-facing
   EXAMPLES.md            Worked VP-prompt → actions-JSON pairs
   LAYOUT_RECIPES.md      Slide-layout cookbook (quad / 67-33 / etc.)
@@ -87,9 +88,11 @@ docs/
 
 tools/
   build_carrier.py       Bootstrap an empty .pptm carrier
-  build_forms.py         Author the three UserForms programmatically
-  add_fix_button.py      ONE-TIME installer for Fix Errors / Fix This
-                         buttons on frmExecute (idempotent)
+  build_forms.py         Rebuild UserForm layout; preserves src/*.frm code
+  add_fix_button.py      Idempotent installer: Fix Errors / Fix This
+                         buttons on frmExecute
+  add_export_buttons.py  Idempotent installer: Copy deck spec / Scan
+                         palette buttons on frmExport
   precheck_carrier.py    Carrier sanity check
 
 tests/
@@ -110,8 +113,10 @@ update_macros.py         Sync src/*.bas + *.frm into the carrier
   `add_fix_button.py` — close all PowerPoint windows first; the script
   expects a clean state.
 - **Buttons missing from Execute form** — run `python tools/add_fix_button.py`
-  once. After it runs, the .frm/.frx in src/ contains the buttons
-  permanently; future `update_macros.py` runs preserve them.
+  once. **Buttons missing from Export form** (Copy deck spec / Scan
+  palette) — run `python tools/add_export_buttons.py` once. After either
+  runs, the .frm/.frx in src/ contains the buttons permanently; future
+  `update_macros.py` runs preserve them.
 - **Verify loop logs `warnings.json` next to a read-only deck** — Decko
   writes the sidecar to `<deck>.warnings.json`. If the directory is
   read-only or sync-locked (OneDrive), verify will silently skip the
@@ -158,4 +163,9 @@ python tools/build_carrier.py
 python tools/build_forms.py
 python update_macros.py
 python tools/add_fix_button.py
+python tools/add_export_buttons.py
 ```
+
+Run BOTH installers — `add_fix_button.py` (frmExecute) and
+`add_export_buttons.py` (frmExport). They are idempotent and the buttons
+are required for a complete UI.

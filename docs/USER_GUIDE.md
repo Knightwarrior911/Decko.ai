@@ -256,18 +256,19 @@ Insert scalable vector icons from Microsoft's Fluent UI icon set — the same
 icon library used in Microsoft 365. Icons are fetched directly from the CDN
 at render time (no manual download needed).
 
-- **~664 IB-curated icons** — business, finance, tech, infrastructure, and
-  industry concepts relevant to investment banking pitch books
+- **Microsoft Fluent UI icon set** — business, finance, tech,
+  infrastructure, and industry concepts; sourced by name from the CDN
 - **Styles:** filled (default) or regular (outline)
 - **Sizes:** 16 / 20 / 24 / 28 / 32 / 48 pt
 - **Color:** any hex color — or omit for default dark grey
 - **Position:** same left/top/width/height system as shapes
 
-**You do not need to look up icon names.** The prompt template includes the
-full allow-list at export time. Just describe what you want in plain English
-— "factory icon", "globe", "trending up arrow" — and the LLM picks the
-closest valid name from the list. If no exact match exists, the LLM falls
-back to the nearest semantic equivalent.
+**You do not need to look up icon names.** The prompt no longer ships a
+giant allow-list (it broke on locked-down work machines). Instead it gives
+the LLM concise CDN-sourcing guidance plus a short curated name list. Just
+describe what you want in plain English — "factory icon", "globe",
+"trending up arrow" — and the LLM picks the closest curated name or sources
+the SVG by semantic name from the CDN.
 
 Example prompt:
 > "On slide 3, add a filled factory icon in our brand navy
@@ -490,6 +491,14 @@ out as an editable spec. *"Show me three different layouts of this same
 content"* → `generate_variants` re-renders into genuinely different
 **design archetypes** (Hero, Split, Stack, Quote, Tiles) — not the same
 slide with the title nudged around.
+
+**Two one-click shortcuts on the Export Snapshot form** (no JSON typing):
+- **Copy deck spec** — puts the whole deck's `extract_spec` JSON on your
+  clipboard. (Previously this only wrote a hidden `<deck>.spec.json` file.)
+  Paste it into your LLM to clone or restyle the deck.
+- **Scan palette** — copies every explicit colour in the deck (role-tagged
+  JSON) to the clipboard, for recolour/retheme prompts.
+Both work in the ACTIVE-SLIDE and ALL-SLIDES export modes.
 
 **Deck DNA — your own captured templates.** When you build a slide you
 love, save it as a reusable stamp:
