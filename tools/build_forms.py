@@ -258,20 +258,21 @@ def build_frm_export(components, designer_mode: bool = True):
     # two action-shortcut buttons + Close; lblStatus on its own line.
     # btnCopySnapshot (primary)
     btn1 = controls.Add(CMDBTN, "btnCopySnapshot", True)
-    set_control_props(btn1, Caption="Copy snapshot only",
-                      Top=264, Left=12, Width=120, Height=24)
+    set_control_props(btn1, Caption="Copy snapshot",
+                      Top=264, Left=12, Width=130, Height=24)
     style_button_primary(btn1)
 
-    # btnCopyWithTemplate (primary)
+    # btnCopyWithTemplate (primary). Caption kept short so it doesn't
+    # overflow the button at Cascadia Code 10pt bold (W210 fits it).
     btn2 = controls.Add(CMDBTN, "btnCopyWithTemplate", True)
-    set_control_props(btn2, Caption="Copy snapshot + prompt template",
-                      Top=264, Left=140, Width=200, Height=24)
+    set_control_props(btn2, Caption="Copy snapshot + prompt",
+                      Top=264, Left=150, Width=210, Height=24)
     style_button_primary(btn2)
 
     # btnSaveTxt (secondary)
     btn3 = controls.Add(CMDBTN, "btnSaveTxt", True)
     set_control_props(btn3, Caption="Save to .txt",
-                      Top=264, Left=348, Width=150, Height=24)
+                      Top=264, Left=368, Width=150, Height=24)
     style_button_secondary(btn3)
 
     # btnCopyDeckSpec (primary) — extract_spec -> clipboard

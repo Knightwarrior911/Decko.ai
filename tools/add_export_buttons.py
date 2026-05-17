@@ -106,22 +106,25 @@ def main() -> int:
         print(f"  placed at ({left}, {top}) size {width}x24")
         return b
 
-    def move_ctrl(name, left, top, width=None):
+    def move_ctrl(name, left, top, width=None, caption=None):
         for c in designer.Controls:
             if c.Name == name:
                 c.Left = left
                 c.Top = top
                 if width is not None:
                     c.Width = width
-                print(f"  {name} -> ({left}, {top})")
+                if caption is not None:
+                    c.Caption = caption
+                print(f"  {name} -> ({left}, {top}) w={width} cap={caption!r}")
                 return
 
     # Reflow the two bottom rows so the form (540x360, unchanged) holds the
-    # two new buttons. Row A = primary copy actions; Row B = the two new
-    # shortcuts + Close; lblStatus drops to its own line.
-    move_ctrl("btnCopySnapshot",     12, 264, 120)
-    move_ctrl("btnCopyWithTemplate", 140, 264, 200)
-    move_ctrl("btnSaveTxt",          348, 264, 150)
+    # two new buttons. Widths/captions chosen so text never overflows at
+    # Cascadia Code 10pt bold (longest caption fits W210). Row A = primary
+    # copy actions; Row B = the two new shortcuts + Close; lblStatus alone.
+    move_ctrl("btnCopySnapshot",     12, 264, 130, "Copy snapshot")
+    move_ctrl("btnCopyWithTemplate", 150, 264, 210, "Copy snapshot + prompt")
+    move_ctrl("btnSaveTxt",          368, 264, 150)
     ensure_button("btnCopyDeckSpec", "Copy deck spec", 12, 298, 170)
     ensure_button("btnScanPalette",  "Scan palette",   190, 298, 150)
     move_ctrl("btnClose",            348, 298, 150)
