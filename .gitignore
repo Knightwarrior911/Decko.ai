@@ -9,6 +9,8 @@
 *_snapshot_*.txt
 
 # Python
+*.egg-info/
+.pytest_cache/
 __pycache__/
 *.pyc
 .venv/
