@@ -44,3 +44,18 @@ def test_secrets_set_get_clear(monkeypatch):
     secmod.clear_api_key()
     assert secmod.get_api_key() is None
     assert secmod.has_api_key() is False
+
+
+def test_carrier_copies_to_install_dir_once(tmp_path, monkeypatch):
+    import app.carrier as cm
+    src = tmp_path / "bundled" / "PPT_AI_Editor.pptm"
+    src.parent.mkdir(parents=True)
+    src.write_bytes(b"PPTM-BYTES")
+    dest = tmp_path / "appdata" / "engine" / "PPT_AI_Editor.pptm"
+    monkeypatch.setattr(cm, "_bundled_carrier", lambda: src)
+    monkeypatch.setattr(cm, "INSTALLED_CARRIER", dest)
+    p1 = cm.ensure_carrier()
+    assert p1 == dest and dest.read_bytes() == b"PPTM-BYTES"
+    dest.write_bytes(b"USER-MODIFIED")          # must NOT be overwritten
+    p2 = cm.ensure_carrier()
+    assert p2.read_bytes() == b"USER-MODIFIED"
