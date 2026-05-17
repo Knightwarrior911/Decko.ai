@@ -164,217 +164,10 @@ def size_form(comp, outer_width: int, outer_height: int):
 # template manifest, the Copy-deck-spec / Scan-palette handlers).
 # Do NOT reintroduce a FRM_EXPORT_CODE override.
 
-FRM_IMPORT_SLIDES_CODE = '''\
-Option Explicit
-
-Private Sub UserForm_Initialize()
-    txtPath.Text = ""
-    txtRange.Text = ""
-    txtPosition.Text = "1"
-    lblStatus.Caption = ""
-End Sub
-
-Private Sub btnBrowse_Click()
-    Dim picked As String
-    On Error Resume Next
-    Dim fd As Object
-    Set fd = Application.FileDialog(3)
-    If Not fd Is Nothing Then
-        fd.Filters.Clear
-        fd.Filters.Add "PowerPoint Files", "*.pptx; *.pptm"
-        If fd.Show = -1 Then
-            picked = fd.SelectedItems(1)
-        End If
-    End If
-    On Error GoTo 0
-
-    If Len(picked) = 0 Then
-        picked = InputBox("Path to source deck:", "Source deck")
-    End If
-
-    If Len(picked) > 0 Then
-        txtPath.Text = picked
-    End If
-End Sub
-
-Private Sub btnImport_Click()
-    If Len(txtPath.Text) = 0 Or Len(txtRange.Text) = 0 Or Len(txtPosition.Text) = 0 Then
-        lblStatus.Caption = "Fill in source deck, slide range, and position first."
-        Exit Sub
-    End If
-    On Error GoTo Failure
-    Dim ids As Variant
-    ids = ParseRange(txtRange.Text)
-    Dim pos As Long: pos = CLng(txtPosition.Text)
-
-    Dim before As Long: before = ActivePresentation.Slides.Count
-    modActionsSlide.Do_import_slides_from_deck txtPath.Text, ids, pos
-    Dim afterCount As Long: afterCount = ActivePresentation.Slides.Count
-    lblStatus.Caption = "Imported " & (afterCount - before) & " slide(s) at position " & pos
-    Exit Sub
-Failure:
-    lblStatus.Caption = "ERROR: " & Err.Description
-End Sub
-
-Private Sub btnCancel_Click()
-    Unload Me
-End Sub
-
-Private Function ParseRange(s As String) As Variant
-    Dim parts() As String
-    parts = Split(s, ",")
-    Dim col As New Collection
-    Dim i As Long
-    For i = LBound(parts) To UBound(parts)
-        Dim p As String: p = Trim(parts(i))
-        If InStr(p, "-") > 0 Then
-            Dim ab() As String: ab = Split(p, "-")
-            Dim a As Long: a = CLng(Trim(ab(0)))
-            Dim b As Long: b = CLng(Trim(ab(1)))
-            Dim k As Long
-            For k = a To b
-                col.Add k
-            Next k
-        Else
-            col.Add CLng(p)
-        End If
-    Next i
-    Dim arr() As Long
-    ReDim arr(0 To col.Count - 1)
-    Dim j As Long
-    For j = 1 To col.Count
-        arr(j - 1) = col(j)
-    Next j
-    ParseRange = arr
-End Function
-'''
-
-FRM_EXECUTE_CODE = '''\
-Option Explicit
-
-Private mParsed As Object
-Private mValid() As Boolean
-' When the user loads actions from a file, the full uncorrupted JSON is held
-' here and takes precedence over the textbox. MSForms textboxes can mangle
-' large pastes (whitespace injected into numbers/keys); the file path avoids
-' the textbox entirely. Cleared the moment the user types in the textbox.
-Private mLoadedJson As String
-
-Private Sub UserForm_Initialize()
-    lblStatus.Caption = ""
-    mLoadedJson = ""
-End Sub
-
-' The JSON to parse/apply: a file loaded via btnLoadFile if one is held,
-' otherwise the textbox contents.
-Private Function CurrentJson() As String
-    If Len(mLoadedJson) > 0 Then
-        CurrentJson = mLoadedJson
-    Else
-        CurrentJson = txtInstructions.Text
-    End If
-End Function
-
-Private Sub txtInstructions_Change()
-    ' Hand-editing the textbox supersedes any previously loaded file.
-    mLoadedJson = ""
-End Sub
-
-Private Sub btnLoadFile_Click()
-    Dim fd As FileDialog
-    Set fd = Application.FileDialog(msoFileDialogFilePicker)
-    fd.Title = "Select an actions JSON file"
-    fd.AllowMultiSelect = False
-    fd.Filters.Clear
-    fd.Filters.Add "JSON / JSONL / text", "*.json;*.jsonl;*.txt"
-    fd.Filters.Add "All files", "*.*"
-    If fd.Show <> -1 Then Exit Sub
-
-    Dim path As String: path = fd.SelectedItems(1)
-    Dim s As String
-    On Error GoTo IOFail
-    Dim fnum As Integer: fnum = FreeFile
-    Open path For Input As #fnum
-    If LOF(fnum) > 0 Then s = Input$(LOF(fnum), fnum)
-    Close #fnum
-    On Error GoTo 0
-
-    txtInstructions.Text = s          ' raises txtInstructions_Change -> clears mLoadedJson
-    mLoadedJson = s                   ' ...so set it AFTER the assignment above
-    lstActions.Clear
-    Set mParsed = Nothing
-    lblStatus.Caption = "Loaded " & Len(s) & " chars from " & path & " -- click Parse."
-    Exit Sub
-IOFail:
-    On Error GoTo 0
-    lblStatus.Caption = "Could not read file: " & Err.Description
-End Sub
-
-Private Sub btnParse_Click()
-    lblStatus.Caption = ""
-    lstActions.Clear
-
-    On Error Resume Next
-    Set mParsed = modJSON.ParseJson(modExecuteInstructions.SanitizeJsonInput(CurrentJson()))
-    If Err.Number <> 0 Then
-        lblStatus.Caption = "Invalid JSON: " & Err.Description & _
-            "  (large textbox pastes can corrupt -- use 'Load from file' for big batches)"
-        Err.Clear
-        Exit Sub
-    End If
-    On Error GoTo 0
-
-    If Not mParsed.Exists("actions") Then
-        lblStatus.Caption = "Missing top-level 'actions' array."
-        Exit Sub
-    End If
-
-    Dim actions As Object: Set actions = mParsed("actions")
-    ReDim mValid(1 To actions.Count)
-
-    Dim i As Long, anyValid As Boolean: anyValid = False
-    For i = 1 To actions.Count
-        Dim act As Object: Set act = actions(i)
-        Dim reason As String
-        reason = modExecuteInstructions.PreviewValidate(act)
-        mValid(i) = (Len(reason) = 0)
-        If mValid(i) Then anyValid = True
-
-        Dim row As String
-        row = i & ". " & GetStrSafe(act, "type")
-        If act.Exists("slide") Then row = row & " | slide=" & act("slide")
-        If act.Exists("shape_id") Then row = row & " | shape_id=" & act("shape_id")
-        If mValid(i) Then
-            row = row & " | OK"
-        Else
-            row = row & " | INVALID: " & reason
-        End If
-        lstActions.AddItem row
-    Next i
-
-    lblStatus.Caption = actions.Count & " actions parsed. " & _
-                        IIf(anyValid, "Click Apply to run valid actions.", _
-                                      "No valid actions; nothing to apply.")
-End Sub
-
-Private Sub btnApply_Click()
-    If mParsed Is Nothing Then
-        lblStatus.Caption = "Click Parse first."
-        Exit Sub
-    End If
-    Dim summary As String
-    summary = modExecuteInstructions.ExecuteFromString(CurrentJson())
-    lblStatus.Caption = summary
-End Sub
-
-Private Sub btnCancel_Click()
-    Unload Me
-End Sub
-
-Private Function GetStrSafe(d As Object, key As String) As String
-    If d.Exists(key) Then GetStrSafe = CStr(d(key))
-End Function
-'''
+# (FRM_IMPORT_SLIDES_CODE / FRM_EXECUTE_CODE removed — same reason as
+# FRM_EXPORT_CODE above: form code is sourced from src/*.frm, never
+# re-stamped here. build_frm_execute / build_frm_import_slides now
+# preserve the imported code.)
 
 
 # ---------------------------------------------------------------------------
@@ -562,17 +355,32 @@ def build_frm_execute(components):
     set_control_props(lst, Top=214, Left=12, Width=570, Height=160)
     style_listbox(lst)
 
+    # Bottom row geometry mirrors tools/add_fix_button.py exactly so a
+    # rebuild reproduces the form add_fix_button produced: Fix buttons far
+    # left, Apply/Cancel far right, all Top=384.
+    # btnFixErrors (secondary) — pre-Apply validation errors -> clipboard
+    btn_fixerr = controls.Add(CMDBTN, "btnFixErrors", True)
+    set_control_props(btn_fixerr, Caption="Fix Errors",
+                      Top=384, Left=10, Width=90, Height=24)
+    style_button_secondary(btn_fixerr)
+
+    # btnFixThis (secondary) — post-Apply quality warnings -> clipboard
+    btn_fixthis = controls.Add(CMDBTN, "btnFixThis", True)
+    set_control_props(btn_fixthis, Caption="Fix This",
+                      Top=384, Left=110, Width=90, Height=24)
+    style_button_secondary(btn_fixthis)
+
     # btnApply (primary). Enabled=True at design-time so the screenshot is
     # crisp; UserForm_Initialize disables it at runtime until Parse succeeds.
     btn_apply = controls.Add(CMDBTN, "btnApply", True)
     set_control_props(btn_apply, Caption="Apply",
-                      Top=384, Left=12, Width=80, Height=24)
+                      Top=384, Left=410, Width=80, Height=24)
     style_button_primary(btn_apply)
 
     # btnCancel (secondary)
     btn_cancel = controls.Add(CMDBTN, "btnCancel", True)
     set_control_props(btn_cancel, Caption="Cancel",
-                      Top=384, Left=102, Width=80, Height=24)
+                      Top=384, Left=500, Width=80, Height=24)
     style_button_secondary(btn_cancel)
 
     # lblStatus
@@ -581,13 +389,13 @@ def build_frm_execute(components):
                       Top=416, Left=12, Width=570, Height=60)
     style_label(lbl)
 
-    # Set VBA code
-    module = comp.CodeModule
-    if module.CountOfLines > 0:
-        module.DeleteLines(1, module.CountOfLines)
-    module.AddFromString(FRM_EXECUTE_CODE)
+    # Code PRESERVED from the imported src/frmExecute.frm (source of truth,
+    # synced by update_macros.py). NOT re-stamped from a constant — a stale
+    # FRM_EXECUTE_CODE would silently drop the btnFixErrors/btnFixThis
+    # handlers added by add_fix_button.py. See the note near the top of
+    # this file.
 
-    print(f"  [ok] {name} built")
+    print(f"  [ok] {name} built (code preserved from src/frmExecute.frm)")
     return comp
 
 
@@ -671,13 +479,12 @@ def build_frm_import_slides(components):
                       Top=130, Left=12, Width=456, Height=100)
     style_label(lbl_status)
 
-    # Set VBA code
-    module = comp.CodeModule
-    if module.CountOfLines > 0:
-        module.DeleteLines(1, module.CountOfLines)
-    module.AddFromString(FRM_IMPORT_SLIDES_CODE)
+    # Code PRESERVED from the imported src/frmImportSlides.frm (source of
+    # truth, synced by update_macros.py). NOT re-stamped from a constant —
+    # see the note near the top of this file. Rebuilding only refreshes the
+    # control layout above.
 
-    print(f"  [ok] {name} built")
+    print(f"  [ok] {name} built (code preserved from src/frmImportSlides.frm)")
     return comp
 
 
