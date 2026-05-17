@@ -70,3 +70,34 @@ def test_generic_uses_base_url_openai_schema():
     c.call(snapshot="{S}", user_request="x")
     assert cap.seen["url"] == "https://api.deepseek.com/v1/chat/completions"
     assert cap.seen["headers"]["authorization"] == "Bearer sk-x"
+
+
+import pytest
+
+
+def test_sanitize_strips_leading_prose_and_fence():
+    from app.llm_client import sanitize_actions
+    raw = 'Sure! Here is the batch:\n```json\n' + ACTIONS + '\n```\nDone.'
+    assert json.loads(sanitize_actions(raw))["actions"][0]["type"] == "apply_template"
+
+
+def test_sanitize_rejects_no_object():
+    from app.llm_client import sanitize_actions
+    with pytest.raises(ValueError):
+        sanitize_actions("no json here")
+
+
+def test_sanitize_rejects_missing_actions():
+    from app.llm_client import sanitize_actions
+    with pytest.raises(ValueError):
+        sanitize_actions('{"foo": 1}')
+
+
+def test_http_error_raises():
+    cap = _OpenAI(ACTIONS)
+    def boom(request):
+        return httpx.Response(500, json={"error": "bad"})
+    s = Settings(provider="openai", model="gpt-4o")
+    c = LLMClient(s, api_key="sk-x", _transport=httpx.MockTransport(boom))
+    with pytest.raises(httpx.HTTPStatusError):
+        c.call(snapshot="{}", user_request="x")

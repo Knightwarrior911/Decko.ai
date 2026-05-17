@@ -28,12 +28,15 @@ def _build_user_prompt(snapshot: str, user_request: str) -> str:
 def sanitize_actions(raw: str) -> str:
     """Strip fences/prose; return the outermost {...} containing "actions"."""
     text = raw.strip()
-    text = re.sub(r"^```[a-zA-Z]*\n?|\n?```$", "", text).strip()
+    text = re.sub(r"```[a-zA-Z]*\n?", "", text)
+    text = text.replace("```", "").strip()
     start = text.find("{")
-    end = text.rfind("}")
-    if start == -1 or end == -1 or end < start:
+    if start == -1:
         raise ValueError("no JSON object in LLM output")
-    obj = json.loads(text[start:end + 1])
+    try:
+        obj, _ = json.JSONDecoder().raw_decode(text[start:])
+    except json.JSONDecodeError as e:
+        raise ValueError(f"unparseable JSON in LLM output: {e}") from e
     if "actions" not in obj or not isinstance(obj["actions"], list):
         raise ValueError('LLM output missing "actions" array')
     return json.dumps(obj)
@@ -61,8 +64,8 @@ class LLMClient:
                     "messages": [{"role": "user", "content": user}]}
             with self._http() as h:
                 r = h.post(url, json=body, headers=headers)
-            r.raise_for_status()
-            raw = r.json()["content"][0]["text"]
+                r.raise_for_status()
+                raw = r.json()["content"][0]["text"]
         else:
             base = ("https://api.openai.com/v1" if self.s.provider == "openai"
                     else self.s.base_url.rstrip("/"))
@@ -73,6 +76,6 @@ class LLMClient:
                                  {"role": "user", "content": user}]}
             with self._http() as h:
                 r = h.post(url, json=body, headers=headers)
-            r.raise_for_status()
-            raw = r.json()["choices"][0]["message"]["content"]
+                r.raise_for_status()
+                raw = r.json()["choices"][0]["message"]["content"]
         return sanitize_actions(raw)
