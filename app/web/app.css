@@ -1,0 +1,17 @@
+*{box-sizing:border-box;font-family:Segoe UI,system-ui,sans-serif}
+body{margin:0;background:#0d0d0f;color:#eee}
+#layout{display:flex;height:100vh}
+#side{width:300px;background:#161618;padding:16px;overflow:auto}
+#side h2{margin:.2rem 0 1rem}
+#side h3{margin:1rem 0 .4rem;font-size:.8rem;text-transform:uppercase;color:#888}
+#side input,#side select,#side button,#composer button,#msg{width:100%;margin:.25rem 0;padding:.5rem;background:#222;color:#eee;border:1px solid #333;border-radius:6px}
+#chat{flex:1;display:flex;flex-direction:column}
+#thread{flex:1;overflow:auto;padding:18px}
+.bubble{margin:.5rem 0;padding:.6rem .8rem;border-radius:8px;max-width:80%}
+.user{background:#234;margin-left:auto}
+.app{background:#1d1d20}
+.warn{color:#e6b800}
+.fail{color:#ff6b6b}
+#composer{display:flex;gap:8px;padding:12px;border-top:1px solid #333}
+#msg{height:64px;resize:none}
+#composer button{width:120px}

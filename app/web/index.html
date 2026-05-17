@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="app.css"></head><body>
+<div id="layout">
+  <aside id="side">
+    <h2>Decko</h2>
+    <section><h3>Deck</h3>
+      <select id="mode"><option value="attach">Attach to open deck</option>
+        <option value="file">Open a .pptx file</option></select>
+      <input id="file" placeholder="C:\\path\\deck.pptx" hidden>
+      <button id="startBtn">Start session</button></section>
+    <section><h3>LLM</h3>
+      <select id="provider"><option>anthropic</option><option>openai</option>
+        <option>generic</option></select>
+      <input id="model" placeholder="model" value="claude-opus-4-7">
+      <input id="baseUrl" placeholder="base URL (generic only)" hidden>
+      <input id="apiKey" type="password" placeholder="API key">
+      <button id="saveBtn">Save settings</button></section>
+    <section><h3>History</h3><ul id="history"></ul></section>
+  </aside>
+  <main id="chat">
+    <div id="thread"></div>
+    <div id="composer">
+      <textarea id="msg" placeholder="Describe the change..."></textarea>
+      <button id="sendBtn">Send</button></div>
+  </main>
+</div><script src="app.js"></script></body></html>
