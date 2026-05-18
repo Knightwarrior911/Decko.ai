@@ -16,6 +16,8 @@ GATES = [
     ("llmclient_unit", [sys.executable, "-m", "pytest", "-q",
                          "tests/app/test_llm_client.py"]),
     ("core_loop",      [sys.executable, "tests/run_smoke_app_core_loop.py"]),
+    ("templates",      [sys.executable,
+                        "tests/run_smoke_app_templates.py"]),
     ("packaging_smoke",[sys.executable, "tests/run_smoke_app_packaging.py"]),
 ]
 

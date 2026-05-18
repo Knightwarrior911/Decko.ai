@@ -8,6 +8,8 @@ import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO))  # so `import app.config` resolves when
+                               # run as a plain script (no conftest)
 
 
 def main() -> int:
