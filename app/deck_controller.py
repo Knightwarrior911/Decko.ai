@@ -75,6 +75,8 @@ class DeckController:
         raise NoOpenDeckError("No deck open in PowerPoint.")
 
     def open_file(self, path: str):
+        # Windows "Copy as path" wraps the path in quotes; strip them.
+        path = path.strip().strip('"').strip("'").strip()
         self.deck = self.app.Presentations.Open(path, WithWindow=True)
         self.deck.Windows(1).Activate()
         self._mode = "file"
