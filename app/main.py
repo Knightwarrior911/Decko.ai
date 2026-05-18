@@ -64,6 +64,12 @@ class Api:
         except NoOpenDeckError:
             return {"error": "No deck open in PowerPoint. Open one, or "
                              "choose 'Open file' instead."}
+        except Exception as e:  # noqa: BLE001
+            import traceback
+            traceback.print_exc()
+            self.orch = None
+            return {"error": f"Could not start session: "
+                             f"{type(e).__name__}: {e}"}
         if not secrets.has_api_key():
             self.orch = None
             return {"error": "Save your LLM API key in the side panel "
@@ -80,7 +86,21 @@ class Api:
         except EmptyDeckError as e:
             return {"error": str(e)}
         except Exception as e:  # noqa: BLE001
-            return {"error": str(e)}
+            import traceback
+            traceback.print_exc()
+            try:
+                import httpx
+                if isinstance(e, httpx.HTTPStatusError):
+                    body = ""
+                    try:
+                        body = e.response.text[:800]
+                    except Exception:
+                        pass
+                    return {"error": f"LLM API error "
+                                     f"{e.response.status_code}: {body}"}
+            except Exception:
+                pass
+            return {"error": f"{type(e).__name__}: {e}"}
 
     def shutdown(self):
         if self.dc is not None:
