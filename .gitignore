@@ -68,3 +68,4 @@ tests/stress_bullets/output/
 # PyInstaller output directories (build artifacts — not source)
 dist/
 build/
+.superpowers/
