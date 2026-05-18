@@ -102,3 +102,18 @@ def test_parse_captured_registry(tmp_path):
 def test_parse_captured_registry_missing_file(tmp_path):
     from app.main import parse_captured_registry
     assert parse_captured_registry(str(tmp_path / "none.json")) == []
+
+
+def test_parse_captured_registry_bad_json(tmp_path):
+    from app.main import parse_captured_registry
+    reg = tmp_path / "templates.json"
+    reg.write_text("{not valid json", encoding="utf-8")
+    assert parse_captured_registry(str(reg)) == []
+
+
+def test_parse_captured_registry_non_dict_templates(tmp_path):
+    import json
+    from app.main import parse_captured_registry
+    reg = tmp_path / "templates.json"
+    reg.write_text(json.dumps({"templates": []}), encoding="utf-8")
+    assert parse_captured_registry(str(reg)) == []
