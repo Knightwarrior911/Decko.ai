@@ -23,7 +23,7 @@ Engine `src/` is FROZEN and reused via `app.Run("PPT_AI_Editor!…")`.
 | DC1 | Slide-over RIGHT panel, button-triggered ("Templates"); chat stays primary; panel wide + scrollable with collapsible sections | Chat layout untouched; panel holds the full feature set |
 | DC2 | Hybrid content entry: Apply inserts the template with app-supplied **placeholder** content instantly (no LLM); optional **Fill-with-AI** (one-line brief → LLM drafts slot text → form populates → user reviews → Apply) | Deterministic apply is LLM-free; AI is opt-in |
 | DC3 | Full surface in the panel: apply (builtin + captured), capture (active slide + name), manage (list/rename/delete), generate_variants, build_deck_from_spec, extract_spec | One cohesive visual layer |
-| DC4 | Apply/variants target control: **append** OR **replace slide N** | Safe default append; explicit replace |
+| DC4 | Target control: `apply_template` = **append** OR **replace slide N**. `generate_variants` = **append-only** (it emits N slides; replace-N is nonsensical). `build_deck_from_spec` = **append** OR **replace whole deck** (`clear_existing`) | Safe default append; replace explicit and per-action |
 | DC5 | Approach A: new `Api` methods build the canonical actions JSON and run via the existing single-COM-thread `DeckController`/`ExecuteFromString`; **no LLM** for deterministic ops; each visual op recorded as a turn in the current session | Thinnest; reuses SP1; unified history; gate-testable |
 | DC6 | Capture = the **active** PowerPoint slide + a name prompt | Matches the existing macro semantics |
 | DC7 | Engine `src/` and the carrier remain UNCHANGED | SP2 wraps, never rewrites |
@@ -57,8 +57,10 @@ Reuse the entire SP1 app. New code is additive:
   - `apply_template(template, content, target)` —
     `target = {"mode":"append"}` or `{"mode":"replace","slide":N}`
   - `fill_with_ai(template, brief)` → existing `LLMClient`, focused
-    "produce JSON for exactly these slots" prompt → returns a content
-    dict (does NOT apply; the panel populates the form for review)
+    "produce JSON for exactly these slots" prompt (slot names resolved
+    from `BUILTIN_SLOTS` for builtins, or the captured registry for
+    captured templates) → returns a content dict (does NOT apply; the
+    panel populates the form for review)
   - `capture_template(name)` — capture active slide
   - `rename_template(from_name, to_name)` (engine params `from`/`to`)
   - `delete_template(name)`
@@ -95,8 +97,13 @@ ExecuteFromString → log turn → refresh Deck-DNA list.
 delete → `{"type":"delete_template","name":…}`; list →
 `list_templates` action / registry read.
 
-**Variants / build-from-spec / extract:** corresponding single actions;
-`extract_spec` returns JSON to the panel (shown + Copy button).
+**Variants:** `api.generate_variants(payload, …)` → action; always
+**appends** N slides (no replace-N).
+
+**Decks-as-code:** the panel has a spec JSON editor (textarea).
+`extract_spec()` returns the current deck's spec JSON and **seeds the
+editor** (+ Copy button); the user can edit it and `build_deck_from_
+spec(spec)` with target append or `clear_existing` (replace whole deck).
 
 ## 5. Error handling
 
