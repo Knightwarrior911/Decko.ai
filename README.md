@@ -419,7 +419,20 @@ via the VBE Designer, appends the handler via the CodeModule, re-exports
 python tests/make_test_decks.py        # regenerate test decks
 python update_macros.py                # ensure carrier matches src/
 python tests/run_smoke.py              # end-to-end COM-driven smoke
+python tests/test_guidance_contract.py # guidance<->validator drift gate (static)
 ```
+
+### Guidance contract (action ordering)
+
+`python tests/test_guidance_contract.py` statically proves every
+action's `GetActionGuidance` REQUIRED + EXAMPLE matches its
+`ValidateAction` required fields (so a weak LLM is never told to omit a
+field the validator demands, nor to send one it must not). The prompt
+also carries **MISTAKE 6** (run model: `set_text` → `add_run`
+with `run_index` → `set_run_superscript` on that run) and an **ORDERING
+RECIPES** block (add_paragraph-first, create-before-reference,
+delete-highest-first, longest-find_replace). `ValidateAction` stays the
+source of truth; guidance can never silently drift from it again.
 
 Targeted, deterministic COM-driven harnesses (each exits non-zero unless its
 metric is met; all are resilient to transient PowerPoint COM errors — they

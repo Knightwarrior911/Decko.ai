@@ -2766,7 +2766,8 @@ Public Function GetActionGuidance(actionType As String) As String
         Case "add_paragraph"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, after_paragraph_index(int; -1 prepends), value(string)" & vbCrLf & _
-                "  EXAMPLE:  {""type"":""add_paragraph"",""slide"":1,""shape_id"":3,""after_paragraph_index"":2,""value"":""New bullet""}"
+                "  EXAMPLE:  {""type"":""add_paragraph"",""slide"":1,""shape_id"":3,""after_paragraph_index"":2,""value"":""New bullet""}" & vbCrLf & _
+                "  ORDER: emit ALL add_paragraph for a shape BEFORE any set_run_*/set_bullet_style/set_indent_level/add_run on it; add_paragraph rebuilds the text frame and discards earlier run/paragraph formatting."
         Case "delete_paragraph"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, paragraph_index" & vbCrLf & _
@@ -2816,7 +2817,8 @@ Public Function GetActionGuidance(actionType As String) As String
                 "  REQUIRED: slide, shape_id, paragraph_index, value(string)" & vbCrLf & _
                 "  OPTIONAL: bold(bool), italic(bool), underline(bool), color(#RRGGBB), font_name(string), font_size(int)" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""add_run"",""slide"":1,""shape_id"":3,""paragraph_index"":1,""value"":""18% YoY"",""bold"":true,""color"":""#C00000""}" & vbCrLf & _
-                "  NOTE: appends a new run at the END of the paragraph; does not rebuild tr.Text so existing run formatting is preserved."
+                "  NOTE: appends a new run at the END of the paragraph; does not rebuild tr.Text so existing run formatting is preserved." & vbCrLf & _
+                "  ORDER: set the BASE text first (set_text/set_paragraph_text), THEN add_run; pass run_index = the new run's index so you can then target it with set_run_superscript/set_run_*."
         Case "set_run_font_name"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(string, non-empty font name)" & vbCrLf & _
@@ -3004,7 +3006,8 @@ Public Function GetActionGuidance(actionType As String) As String
         Case "set_run_subscript", "set_run_superscript"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(bool)" & vbCrLf & _
-                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":true}"
+                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":true}" & vbCrLf & _
+                "  ORDER: the target run_index must already exist. If the text is one run, add_run FIRST to create the run, then apply this on that new run_index."
         Case "set_run_hyperlink"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(URL: http://|https://|mailto:|#slide:N; or """" to clear)" & vbCrLf & _
@@ -3065,10 +3068,14 @@ Public Function GetActionGuidance(actionType As String) As String
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_ids(array), cols(int), gap_pt(num)" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""tile_grid"",""slide"":1,""shape_ids"":[3,4,5,6],""cols"":2,""gap_pt"":12}"
-        Case "smart_spacing", "equalize_spacing"
+        Case "smart_spacing"
             GetActionGuidance = _
-                "  REQUIRED: slide, shape_ids(array), gap_pt(num, smart only), axis(""h""|""v"")" & vbCrLf & _
-                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_ids"":[3,4,5],""gap_pt"":10,""axis"":""h""}"
+                "  REQUIRED: slide, shape_ids(array), gap_pt(num), axis(""h""|""v"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""smart_spacing"",""slide"":1,""shape_ids"":[3,4,5],""gap_pt"":10,""axis"":""h""}"
+        Case "equalize_spacing"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_ids(array), axis(""h""|""v"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""equalize_spacing"",""slide"":1,""shape_ids"":[3,4,5],""axis"":""h""}"
         Case "uniform_size"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_ids(array), width_pt(num>0), height_pt(num>0)" & vbCrLf & _

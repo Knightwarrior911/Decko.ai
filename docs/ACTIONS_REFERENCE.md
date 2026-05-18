@@ -831,6 +831,7 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: slide, shape_id, after_paragraph_index(int; -1 prepends), value(string)
   EXAMPLE:  {"type":"add_paragraph","slide":1,"shape_id":3,"after_paragraph_index":2,"value":"New bullet"}
+  ORDER: emit ALL add_paragraph for a shape BEFORE any set_run_*/set_bullet_style/set_indent_level/add_run on it; add_paragraph rebuilds the text frame and discards earlier run/paragraph formatting.
 ```
 
 ### `add_run`
@@ -840,6 +841,7 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
   OPTIONAL: bold(bool), italic(bool), underline(bool), color(#RRGGBB), font_name(string), font_size(int)
   EXAMPLE:  {"type":"add_run","slide":1,"shape_id":3,"paragraph_index":1,"value":"18% YoY","bold":true,"color":"#C00000"}
   NOTE: appends a new run at the END of the paragraph; does not rebuild tr.Text so existing run formatting is preserved.
+  ORDER: set the BASE text first (set_text/set_paragraph_text), THEN add_run; pass run_index = the new run's index so you can then target it with set_run_superscript/set_run_*.
 ```
 
 ### `add_section`
@@ -1246,8 +1248,8 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ### `equalize_spacing`
 
 ```
-  REQUIRED: slide, shape_ids(array), gap_pt(num, smart only), axis("h"|"v")
-  EXAMPLE:  {"type":"equalize_spacing","slide":1,"shape_ids":[3,4,5],"gap_pt":10,"axis":"h"}
+  REQUIRED: slide, shape_ids(array), axis("h"|"v")
+  EXAMPLE:  {"type":"equalize_spacing","slide":1,"shape_ids":[3,4,5],"axis":"h"}
 ```
 
 ### `extract_slides`
@@ -2233,6 +2235,7 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: slide, shape_id, paragraph_index, run_index, value(bool)
   EXAMPLE:  {"type":"set_run_subscript","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":true}
+  ORDER: the target run_index must already exist. If the text is one run, add_run FIRST to create the run, then apply this on that new run_index.
 ```
 
 ### `set_run_superscript`
@@ -2240,6 +2243,7 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: slide, shape_id, paragraph_index, run_index, value(bool)
   EXAMPLE:  {"type":"set_run_superscript","slide":1,"shape_id":3,"paragraph_index":0,"run_index":1,"value":true}
+  ORDER: the target run_index must already exist. If the text is one run, add_run FIRST to create the run, then apply this on that new run_index.
 ```
 
 ### `set_run_text`
@@ -2481,7 +2485,7 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ### `smart_spacing`
 
 ```
-  REQUIRED: slide, shape_ids(array), gap_pt(num, smart only), axis("h"|"v")
+  REQUIRED: slide, shape_ids(array), gap_pt(num), axis("h"|"v")
   EXAMPLE:  {"type":"smart_spacing","slide":1,"shape_ids":[3,4,5],"gap_pt":10,"axis":"h"}
 ```
 

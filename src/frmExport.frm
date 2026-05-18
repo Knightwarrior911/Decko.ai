@@ -102,6 +102,30 @@ Public Function PromptTemplate() As String
     s = s & "  set_paragraph_font_color with the exact paragraph_index." & vbCrLf
     s = s & "  WRONG:  {""type"":""set_font_color"",""slide"":1,""shape_id"":3,""value"":""#000000""}" & vbCrLf
     s = s & "  RIGHT:  {""type"":""set_paragraph_font_color"",""slide"":1,""shape_id"":3,""paragraph_index"":2,""value"":""#000000""}" & vbCrLf & vbCrLf
+    s = s & "MISTAKE 6 - Formatting PART of a text without a separate run." & vbCrLf
+    s = s & "  Superscript/subscript/one-word-bold/one-word-color apply to ONE" & vbCrLf
+    s = s & "  run. set_text / set_paragraph_text make a SINGLE run, so there is" & vbCrLf
+    s = s & "  no second run to target (e.g. ""53"" is one run; run_index 1 does" & vbCrLf
+    s = s & "  not exist). The action add_run EXISTS - use it. To format only" & vbCrLf
+    s = s & "  part of the text, emit IN THIS ORDER:" & vbCrLf
+    s = s & "    1) set_text (or set_paragraph_text) = the BASE text only," & vbCrLf
+    s = s & "    2) add_run = append the new run; include run_index (0-based) =" & vbCrLf
+    s = s & "       the new run's index, plus paragraph_index and value," & vbCrLf
+    s = s & "    3) set_run_superscript / set_run_* on that paragraph_index +" & vbCrLf
+    s = s & "       run_index." & vbCrLf
+    s = s & "  WRONG: set_text value:""53"" then set_run_superscript run_index:1 (only run 0 exists)" & vbCrLf
+    s = s & "  RIGHT: {""type"":""set_text"",""slide"":1,""shape_id"":3,""value"":""5""}" & vbCrLf
+    s = s & "         {""type"":""add_run"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":""3""}" & vbCrLf
+    s = s & "         {""type"":""set_run_superscript"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":true}" & vbCrLf & vbCrLf
+    s = s & "ORDERING RECIPES - emit actions in THIS order or they fail:" & vbCrLf
+    s = s & "  - Partial formatting: set_text/set_paragraph_text -> add_run -> set_run_*  (MISTAKE 6)" & vbCrLf
+    s = s & "  - Same shape: ALL add_paragraph FIRST, then any set_bullet_style /" & vbCrLf
+    s = s & "    set_indent_level / set_run_* / add_run on it (add_paragraph" & vbCrLf
+    s = s & "    rebuilds the text frame and destroys earlier run/para formatting)." & vbCrLf
+    s = s & "  - Create before reference: add_shape(ref_name) before add_connector;" & vbCrLf
+    s = s & "    add_table before set_cell_text; add_slide before slide-scoped ops." & vbCrLf
+    s = s & "  - Deleting paragraphs: delete HIGHEST index first, down to lowest." & vbCrLf
+    s = s & "  - Overlapping find_replace_text: longest target string first." & vbCrLf & vbCrLf
     s = s & "=============================" & vbCrLf & vbCrLf
 
     s = s & "ATOMIC OPS (V1):" & vbCrLf
