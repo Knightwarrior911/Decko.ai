@@ -52,27 +52,40 @@ Public Sub Do_extract_slides(slideIndices As Variant, outputPath As String)
     If cnt < 1 Then Err.Raise vbObjectError + 7003, "Do_extract_slides", "no slides specified"
 
     Dim src As Presentation: Set src = ActivePresentation
-    Dim outPres As Presentation
-    Set outPres = Application.Presentations.Add(WithWindow:=msoFalse)
+    Dim total As Long: total = src.Slides.Count
     Dim i As Long
     For i = 0 To cnt - 1
-        Dim n As Long: n = ids(i)
-        If n < 1 Or n > src.Slides.Count Then
-            Err.Raise vbObjectError + 7004, "Do_extract_slides", "slide index out of range: " & n
+        If ids(i) < 1 Or ids(i) > total Then
+            Err.Raise vbObjectError + 7004, "Do_extract_slides", _
+                "slide index out of range: " & ids(i)
         End If
-        src.Slides(n).Copy
-        outPres.Slides.Paste
     Next i
 
-    On Error Resume Next
-    Do While outPres.Slides.Count > cnt
-        outPres.Slides(1).Delete
-    Loop
-    Err.Clear
-    On Error GoTo 0
+    ' Clipboard-FREE extraction. PowerPoint slide Copy/Paste in
+    ' automation is unreliable (it needs an active window + clipboard
+    ' ownership; outPres is windowless), failing with -2147188160
+    ' "Clipboard is empty...". Instead: SaveCopyAs the source to a temp
+    ' file (does NOT change the source's path/dirty state), then pull
+    ' each requested slide by index via Slides.InsertFromFile — no
+    ' clipboard, no window, deterministic.
+    Dim tmpSrc As String
+    tmpSrc = Environ$("TEMP") & "\decko_extract_" & _
+             Format(Now, "yyyymmddhhnnss") & Int(Rnd * 100000) & ".pptx"
+    src.SaveCopyAs tmpSrc
+
+    Dim outPres As Presentation
+    Set outPres = Application.Presentations.Add(WithWindow:=msoFalse)
+    For i = 0 To cnt - 1
+        outPres.Slides.InsertFromFile tmpSrc, outPres.Slides.Count, _
+                                      ids(i), ids(i)
+    Next i
 
     outPres.SaveAs outputPath
     outPres.Close
+
+    On Error Resume Next
+    Kill tmpSrc
+    On Error GoTo 0
 End Sub
 
 Public Sub Do_import_slides_from_deck(sourcePath As String, slideIndices As Variant, _
