@@ -177,10 +177,10 @@ machines where the old allow-list path failed.
 | Action | Effect |
 |---|---|
 | `set_text` | Replace all text in a shape. |
-| `set_font_size` | Set font size (pt) on the entire text frame. |
-| `set_font_bold` | True / False. |
-| `set_font_italic` | True / False. |
-| `set_font_color` | `#RRGGBB`. |
+| `set_font_size` | Set font size (pt) on the entire text frame. On a **table** shape, applies to every cell (no per-cell loop needed). |
+| `set_font_bold` | True / False. On a table, applies to all cells. |
+| `set_font_italic` | True / False. On a table, applies to all cells. |
+| `set_font_color` | `#RRGGBB`. On a table, applies to all cells. |
 | `set_fill_color` | `#RRGGBB` solid fill. |
 | `move_shape` | Set `left` / `top` (pt). |
 | `resize_shape` | Set `width` / `height` (pt). |
@@ -201,8 +201,8 @@ machines where the old allow-list path failed.
 | `set_paragraph_text` | Replace text of paragraph N inside a shape. |
 | `add_paragraph` | Insert a new paragraph at index. |
 | `delete_paragraph` | Remove paragraph at index. |
-| `set_bullet_style` | Set bullet type (none/bullet/number) for a paragraph. |
-| `set_indent_level` | Set indent level (0-4) for a paragraph. |
+| `set_bullet_style` | Set REAL PowerPoint bullet (none/disc/square/dash/number/letter) for a paragraph — never fake bullets with literal `•`/`–`/`▪` glyph characters. |
+| `set_indent_level` | Set indent level (0-4) for a paragraph — pair with `set_bullet_style` for real multi-level bulleted lists. |
 | `set_paragraph_font_size` | Per-paragraph font size override. |
 | `set_paragraph_font_color` | Per-paragraph color override. |
 | `find_replace_text` | Scoped find/replace; scope = `deck` or `slide:N`. |
@@ -291,7 +291,7 @@ data (a host automation limitation) — the user edits their data manually.
 
 | Action | Effect |
 |---|---|
-| `add_chart` | Insert a new chart: `chart_type`, `pos`, `categories`, `series` (`[{name,values,color?}]`), optional `title`/`show_legend`/`show_values`/`clean_style`/`value_format`/`ref_name`. |
+| `add_chart` | Insert a new chart: `chart_type`, `pos`, `categories`, `series` (`[{name,values,color?}]`), optional `title`/`show_legend`/`show_values`/`clean_style`/`value_format`/`ref_name`. **Combo in one action:** `combo` (`[{series_index\|name, chart_type, axis_group}]`) retypes series to lines/secondary-axis; `totals_label:true` auto-adds stacked-bar total labels via an invisible legend-excluded line series. |
 | `set_chart_type` | Change an existing chart's type. |
 | `set_chart_title` / `set_chart_axis_title` | Title / axis title text. |
 | `set_chart_legend_position` / `set_chart_legend` | Legend position / props. |

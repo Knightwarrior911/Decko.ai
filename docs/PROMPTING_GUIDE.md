@@ -154,6 +154,13 @@ On slide 4, make paragraph 0 of shape 8 bold.
 On slide 3, increase the indent level of paragraph 2 in shape 6 to level 2.
 ```
 
+**Real bullets, not fake glyphs:** for bulleted lists, the paragraph TEXT
+must be plain (no leading `•`/`–`/`▪` characters, no leading spaces for
+indent). Apply real PowerPoint bullets per paragraph with `set_bullet_style`
+(`disc`/`square`/`dash`/`number`/`letter`) + `set_indent_level` (0–4 for
+multi-level nesting). Fake glyph "bullets" don't wrap, align, or re-flow
+correctly and read as plain text to PowerPoint.
+
 **Fix text overflow on a slide:**
 ```
 Some text on slide 5 may be getting clipped. Enable auto-shrink for all
@@ -408,6 +415,17 @@ In the table on slide 4 (shape 8), merge cells (1,1) through (1,3)
 to create a full-width header spanning all columns.
 ```
 
+**Resize all table text (dense financial tables):**
+```
+Shrink the font on the whole table on slide 1 (shape 8) to 8pt so all
+21 rows fit.
+```
+`set_font_size`/`set_font_bold`/`set_font_color` now apply to **every cell**
+when the shape is a table — no per-cell loop needed. For finer control use
+`set_cell_font_size` / `set_row_font_size` / `set_column_font_size` (and the
+`_color`/`_bold` variants). Keep rows from wrapping with small per-cell
+padding (`set_cell_padding` 1–3 pt).
+
 ---
 
 ### 11. Charts
@@ -428,6 +446,20 @@ height 340:
 - Title: "Revenue & EBITDA"
 - Show the legend, format values as "$#,##0M".
 ```
+
+**Combo chart in ONE action (stacked columns + secondary-axis line + totals):**
+```
+On slide 1, add a stacked column chart of quarterly expenses with an
+efficiency-ratio line on a second axis, and label the bar totals.
+```
+Decko builds this from a single `add_chart`: pass all series, then
+`combo: [{name:"Reported Efficiency Ratio", chart_type:"line",
+axis_group:"secondary"}]` and `totals_label: true` (auto-adds the stacked
+total labels via an invisible line series that is excluded from the legend).
+Hide value axes with the keep-scale recipe (`tick_label_position:"none"` +
+`line_visible:false`) — never `visible:false`, which collapses the columns on
+a combo chart. Use `suppress_zero_labels` on any sparse segment (e.g. a
+goodwill charge that is 0 most quarters) so its `0` labels don't show.
 
 **Change an existing chart's type:**
 ```
