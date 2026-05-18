@@ -3065,10 +3065,14 @@ Public Function GetActionGuidance(actionType As String) As String
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_ids(array), cols(int), gap_pt(num)" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""tile_grid"",""slide"":1,""shape_ids"":[3,4,5,6],""cols"":2,""gap_pt"":12}"
-        Case "smart_spacing", "equalize_spacing"
+        Case "smart_spacing"
             GetActionGuidance = _
-                "  REQUIRED: slide, shape_ids(array), gap_pt(num, smart only), axis(""h""|""v"")" & vbCrLf & _
-                "  EXAMPLE:  {""type"":""" & actionType & """,""slide"":1,""shape_ids"":[3,4,5],""gap_pt"":10,""axis"":""h""}"
+                "  REQUIRED: slide, shape_ids(array), gap_pt(num), axis(""h""|""v"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""smart_spacing"",""slide"":1,""shape_ids"":[3,4,5],""gap_pt"":10,""axis"":""h""}"
+        Case "equalize_spacing"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_ids(array), axis(""h""|""v"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""equalize_spacing"",""slide"":1,""shape_ids"":[3,4,5],""axis"":""h""}"
         Case "uniform_size"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_ids(array), width_pt(num>0), height_pt(num>0)" & vbCrLf & _
