@@ -208,10 +208,14 @@ if __name__ == "__main__":
 - [ ] **Step 2: Run it — enumerate the drift (expected FAIL first)**
 
 Run: `python tests/test_guidance_contract.py ; echo "EXIT=$?"`
-Expected: `RESULT: FAIL`, EXIT=1, with a printed list that INCLUDES
-`add_run: validator requires 'run_index' but guidance REQUIRED=...`
-plus any other drifted actions. **Copy the full FAIL list into the
-task report — it is the audit output Task 2 fixes.**
+Expected: `RESULT: FAIL`, EXIT=1. The genuine drift is
+`equalize_spacing: guidance REQUIRED lists 'gap_pt' which the validator
+does NOT require` (shared `Case "smart_spacing","equalize_spacing"`
+guidance; only smart_spacing's validator requires gap_pt). NOTE:
+`add_run` is NOT drifted — its validator (`src:639`) requires only
+`slide, shape_id, paragraph_index, value` (run_index is OPTIONAL for
+add_run). **Copy the full FAIL list into the report — it is the audit
+Task 2 fixes.**
 Also confirm the `unparseable-case set` line: if it reports actions
 beyond `add_connector`, add each to `KNOWN_UNPARSEABLE` WITH a real
 one-line reason (read that case in the .bas to confirm it is truly
@@ -251,20 +255,32 @@ In `src/modExecuteInstructions.bas`, find `Case "<action>"` inside
 validator-required token (use the validator's exact field name; for a
 `shape_id` field you may write `shape_id`), and edit its `EXAMPLE:`
 JSON to include a key for every required token with a realistic value.
-Concrete first fix (`add_run`, lines ~2814-2818) — validator requires
-`slide, shape_id, paragraph_index, run_index, value`:
+The genuine drift is the SHARED guidance case
+`Case "smart_spacing", "equalize_spacing"` (src ~3068-3071): its
+REQUIRED line lists `gap_pt`, but `equalize_spacing`'s validator
+(`Array("slide","shape_ids","axis")`) does NOT require gap_pt — only
+`smart_spacing`'s does (`Array("slide","shape_ids","gap_pt","axis")`).
+Dropping gap_pt from the shared line would then make the gate flag
+smart_spacing (missing gap_pt). The correct fix is to **SPLIT the
+shared guidance case into two**. Replace lines 3068-3071:
 ```vba
-        Case "add_run"
+        Case "smart_spacing"
             GetActionGuidance = _
-                "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(string)" & vbCrLf & _
-                "  ORDER: set the paragraph text FIRST; add_run INSERTS a new run at run_index (0-based) without destroying existing runs. Then target that run_index with set_run_* actions." & vbCrLf & _
-                "  OPTIONAL: bold(bool), italic(bool), underline(bool), color(#RRGGBB), font_name(string), font_size(int)" & vbCrLf & _
-                "  EXAMPLE:  {""type"":""add_run"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":""3""}"
+                "  REQUIRED: slide, shape_ids(array), gap_pt(num), axis(""h""|""v"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""smart_spacing"",""slide"":1,""shape_ids"":[3,4,5],""gap_pt"":10,""axis"":""h""}"
+        Case "equalize_spacing"
+            GetActionGuidance = _
+                "  REQUIRED: slide, shape_ids(array), axis(""h""|""v"")" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""equalize_spacing"",""slide"":1,""shape_ids"":[3,4,5],""axis"":""h""}"
 ```
-Apply the same discipline (REQUIRED ⊇ validator, EXAMPLE has every
-required key) to every other action the gate flagged. Keep each edit
-inside the existing `_ &` concatenation; add no module-level
-declarations (compile-wedge risk).
+(The original used `actionType` for the EXAMPLE type; after the split
+each case hard-codes its own literal.) If the gate flags any OTHER
+action, apply the same discipline (guidance REQUIRED + EXAMPLE exactly
+the validator's required set; split shared cases when grouped actions
+have different required sets). NEVER edit add_run's guidance to add
+run_index — its validator does not require it; that would create a
+false drift. Keep edits inside the existing `_ &` concatenation; add
+no module-level declarations (compile-wedge risk).
 
 - [ ] **Step 3: Gate green**
 
