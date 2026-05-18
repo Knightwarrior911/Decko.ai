@@ -207,7 +207,13 @@ class Api:
                "content": content}
         tgt = "append"
         if target and target.get("mode") == "replace":
-            act["slide"] = int(target.get("slide"))
+            slide_raw = target.get("slide")
+            if slide_raw is None or str(slide_raw).strip() == "":
+                return {"error": "Replace mode requires a slide number."}
+            try:
+                act["slide"] = int(slide_raw)
+            except (TypeError, ValueError):
+                return {"error": f"Invalid slide number: {slide_raw!r}"}
             tgt = f"replace slide {act['slide']}"
         try:
             summary = self._com(lambda: self.dc.run_action(act))
