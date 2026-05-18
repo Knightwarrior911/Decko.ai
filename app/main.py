@@ -268,6 +268,52 @@ class Api:
                        {"actions": [act]})
         return {"ok": True, "summary": summary}
 
+    def generate_variants(self, payload):
+        # payload: {"template": name, "n": int, "content": {...}} OR
+        #          {"templates": [names], "content": {...}}
+        g = self._require_session()
+        if g:
+            return g
+        act = {"type": "generate_variants"}
+        act.update(payload or {})
+        try:
+            summary = self._com(lambda: self.dc.run_action(act))
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"{type(e).__name__}: {e}"}
+        self._log_turn("Generate variants", summary, {"actions": [act]})
+        return {"ok": True, "summary": summary}
+
+    def build_deck_from_spec(self, spec, clear_existing=False):
+        g = self._require_session()
+        if g:
+            return g
+        import json
+        if isinstance(spec, str):
+            try:
+                spec = json.loads(spec)
+            except Exception as e:  # noqa: BLE001
+                return {"error": f"Spec is not valid JSON: {e}"}
+        act = {"type": "build_deck_from_spec", "spec": spec}
+        if clear_existing:
+            act["clear_existing"] = True
+        try:
+            summary = self._com(lambda: self.dc.run_action(act))
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"{type(e).__name__}: {e}"}
+        self._log_turn("Build deck from spec", summary,
+                       {"actions": [act]})
+        return {"ok": True, "summary": summary}
+
+    def extract_spec(self):
+        g = self._require_session()
+        if g:
+            return g
+        try:
+            js = self._com(self.dc.get_deck_spec)
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"{type(e).__name__}: {e}"}
+        return {"ok": True, "spec": js}
+
     def list_sessions(self):
         return {"sessions": self.store.list_sessions()}
 
