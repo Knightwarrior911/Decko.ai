@@ -95,6 +95,13 @@ class Api:
     def send(self, text):
         if self.orch is None:
             return {"error": "Start a session first."}
+        if not secrets.has_api_key():
+            return {"error": "Save your LLM API key in the side panel "
+                             "first."}
+        # Rebuild the LLM from CURRENT settings every turn so saving
+        # settings after Start session takes effect (order-independent).
+        self.orch.llm = LLMClient(self.settings,
+                                  secrets.get_api_key() or "")
         try:
             return self._com(lambda: self.orch.run(text))
         except EmptyDeckError as e:
