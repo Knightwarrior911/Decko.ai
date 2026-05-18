@@ -19,6 +19,20 @@ from app.orchestrator import ChatOrchestrator
 from app.store import Store
 
 
+def parse_captured_registry(path: str) -> list:
+    import json
+    import os
+    if not path or not os.path.exists(path):
+        return []
+    try:
+        data = json.loads(open(path, "r", encoding="utf-8").read())
+    except Exception:
+        return []
+    tpls = (data or {}).get("templates", {})
+    return [{"name": n, "slots": sorted(list(v.keys()))}
+            for n, v in tpls.items()] if isinstance(tpls, dict) else []
+
+
 def _selfcheck() -> int:
     ensure_app_dirs()
     src = _bundled_carrier()
@@ -62,6 +76,20 @@ class Api:
             "last_mode": p.get("last_mode", "attach"),
             "sessions": self.store.list_sessions(),
         }
+
+    def list_builtin_templates(self):
+        from app.template_slots import BUILTIN_SLOTS
+        return {"templates": [{"name": n, "slots": s}
+                              for n, s in BUILTIN_SLOTS.items()]}
+
+    def list_captured_templates(self):
+        if self.dc is None:
+            return {"templates": []}
+        try:
+            path = self._com(self.dc.captured_registry_path)
+        except Exception:
+            return {"templates": []}
+        return {"templates": parse_captured_registry(path)}
 
     def save_settings(self, provider, model, base_url, api_key):
         self.settings = Settings(provider=provider, model=model,

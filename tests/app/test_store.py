@@ -83,3 +83,22 @@ def test_orchestrator_turn_persists_and_summarizes(tmp_path):
     assert '"actions"' in fd.ran
     rows = st.list_turns()
     assert len(rows) == 1 and rows[0]["request"] == "make a title slide"
+
+
+def test_parse_captured_registry(tmp_path):
+    import json
+    from app.main import parse_captured_registry
+    reg = tmp_path / "templates.json"
+    reg.write_text(json.dumps({"templates": {
+        "kpi_card": {"value": "X", "label": "Y"},
+        "hero": {"title": "T"}}}), encoding="utf-8")
+    out = parse_captured_registry(str(reg))
+    names = {o["name"] for o in out}
+    assert names == {"kpi_card", "hero"}
+    kpi = next(o for o in out if o["name"] == "kpi_card")
+    assert sorted(kpi["slots"]) == ["label", "value"]
+
+
+def test_parse_captured_registry_missing_file(tmp_path):
+    from app.main import parse_captured_registry
+    assert parse_captured_registry(str(tmp_path / "none.json")) == []
