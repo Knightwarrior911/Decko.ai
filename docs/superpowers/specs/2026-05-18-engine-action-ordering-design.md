@@ -58,10 +58,35 @@ dispatched action discovered in `DispatchAction`:
    instead of `RequireFields`, computed dynamically, etc.) so those are
    human-reviewed, never silently passed.
 
+**Precise contract rules (remove ambiguity):**
+
+- *Required match:* for every token `f` in the validator's
+  `RequireFields` Array for an action, the guidance `REQUIRED:` list
+  MUST contain `f`, OR an alternative group that includes `f` written
+  as `a|b` (e.g. `shape_id|shape_name`). The guidance may be MORE
+  permissive (list `a|b` where the validator literally requires only
+  `a`) — allowed, because the engine resolves the alternative
+  elsewhere; it may NOT be LESS (omit a validator-required token with
+  no alternative) — that is the failing drift.
+- *Example match:* the `EXAMPLE:` JSON must contain a key for every
+  validator-required token (or one member of its `a|b` group).
+- *Extras:* guidance `REQUIRED:` tokens absent from the validator and
+  not part of a recognized alternative group are reported as
+  WARN-level "misleading extra" (fail the gate too — they cause the
+  opposite blunder).
+- *Unparseable allowlist:* the test holds an inline
+  `KNOWN_UNPARSEABLE = { "<action>": "<one-line reason>", ... }`
+  constant for cases whose required fields are computed dynamically
+  (not via a literal `RequireFields(Array(...))`). The test FAILS if
+  the actual unparseable set differs from this allowlist (added or
+  removed), so new dynamic cases can never silently escape the gate.
+
 Audit & fix: run the contract test → it enumerates current mismatches
 (`add_run` is the first known) → correct each action's
 `GetActionGuidance` REQUIRED line + EXAMPLE to agree with its
-validator. No validator edits.
+validator. No validator edits. The mismatch set is finite (bounded by
+the dispatched-action list) and the fix is mechanical guidance-text
+correction; expect to fix all in one pass.
 
 ### B — Ordering & run steering
 
