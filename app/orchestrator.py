@@ -17,7 +17,12 @@ class ChatOrchestrator:
 
     def run(self, text: str) -> dict:
         snapshot = self.deck.get_snapshot()
-        actions = self.llm.call(snapshot=snapshot, user_request=text)
+        # Use the carrier's strict prompt if the deck exposes it
+        # (real DeckController does; unit fakes may not).
+        get_tpl = getattr(self.deck, "get_prompt_template", None)
+        template = get_tpl() if callable(get_tpl) else None
+        actions = self.llm.call(snapshot=snapshot, user_request=text,
+                                prompt_template=template)
         summary = self.deck.run_actions(actions)
         warnings = self._warn_count(summary)
         tid = self.store.add_turn(request=text, actions_json=actions,

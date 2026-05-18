@@ -91,6 +91,16 @@ class DeckController:
         self._require_nonempty()
         return self._run("BuildSnapshotJson")
 
+    def get_prompt_template(self) -> str:
+        # The carrier's battle-tested prompt (strict field rules +
+        # {snapshot} + [REPLACE THIS LINE WITH YOUR REQUEST] markers).
+        import os
+        import tempfile
+        tmp = os.path.join(tempfile.mkdtemp(prefix="decko_pt_"), "p.txt")
+        self._run("DumpPromptToFile", tmp)
+        with open(tmp, "r", encoding="utf-8", errors="replace") as f:
+            return f.read()
+
     def run_actions(self, actions_json: str) -> str:
         self._require_nonempty()
         # ExecuteFromString runs the verify loop by default; returns a

@@ -8,5 +8,6 @@ FIXED_ACTIONS = (
 
 
 class StubLLM:
-    def call(self, snapshot: str, user_request: str) -> str:
+    def call(self, snapshot: str, user_request: str,
+             prompt_template: str | None = None) -> str:
         return FIXED_ACTIONS

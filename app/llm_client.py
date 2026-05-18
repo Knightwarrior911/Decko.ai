@@ -53,8 +53,16 @@ class LLMClient:
     def _http(self) -> httpx.Client:
         return httpx.Client(timeout=120.0, transport=self._transport)
 
-    def call(self, snapshot: str, user_request: str) -> str:
-        user = _build_user_prompt(snapshot, user_request)
+    def call(self, snapshot: str, user_request: str,
+             prompt_template: str | None = None) -> str:
+        if prompt_template:
+            # Carrier prompt: substitute its {snapshot} +
+            # [REPLACE THIS LINE WITH YOUR REQUEST] markers. This carries
+            # the strict field rules weak models need (spec §5).
+            user = prompt_template.replace("{snapshot}", snapshot).replace(
+                "[REPLACE THIS LINE WITH YOUR REQUEST]", user_request)
+        else:
+            user = _build_user_prompt(snapshot, user_request)
         if self.s.provider == "anthropic":
             url = "https://api.anthropic.com/v1/messages"
             headers = {"x-api-key": self.api_key,
