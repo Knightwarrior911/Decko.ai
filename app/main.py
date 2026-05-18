@@ -238,6 +238,36 @@ class Api:
                        {"actions": [act]})
         return {"ok": True, "summary": summary}
 
+    def rename_template(self, from_name, to_name):
+        g = self._require_session()
+        if g:
+            return g
+        if not str(from_name).strip() or not str(to_name).strip():
+            return {"error": "Both names are required."}
+        act = {"type": "rename_template",
+               "from": str(from_name).strip(),
+               "to": str(to_name).strip()}
+        try:
+            summary = self._com(lambda: self.dc.run_action(act))
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"{type(e).__name__}: {e}"}
+        self._log_turn(f"Rename template: {from_name} -> {to_name}",
+                       summary, {"actions": [act]})
+        return {"ok": True, "summary": summary}
+
+    def delete_template(self, name):
+        g = self._require_session()
+        if g:
+            return g
+        act = {"type": "delete_template", "name": str(name).strip()}
+        try:
+            summary = self._com(lambda: self.dc.run_action(act))
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"{type(e).__name__}: {e}"}
+        self._log_turn(f"Delete template: {name}", summary,
+                       {"actions": [act]})
+        return {"ok": True, "summary": summary}
+
     def list_sessions(self):
         return {"sessions": self.store.list_sessions()}
 
