@@ -314,6 +314,44 @@ class Api:
             return {"error": f"{type(e).__name__}: {e}"}
         return {"ok": True, "spec": js}
 
+    def fill_with_ai(self, template, brief):
+        if not secrets.has_api_key():
+            return {"error": "Save your LLM API key first."}
+        from app.llm_client import build_fill_prompt
+        from app.template_slots import BUILTIN_SLOTS
+        slots = BUILTIN_SLOTS.get(template)
+        if slots is None:
+            cap = self.list_captured_templates()["templates"]
+            m = next((c for c in cap if c["name"] == template), None)
+            slots = m["slots"] if m else []
+        if not slots:
+            return {"error": f"Unknown template '{template}'."}
+        llm = LLMClient(self.settings, secrets.get_api_key() or "")
+        try:
+            raw = llm.raw(build_fill_prompt(slots, brief))
+        except Exception as e:  # noqa: BLE001
+            import httpx
+            if isinstance(e, httpx.HTTPStatusError):
+                body = ""
+                try:
+                    body = e.response.text[:800]
+                except Exception:
+                    pass
+                return {"error": f"LLM API error "
+                                 f"{e.response.status_code}: {body}"}
+            return {"error": f"{type(e).__name__}: {e}"}
+        import json
+        import re
+        s = re.sub(r"```[a-zA-Z]*\n?", "", raw).replace("```", "").strip()
+        i, j = s.find("{"), s.rfind("}")
+        if i == -1 or j == -1:
+            return {"error": "AI did not return JSON."}
+        try:
+            content = json.loads(s[i:j + 1])
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"AI JSON parse failed: {e}"}
+        return {"ok": True, "content": content}
+
     def list_sessions(self):
         return {"sessions": self.store.list_sessions()}
 

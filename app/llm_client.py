@@ -100,3 +100,26 @@ class LLMClient:
                 r.raise_for_status()
                 raw = r.json()["choices"][0]["message"]["content"]
         return sanitize_actions(raw)
+
+    def raw(self, prompt: str) -> str:
+        if self.s.provider == "anthropic":
+            url = "https://api.anthropic.com/v1/messages"
+            headers = {"x-api-key": self.api_key,
+                       "anthropic-version": "2023-06-01"}
+            body = {"model": self.s.model, "max_tokens": 4000,
+                    "messages": [{"role": "user", "content": prompt}]}
+            with self._http() as h:
+                r = h.post(url, json=body, headers=headers)
+                r.raise_for_status()
+                return r.json()["content"][0]["text"]
+        base = ("https://api.openai.com/v1"
+                if self.s.provider == "openai"
+                else self.s.base_url.rstrip("/"))
+        headers = {"authorization": f"Bearer {self.api_key}"}
+        body = {"model": self.s.model,
+                "messages": [{"role": "user", "content": prompt}]}
+        with self._http() as h:
+            r = h.post(base + "/chat/completions", json=body,
+                       headers=headers)
+            r.raise_for_status()
+            return r.json()["choices"][0]["message"]["content"]

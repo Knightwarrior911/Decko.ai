@@ -109,3 +109,19 @@ def test_build_fill_prompt_names_slots_and_brief():
     assert "title" in p and "subtitle" in p
     assert "Q3 board review" in p
     assert "JSON" in p
+
+
+def test_fill_with_ai_returns_slot_dict(monkeypatch):
+    import app.main as M
+    class FakeLLM:
+        def __init__(self, *a, **k): pass
+        def raw(self, prompt):
+            return '{"title":"Q3","subtitle":"Review"}'
+    monkeypatch.setattr(M, "LLMClient", FakeLLM)
+    api = M.Api()
+    from app.config import Settings
+    api.settings = Settings(provider="openai", model="gpt-4o")
+    monkeypatch.setattr(M.secrets, "get_api_key", lambda: "sk-x")
+    monkeypatch.setattr(M.secrets, "has_api_key", lambda: True)
+    r = api.fill_with_ai("title", "Q3 board review")
+    assert r["content"] == {"title": "Q3", "subtitle": "Review"}
