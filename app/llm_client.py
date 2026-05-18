@@ -42,6 +42,19 @@ def sanitize_actions(raw: str) -> str:
     return json.dumps(obj)
 
 
+def build_fill_prompt(slots: list[str], brief: str) -> str:
+    return (
+        "Return ONLY a JSON object whose keys are EXACTLY these slots: "
+        + ", ".join(slots) + ".\n"
+        "For a slot named 'bullets' use a JSON array of short strings. "
+        "For 'tiles' use a JSON array of objects {\"stat\":\"\",\"label\":\"\"}. "
+        "All other slots are short strings.\n"
+        "Draft concise, professional content for this brief:\n"
+        + brief + "\n"
+        'Output only the JSON object, no prose, no code fences.'
+    )
+
+
 class LLMClient:
     def __init__(self, settings: Settings, api_key: str,
                  _transport: httpx.BaseTransport | None = None):

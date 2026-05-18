@@ -101,3 +101,11 @@ def test_http_error_raises():
     c = LLMClient(s, api_key="sk-x", _transport=httpx.MockTransport(boom))
     with pytest.raises(httpx.HTTPStatusError):
         c.call(snapshot="{}", user_request="x")
+
+
+def test_build_fill_prompt_names_slots_and_brief():
+    from app.llm_client import build_fill_prompt
+    p = build_fill_prompt(["title", "subtitle"], "Q3 board review")
+    assert "title" in p and "subtitle" in p
+    assert "Q3 board review" in p
+    assert "JSON" in p
