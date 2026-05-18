@@ -12,6 +12,7 @@
       <input id="file" placeholder="C:\\path\\deck.pptx" hidden>
       <button id="startBtn">Start session</button>
       <button id="savePptBtn" class="ghost">Save PowerPoint</button>
+      <button id="tplBtn" class="ghost">Templates ▸</button>
     </section>
 
     <section><h3>LLM</h3>
@@ -40,5 +41,46 @@
       <button id="sendBtn">Send</button>
     </div>
   </main>
+
+  <aside id="tplPanel" class="tpl-hidden">
+    <div class="tplHead"><b>Templates &amp; Deck DNA</b>
+      <button id="tplClose" class="ghost">✕</button></div>
+
+    <details open><summary>Built-in templates</summary>
+      <select id="tplPick"></select>
+      <div id="tplSlots"></div>
+      <div class="tplRow">
+        <select id="tplTarget">
+          <option value="append">Append new slide</option>
+          <option value="replace">Replace slide…</option>
+        </select>
+        <input id="tplSlideNo" type="number" min="1" value="1" hidden>
+      </div>
+      <input id="tplBrief" placeholder="Optional: one-line brief for Fill-with-AI">
+      <div class="tplRow">
+        <button id="tplFill" class="ghost">Fill with AI</button>
+        <button id="tplApply">Apply</button>
+      </div>
+    </details>
+
+    <details><summary>Deck DNA (captured)</summary>
+      <input id="capName" placeholder="Name to capture active slide as">
+      <button id="capBtn">Capture active slide</button>
+      <ul id="capList"></ul>
+    </details>
+
+    <details><summary>Variants</summary>
+      <select id="varTpl"></select>
+      <input id="varN" type="number" min="1" value="3">
+      <button id="varBtn">Generate variants (append)</button>
+    </details>
+
+    <details><summary>Decks-as-code</summary>
+      <button id="specExtract" class="ghost">Extract spec from deck</button>
+      <textarea id="specBox" placeholder='{"deck":[{"template":"title","content":{...}}]}'></textarea>
+      <label class="muted"><input type="checkbox" id="specClear"> Replace whole deck</label>
+      <button id="specBuild">Build deck from spec</button>
+    </details>
+  </aside>
 </div>
 <script src="app.js"></script></body></html>

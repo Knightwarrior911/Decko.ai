@@ -31,3 +31,18 @@ button:disabled{opacity:.5;cursor:default}
 #composer{display:flex;gap:8px;padding:12px;border-top:1px solid #333}
 #msg{height:64px;resize:none}
 #composer button{width:120px}
+#tplPanel{position:fixed;top:0;right:0;height:100vh;width:380px;
+ background:#161618;border-left:2px solid #3a6ea5;padding:14px;
+ overflow:auto;box-shadow:-8px 0 24px rgba(0,0,0,.4);z-index:50}
+#tplPanel.tpl-hidden{display:none}
+.tplHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+#tplPanel details{margin:.5rem 0;border:1px solid #2a2a2e;border-radius:6px;padding:.4rem .6rem}
+#tplPanel summary{cursor:pointer;font-size:.8rem;text-transform:uppercase;color:#9ab}
+#tplPanel input,#tplPanel select,#tplPanel textarea,#tplPanel button{width:100%;margin:.25rem 0;padding:.45rem;background:#222;color:#eee;border:1px solid #333;border-radius:6px}
+#tplPanel .tplRow{display:flex;gap:6px}
+#tplPanel .tplRow>*{flex:1}
+#specBox{height:120px;font-family:monospace;font-size:.74rem;white-space:pre}
+#capList{list-style:none;padding:0;margin:.3rem 0}
+#capList li{display:flex;gap:4px;align-items:center;background:#1d1d20;border:1px solid #2a2a2e;border-radius:6px;padding:.3rem .4rem;margin:.2rem 0;font-size:.78rem}
+#capList li span{flex:1}
+#capList li button{width:auto;padding:2px 6px;font-size:.7rem;margin:0}

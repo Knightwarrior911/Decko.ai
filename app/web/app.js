@@ -151,3 +151,116 @@ $("msg").addEventListener("keydown", (e) => {
     e.preventDefault(); doSend();
   }
 });
+
+let BUILTINS = [];
+async function tplInit() {
+  BUILTINS = (await api.list_builtin_templates()).templates;
+  const pick = $("tplPick"), vt = $("varTpl");
+  pick.innerHTML = ""; vt.innerHTML = "";
+  BUILTINS.forEach((t) => {
+    pick.add(new Option(t.name, t.name));
+    vt.add(new Option(t.name, t.name));
+  });
+  renderSlots();
+  await refreshCaptured();
+}
+function curTpl() {
+  return BUILTINS.find((t) => t.name === $("tplPick").value);
+}
+function renderSlots() {
+  const t = curTpl(); const box = $("tplSlots"); box.innerHTML = "";
+  if (!t) return;
+  t.slots.forEach((s) => {
+    const i = document.createElement("input");
+    i.id = "slot_" + s; i.placeholder = s;
+    box.appendChild(i);
+  });
+}
+function collectContent() {
+  const t = curTpl(); const c = {};
+  t.slots.forEach((s) => {
+    const v = ($("slot_" + s) || {}).value || "";
+    if (s === "bullets") c[s] = v ? v.split("\n") : ["Point one"];
+    else if (s === "tiles")
+      c[s] = [{ stat: "00", label: v || "Metric" }];
+    else c[s] = v || s;
+  });
+  return c;
+}
+async function refreshCaptured() {
+  const r = await api.list_captured_templates();
+  const ul = $("capList"); ul.innerHTML = "";
+  (r.templates || []).forEach((t) => {
+    const li = document.createElement("li");
+    const sp = document.createElement("span"); sp.textContent = t.name;
+    const ap = document.createElement("button"); ap.textContent = "Apply";
+    ap.onclick = async () => {
+      const res = await api.apply_template(t.name, {}, tgt());
+      bubble(res.ok ? "app" : "fail", res.ok ? res.summary : res.error);
+      refreshSessions(currentSession);
+    };
+    const dl = document.createElement("button"); dl.textContent = "Del";
+    dl.onclick = async () => {
+      await api.delete_template(t.name); refreshCaptured();
+    };
+    li.appendChild(sp); li.appendChild(ap); li.appendChild(dl);
+    ul.appendChild(li);
+  });
+}
+function tgt() {
+  return $("tplTarget").value === "replace"
+    ? { mode: "replace", slide: parseInt($("tplSlideNo").value || "1") }
+    : { mode: "append" };
+}
+$("tplBtn").onclick = () => {
+  $("tplPanel").classList.toggle("tpl-hidden");
+  if (!$("tplPanel").classList.contains("tpl-hidden") && api) tplInit();
+};
+$("tplClose").onclick = () =>
+  $("tplPanel").classList.add("tpl-hidden");
+$("tplPick").onchange = renderSlots;
+$("tplTarget").onchange = (e) =>
+  ($("tplSlideNo").hidden = e.target.value !== "replace");
+$("tplApply").onclick = async () => {
+  const r = await api.apply_template($("tplPick").value,
+    collectContent(), tgt());
+  bubble(r.ok ? "app" : "fail", r.ok ? r.summary : r.error, true);
+  refreshSessions(currentSession);
+};
+$("tplFill").onclick = async () => {
+  const r = await api.fill_with_ai($("tplPick").value,
+    $("tplBrief").value || "professional placeholder content");
+  if (r.error) { bubble("fail", r.error); return; }
+  Object.entries(r.content).forEach(([k, v]) => {
+    const el = $("slot_" + k);
+    if (el) el.value = Array.isArray(v)
+      ? v.map((x) => (typeof x === "object" ? JSON.stringify(x) : x)).join("\n")
+      : v;
+  });
+  bubble("app", "AI filled the slots — review then Apply.");
+};
+$("capBtn").onclick = async () => {
+  const r = await api.capture_template($("capName").value);
+  bubble(r.ok ? "app" : "fail", r.ok ? r.summary : r.error);
+  if (r.ok) { $("capName").value = ""; refreshCaptured();
+              refreshSessions(currentSession); }
+};
+$("varBtn").onclick = async () => {
+  const r = await api.generate_variants({
+    template: $("varTpl").value,
+    n: parseInt($("varN").value || "3"),
+    content: {} });
+  bubble(r.ok ? "app" : "fail", r.ok ? r.summary : r.error, true);
+  refreshSessions(currentSession);
+};
+$("specExtract").onclick = async () => {
+  const r = await api.extract_spec();
+  if (r.error) { bubble("fail", r.error); return; }
+  $("specBox").value = r.spec;
+};
+$("specBuild").onclick = async () => {
+  const r = await api.build_deck_from_spec($("specBox").value,
+    $("specClear").checked);
+  bubble(r.ok ? "app" : "fail", r.ok ? r.summary : r.error, true);
+  refreshSessions(currentSession);
+};
