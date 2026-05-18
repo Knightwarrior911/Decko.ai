@@ -5,13 +5,29 @@ body{margin:0;background:#0d0d0f;color:#eee}
 #side h2{margin:.2rem 0 1rem}
 #side h3{margin:1rem 0 .4rem;font-size:.8rem;text-transform:uppercase;color:#888}
 #side input,#side select,#side button,#composer button,#msg{width:100%;margin:.25rem 0;padding:.5rem;background:#222;color:#eee;border:1px solid #333;border-radius:6px}
-#chat{flex:1;display:flex;flex-direction:column}
+button{cursor:pointer}
+button.ghost{background:#1a1a1c;color:#bbb}
+button:disabled{opacity:.5;cursor:default}
+.muted{color:#888;font-size:.78rem;margin:.3rem 0}
+#sessions{list-style:none;margin:.3rem 0;padding:0}
+#sessions li{padding:.45rem .55rem;margin:.2rem 0;background:#1d1d20;border:1px solid #2a2a2e;border-radius:6px;font-size:.82rem;cursor:pointer}
+#sessions li.active{border-color:#3a6ea5;background:#1f2630}
+#sessions li .cnt{color:#777;font-size:.72rem;float:right}
+#chat{flex:1;display:flex;flex-direction:column;min-width:0}
+#threadTitle{padding:14px 18px 0}
 #thread{flex:1;overflow:auto;padding:18px}
-.bubble{margin:.5rem 0;padding:.6rem .8rem;border-radius:8px;max-width:80%}
-.user{background:#234;margin-left:auto}
+.bubble{margin:.5rem 0;padding:.6rem .8rem;border-radius:8px;max-width:80%;
+ white-space:pre-wrap;word-break:break-word;
+ -webkit-user-select:text;user-select:text;position:relative}
+.user{background:#22344a;margin-left:auto}
 .app{background:#1d1d20}
 .warn{color:#e6b800}
-.fail{color:#ff6b6b}
+.fail{background:#2a1416;color:#ff8a8a}
+.working{background:#1d1d20;color:#9ab;font-style:italic}
+.copybtn{position:absolute;top:4px;right:6px;font-size:.66rem;padding:2px 6px;
+ background:#2a2a2e;border:1px solid #3a3a3e;border-radius:4px;color:#aaa;
+ opacity:0;transition:opacity .12s;width:auto;margin:0}
+.bubble:hover .copybtn{opacity:1}
 #composer{display:flex;gap:8px;padding:12px;border-top:1px solid #333}
 #msg{height:64px;resize:none}
 #composer button{width:120px}

@@ -3,24 +3,42 @@
 <div id="layout">
   <aside id="side">
     <h2>Decko</h2>
+
     <section><h3>Deck</h3>
-      <select id="mode"><option value="attach">Attach to open deck</option>
-        <option value="file">Open a .pptx file</option></select>
+      <select id="mode">
+        <option value="attach">Attach to open deck</option>
+        <option value="file">Open a .pptx file</option>
+      </select>
       <input id="file" placeholder="C:\\path\\deck.pptx" hidden>
-      <button id="startBtn">Start session</button></section>
+      <button id="startBtn">Start session</button>
+      <button id="savePptBtn" class="ghost">Save PowerPoint</button>
+    </section>
+
     <section><h3>LLM</h3>
-      <select id="provider"><option>anthropic</option><option>openai</option>
-        <option>generic</option></select>
-      <input id="model" placeholder="model (e.g. claude-opus-4-7 / gpt-4o)">
+      <select id="provider">
+        <option>anthropic</option><option>openai</option><option>generic</option>
+      </select>
+      <input id="model" placeholder="model (e.g. claude-opus-4-7 / gpt-4o / deepseek-chat)">
       <input id="baseUrl" placeholder="base URL (generic only)" hidden>
-      <input id="apiKey" type="password" placeholder="API key">
-      <button id="saveBtn">Save settings</button></section>
-    <section><h3>History</h3><ul id="history"></ul></section>
+      <input id="apiKey" type="password" placeholder="API key (saved securely)">
+      <button id="saveBtn">Save settings</button>
+      <div id="activeCfg" class="muted"></div>
+    </section>
+
+    <section>
+      <button id="newBtn" class="ghost">+ New session</button>
+      <h3>Sessions</h3>
+      <ul id="sessions"></ul>
+    </section>
   </aside>
+
   <main id="chat">
+    <div id="threadTitle" class="muted"></div>
     <div id="thread"></div>
     <div id="composer">
-      <textarea id="msg" placeholder="Describe the change..."></textarea>
-      <button id="sendBtn">Send</button></div>
+      <textarea id="msg" placeholder="Describe the change…  (Ctrl+Enter to send)"></textarea>
+      <button id="sendBtn">Send</button>
+    </div>
   </main>
-</div><script src="app.js"></script></body></html>
+</div>
+<script src="app.js"></script></body></html>

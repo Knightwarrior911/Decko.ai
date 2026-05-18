@@ -91,6 +91,12 @@ class DeckController:
         self._require_nonempty()
         return self._run("BuildSnapshotJson")
 
+    def save_deck_now(self) -> None:
+        # Explicit user-triggered save (there is no undo). Works in
+        # both attach and file mode.
+        if self.deck is not None:
+            self.deck.Save()
+
     def get_prompt_template(self) -> str:
         # The carrier's battle-tested prompt (strict field rules +
         # {snapshot} + [REPLACE THIS LINE WITH YOUR REQUEST] markers).

@@ -2,13 +2,16 @@
 Python core. UI is NOT in the deterministic gate (spec §8). `--selfcheck`
 is retained for packaging_smoke (proves the bundled carrier resolves)."""
 import concurrent.futures
+import os
 import sys
+from datetime import datetime
 
 import webview
 
 from app import secrets
 from app.carrier import _bundled_carrier, ensure_carrier
-from app.config import DB_PATH, Settings, ensure_app_dirs
+from app.config import (DB_PATH, Settings, ensure_app_dirs, load_persisted,
+                        save_persisted, settings_from_persisted)
 from app.deck_controller import (DeckController, EmptyDeckError,
                                  NoOpenDeckError, NoPowerPointError)
 from app.llm_client import LLMClient
@@ -32,26 +35,33 @@ def _selfcheck() -> int:
 
 class Api:
     def __init__(self):
-        self.settings = Settings()
+        self.settings = settings_from_persisted()
         self.store = Store(DB_PATH)
         self.dc = None
         self.orch = None
+        self.session_id = None
         # pywebview dispatches each js_api call on a different thread.
-        # PowerPoint COM objects are apartment-bound — they must be
-        # created AND used on ONE thread. Route every COM-touching
-        # operation through this single worker so it stays in one STA.
+        # PowerPoint COM objects are apartment-bound — create AND use
+        # them on ONE thread (single STA worker).
         self._com_pool = concurrent.futures.ThreadPoolExecutor(
             max_workers=1, thread_name_prefix="decko-com")
 
     def _com(self, fn):
-        """Run fn on the single dedicated COM thread; re-raise its error."""
         return self._com_pool.submit(fn).result()
 
     def boot(self):
         ensure_app_dirs()
         self.store.init()
-        return {"has_key": secrets.has_api_key(),
-                "history": self.store.list_turns()}
+        p = load_persisted()
+        return {
+            "has_key": secrets.has_api_key(),
+            "settings": {"provider": self.settings.provider,
+                         "model": self.settings.model,
+                         "base_url": self.settings.base_url},
+            "last_deck_path": p.get("last_deck_path", ""),
+            "last_mode": p.get("last_mode", "attach"),
+            "sessions": self.store.list_sessions(),
+        }
 
     def save_settings(self, provider, model, base_url, api_key):
         self.settings = Settings(provider=provider, model=model,
@@ -59,6 +69,17 @@ class Api:
         self.settings.validate()
         if api_key:
             secrets.set_api_key(api_key)
+        pr = load_persisted()
+        save_persisted(self.settings,
+                       pr.get("last_deck_path", ""),
+                       pr.get("last_mode", "attach"))
+        return {"ok": True}
+
+    def new_session(self):
+        # Drop the current chat context; the next Start session opens a
+        # fresh session. Does not close PowerPoint.
+        self.orch = None
+        self.session_id = None
         return {"ok": True}
 
     def open_session(self, mode, file_path=""):
@@ -88,9 +109,17 @@ class Api:
             self.orch = None
             return {"error": "Save your LLM API key in the side panel "
                              "first, then start a session."}
+        # Remember the deck for next launch.
+        save_persisted(self.settings, file_path, mode)
+        # New chat session.
+        label = (os.path.basename(file_path) if mode == "file" and file_path
+                 else "Open deck")
+        title = f"{label} — {datetime.now().strftime('%b %d %H:%M')}"
+        self.session_id = self.store.create_session(title)
         llm = LLMClient(self.settings, secrets.get_api_key() or "")
-        self.orch = ChatOrchestrator(self.dc, llm, self.store)
-        return {"ok": True}
+        self.orch = ChatOrchestrator(self.dc, llm, self.store,
+                                     session_id=self.session_id)
+        return {"ok": True, "session_id": self.session_id, "title": title}
 
     def send(self, text):
         if self.orch is None:
@@ -123,6 +152,21 @@ class Api:
                 pass
             return {"error": f"{type(e).__name__}: {e}"}
 
+    def list_sessions(self):
+        return {"sessions": self.store.list_sessions()}
+
+    def load_session(self, session_id):
+        return {"turns": self.store.turns_for_session(session_id)}
+
+    def save_powerpoint(self):
+        if self.dc is None:
+            return {"error": "No session — nothing to save."}
+        try:
+            self._com(self.dc.save_deck_now)
+            return {"ok": True}
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"Save failed: {type(e).__name__}: {e}"}
+
     def shutdown(self):
         try:
             if self.dc is not None:
@@ -145,8 +189,8 @@ def main() -> int:
     if "--selfcheck" in sys.argv[1:]:
         return _selfcheck()
     api = Api()
-    webview.create_window("Decko", _web_index(),
-                          js_api=api, width=1100, height=720)
+    webview.create_window("Decko", _web_index(), js_api=api,
+                          width=1180, height=760, text_select=True)
     webview.start()
     api.shutdown()
     return 0

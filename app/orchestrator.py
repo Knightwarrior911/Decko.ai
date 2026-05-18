@@ -5,10 +5,11 @@ import re
 
 
 class ChatOrchestrator:
-    def __init__(self, deck, llm, store):
+    def __init__(self, deck, llm, store, session_id=None):
         self.deck = deck
         self.llm = llm
         self.store = store
+        self.session_id = session_id
 
     @staticmethod
     def _warn_count(summary: str) -> int:
@@ -26,6 +27,7 @@ class ChatOrchestrator:
         summary = self.deck.run_actions(actions)
         warnings = self._warn_count(summary)
         tid = self.store.add_turn(request=text, actions_json=actions,
-                                  result_summary=summary, warnings=warnings)
+                                  result_summary=summary, warnings=warnings,
+                                  session_id=self.session_id)
         return {"id": tid, "summary": summary, "warnings": warnings,
                 "actions_json": actions}
