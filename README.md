@@ -60,6 +60,19 @@ Plan: `docs/superpowers/plans/2026-05-17-decko-desktop-sp1.md`.
 SP1 gate: `python tests/run_smoke_app.py` (UI visuals are manually
 verified, not in the deterministic gate, per the design's honest scope).
 
+### Templates panel (SP2)
+
+The desktop app has a slide-over **Templates ▸** panel: apply the 7
+built-in layouts or your captured "Deck DNA" templates with instant
+placeholders (optional Fill-with-AI), capture the active slide,
+rename/delete captured templates, generate layout variants, and
+extract / build a deck spec (`{"deck":[…]}`) — all without an LLM
+round-trip for the deterministic operations; each is logged as a
+session turn. Gate: the `templates` gate inside
+`python tests/run_smoke_app.py`; the panel itself is verified manually.
+Design: `docs/superpowers/specs/2026-05-18-sp2-templates-ui-design.md`.
+Plan: `docs/superpowers/plans/2026-05-18-sp2-templates-ui.md`.
+
 ## One-time developer setup
 
 See [`SETUP.md`](SETUP.md) for the bulletproof checklist. Short version:
