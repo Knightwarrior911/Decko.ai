@@ -1,0 +1,1030 @@
+{
+ "actions": [
+  {
+   "type": "add_slide",
+   "position": 1,
+   "layout_index": 6
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Quarterly expense trend and year-over-year expense drivers",
+   "pos": {
+    "left": 24,
+    "top": 14,
+    "width": 800,
+    "height": 30
+   },
+   "font_color": "#255BE3",
+   "font_size": 22,
+   "font_bold": true
+  },
+  {
+   "type": "add_line",
+   "slide": 1,
+   "x1": 24,
+   "y1": 50,
+   "x2": 936,
+   "y2": 50,
+   "color": "#255BE3",
+   "weight_pt": 1.5
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "7",
+   "pos": {
+    "left": 916,
+    "top": 518,
+    "width": 28,
+    "height": 16
+   },
+   "font_color": "#7C7C7C",
+   "font_size": 9,
+   "h_align": "right"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Note: Totals may not sum due to rounding. All footnotes are presented starting on Slide 28.",
+   "pos": {
+    "left": 24,
+    "top": 520,
+    "width": 640,
+    "height": 14
+   },
+   "font_color": "#7C7C7C",
+   "font_size": 7
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "pos": {
+    "left": 24,
+    "top": 58,
+    "width": 560,
+    "height": 20
+   },
+   "fill": "#255BE3",
+   "stroke": null,
+   "text": "Expense Overview",
+   "font_color": "#FFFFFF",
+   "font_size": 11,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "($ in B)",
+   "pos": {
+    "left": 24,
+    "top": 80,
+    "width": 60,
+    "height": 14
+   },
+   "font_color": "#7C7C7C",
+   "font_size": 8
+  },
+  {
+   "type": "add_chart",
+   "slide": 1,
+   "chart_type": "columnstacked",
+   "pos": {
+    "left": 24,
+    "top": 96,
+    "width": 560,
+    "height": 348
+   },
+   "categories": [
+    "1Q25",
+    "2Q25",
+    "3Q25",
+    "4Q25",
+    "1Q26"
+   ],
+   "series": [
+    {
+     "name": "Compensation and Benefits & Restructuring",
+     "values": [
+      7.5,
+      7.6,
+      7.5,
+      7.1,
+      8.4
+     ],
+     "color": "#0F1632"
+    },
+    {
+     "name": "Transactional and Product Servicing",
+     "values": [
+      1.1,
+      1.2,
+      1.1,
+      1.2,
+      1.2
+     ],
+     "color": "#73C2FC"
+    },
+    {
+     "name": "Technology / Communication",
+     "values": [
+      2.4,
+      2.3,
+      2.3,
+      2.4,
+      2.3
+     ],
+     "color": "#1F4E79"
+    },
+    {
+     "name": "Other Expenses ex-notable item",
+     "values": [
+      2.5,
+      2.5,
+      2.7,
+      3.2,
+      2.4
+     ],
+     "color": "#255BE3"
+    },
+    {
+     "name": "Goodwill Impairment Charge",
+     "values": [
+      0,
+      0,
+      0.7,
+      0,
+      0
+     ],
+     "color": "#A6A6A6"
+    },
+    {
+     "name": "Reported Efficiency Ratio",
+     "values": [
+      62.2,
+      62.7,
+      64.7,
+      69.6,
+      58.1
+     ],
+     "color": "#255BE3"
+    }
+   ],
+   "show_legend": true,
+   "value_format": "\"$\"0.0",
+   "ref_name": "ec",
+   "combo": [
+    {
+     "name": "Reported Efficiency Ratio",
+     "chart_type": "line",
+     "axis_group": "secondary"
+    }
+   ],
+   "totals_label": true
+  },
+  {
+   "type": "set_chart_legend",
+   "slide": 1,
+   "shape_id": "ec",
+   "props": {
+    "visible": true,
+    "position": "bottom",
+    "font_size": 7
+   }
+  },
+  {
+   "type": "set_chart_axis",
+   "slide": 1,
+   "shape_id": "ec",
+   "axis": "y",
+   "props": {
+    "min": 0,
+    "max": 16,
+    "tick_label_position": "none",
+    "line_visible": false
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ec",
+   "series_index": 1,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ec",
+   "series_index": 2,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ec",
+   "series_index": 3,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ec",
+   "series_index": 4,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ec",
+   "series_index": 5,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7,
+    "suppress_zero_labels": true
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ec",
+   "series_index": 6,
+   "props": {
+    "line_color": "#255BE3",
+    "line_weight": 2.0,
+    "marker_style": "circle",
+    "marker_size": 6,
+    "marker_fill": "#255BE3",
+    "show_labels": true,
+    "label_position": "above",
+    "label_color": "#255BE3",
+    "label_size": 8,
+    "label_bold": true,
+    "custom_labels": [
+     "62.2%",
+     "62.7%",
+     "64.7%",
+     "69.6%",
+     "58.1%"
+    ]
+   }
+  },
+  {
+   "type": "set_chart_axis",
+   "slide": 1,
+   "shape_id": "ec",
+   "axis": "y2",
+   "props": {
+    "min": 50,
+    "max": 72,
+    "tick_label_position": "none",
+    "line_visible": false
+   }
+  },
+  {
+   "type": "add_table",
+   "slide": 1,
+   "rows": 2,
+   "cols": 6,
+   "pos": {
+    "left": 24,
+    "top": 450,
+    "width": 560,
+    "height": 56
+   },
+   "ref_name": "dt"
+  },
+  {
+   "type": "apply_table_style",
+   "slide": 1,
+   "shape_id": "dt",
+   "style_id": "no_style_no_grid"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 1,
+   "value": "Direct Staff (thousands)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 2,
+   "value": "229"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 3,
+   "value": "230"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 4,
+   "value": "227"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 5,
+   "value": "226"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 5,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 6,
+   "value": "224"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 6,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 1,
+   "value": "Severance(3) ($B)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 2,
+   "value": "0.1"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 3,
+   "value": "0.4"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 4,
+   "value": "0.2"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 5,
+   "value": "0.1"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 5,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 6,
+   "value": "0.5"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 6,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "value": 8
+  },
+  {
+   "type": "set_cell_font_color",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 1,
+   "col": 1,
+   "value": "#255BE3"
+  },
+  {
+   "type": "set_cell_font_color",
+   "slide": 1,
+   "shape_id": "dt",
+   "row": 2,
+   "col": 1,
+   "value": "#255BE3"
+  },
+  {
+   "type": "set_table_col_width",
+   "slide": 1,
+   "shape_id": "dt",
+   "col": 1,
+   "width_pt": 160
+  },
+  {
+   "type": "set_table_col_width",
+   "slide": 1,
+   "shape_id": "dt",
+   "col": 2,
+   "width_pt": 80
+  },
+  {
+   "type": "set_table_col_width",
+   "slide": 1,
+   "shape_id": "dt",
+   "col": 3,
+   "width_pt": 80
+  },
+  {
+   "type": "set_table_col_width",
+   "slide": 1,
+   "shape_id": "dt",
+   "col": 4,
+   "width_pt": 80
+  },
+  {
+   "type": "set_table_col_width",
+   "slide": 1,
+   "shape_id": "dt",
+   "col": 5,
+   "width_pt": 80
+  },
+  {
+   "type": "set_table_col_width",
+   "slide": 1,
+   "shape_id": "dt",
+   "col": 6,
+   "width_pt": 80
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "1Q26 Expense Drivers",
+   "pos": {
+    "left": 600,
+    "top": 58,
+    "width": 336,
+    "height": 22
+   },
+   "font_color": "#255BE3",
+   "font_size": 15,
+   "font_bold": true
+  },
+  {
+   "type": "add_line",
+   "slide": 1,
+   "x1": 600,
+   "y1": 80,
+   "x2": 936,
+   "y2": 80,
+   "color": "#255BE3",
+   "weight_pt": 1.0
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "round_rect",
+   "pos": {
+    "left": 600,
+    "top": 84,
+    "width": 336,
+    "height": 64
+   },
+   "fill": "#EEF2F8",
+   "stroke": "#C9D3E3",
+   "stroke_weight_pt": 0.75
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Transactional and Product Servicing  —  Up 11% YoY",
+   "pos": {
+    "left": 610,
+    "top": 90,
+    "width": 316,
+    "height": 26
+   },
+   "font_color": "#0F1632",
+   "font_size": 9,
+   "font_bold": true
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Higher volumes in Markets, Services, U.S. Consumer Cards and Banking",
+   "pos": {
+    "left": 610,
+    "top": 114,
+    "width": 316,
+    "height": 30
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "ref_name": "cb_84"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "cb_84",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "cb_84",
+   "paragraph_index": 0,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "cb_84",
+   "paragraph_index": 0,
+   "value": 8
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "cb_84",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "round_rect",
+   "pos": {
+    "left": 600,
+    "top": 156,
+    "width": 336,
+    "height": 100
+   },
+   "fill": "#EEF2F8",
+   "stroke": "#C9D3E3",
+   "stroke_weight_pt": 0.75
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Technology / Communication  —  Down (2)% YoY",
+   "pos": {
+    "left": 610,
+    "top": 162,
+    "width": 316,
+    "height": 26
+   },
+   "font_color": "#0F1632",
+   "font_size": 9,
+   "font_bold": true
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Reduction in technology contractors as a result of productivity\nLargely offset by technology charges and continued investments in technology and in the businesses to drive additional efficiencies and revenue growth",
+   "pos": {
+    "left": 610,
+    "top": 186,
+    "width": 316,
+    "height": 66
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "ref_name": "cb_156"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "cb_156",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "cb_156",
+   "paragraph_index": 0,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "cb_156",
+   "paragraph_index": 0,
+   "value": 8
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "cb_156",
+   "paragraph_index": 1,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "cb_156",
+   "paragraph_index": 1,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "cb_156",
+   "paragraph_index": 1,
+   "value": 8
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "cb_156",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "round_rect",
+   "pos": {
+    "left": 600,
+    "top": 264,
+    "width": 336,
+    "height": 92
+   },
+   "fill": "#EEF2F8",
+   "stroke": "#C9D3E3",
+   "stroke_weight_pt": 0.75
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Other Expenses ex-notable item  —  Down (5)% YoY",
+   "pos": {
+    "left": 610,
+    "top": 270,
+    "width": 316,
+    "height": 26
+   },
+   "font_color": "#0F1632",
+   "font_size": 9,
+   "font_bold": true
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Lower legal expenses\nLower professional services fees\nPartially offset by higher tax charges and deposit insurance costs",
+   "pos": {
+    "left": 610,
+    "top": 294,
+    "width": 316,
+    "height": 58
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "ref_name": "cb_264"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "cb_264",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "cb_264",
+   "paragraph_index": 0,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "cb_264",
+   "paragraph_index": 0,
+   "value": 8
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "cb_264",
+   "paragraph_index": 1,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "cb_264",
+   "paragraph_index": 1,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "cb_264",
+   "paragraph_index": 1,
+   "value": 8
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "cb_264",
+   "paragraph_index": 2,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "cb_264",
+   "paragraph_index": 2,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "cb_264",
+   "paragraph_index": 2,
+   "value": 8
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "cb_264",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "round_rect",
+   "pos": {
+    "left": 600,
+    "top": 364,
+    "width": 336,
+    "height": 140
+   },
+   "fill": "#EEF2F8",
+   "stroke": "#C9D3E3",
+   "stroke_weight_pt": 0.75
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Compensation and Benefits & Restructuring  —  Up 12% YoY",
+   "pos": {
+    "left": 610,
+    "top": 370,
+    "width": 316,
+    "height": 26
+   },
+   "font_color": "#0F1632",
+   "font_size": 9,
+   "font_bold": true
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Higher severance charges\nHigher compensation associated with investments in Banking and Services\nHigher performance-related compensation\nPartially offset by productivity savings, stranded cost reduction and lower transformation expenses in Corporate/Other",
+   "pos": {
+    "left": 610,
+    "top": 394,
+    "width": 316,
+    "height": 106
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "ref_name": "cb_364"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "paragraph_index": 0,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "paragraph_index": 0,
+   "value": 8
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "paragraph_index": 1,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "paragraph_index": 1,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "paragraph_index": 1,
+   "value": 8
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "paragraph_index": 2,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "paragraph_index": 2,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "paragraph_index": 2,
+   "value": 8
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "paragraph_index": 3,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "paragraph_index": 3,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "paragraph_index": 3,
+   "value": 8
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "cb_364",
+   "mode": "shrink"
+  }
+ ]
+}

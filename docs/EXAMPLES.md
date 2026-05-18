@@ -936,6 +936,40 @@ guessing slot names.
 
 ---
 
+## 17.9 Combo chart in one action (stacked columns + secondary-axis line + auto totals)
+
+VP: "Expense trend — stacked expense columns by quarter with the efficiency
+ratio as a line on a second axis, and the bar totals labelled."
+
+```json
+{"actions":[
+ {"type":"add_chart","slide":1,"chart_type":"columnstacked",
+  "pos":{"left":24,"top":96,"width":560,"height":348},
+  "categories":["1Q25","2Q25","3Q25","4Q25","1Q26"],
+  "series":[
+    {"name":"Compensation","values":[7.5,7.6,7.5,7.1,8.4],"color":"#0F1632"},
+    {"name":"Technology","values":[2.4,2.3,2.3,2.4,2.3],"color":"#1F4E79"},
+    {"name":"Other","values":[2.5,2.5,2.7,3.2,2.4],"color":"#255BE3"},
+    {"name":"Reported Efficiency Ratio","values":[62.2,62.7,64.7,69.6,58.1],"color":"#255BE3"}],
+  "value_format":"\"$\"0.0","ref_name":"ec",
+  "combo":[{"name":"Reported Efficiency Ratio","chart_type":"line","axis_group":"secondary"}],
+  "totals_label":true},
+ {"type":"set_chart_axis","slide":1,"shape_id":"ec","axis":"y",
+  "props":{"min":0,"max":16,"tick_label_position":"none","line_visible":false}},
+ {"type":"set_chart_axis","slide":1,"shape_id":"ec","axis":"y2",
+  "props":{"min":50,"max":72,"tick_label_position":"none","line_visible":false}},
+ {"type":"set_chart_series","slide":1,"shape_id":"ec","series_index":2,
+  "props":{"suppress_zero_labels":true}}
+]}
+```
+
+`combo` retypes the efficiency series to a secondary-axis line; `totals_label`
+auto-adds an invisible total line with `$`-formatted labels above the bars,
+excluded from the legend (no manual helper series). `suppress_zero_labels`
+hides the `0` label on any sparse segment. Hide both value axes with the
+keep-scale recipe (`tick_label_position:"none"` + `line_visible:false`) — never
+`visible:false`, which collapses the columns on a combo chart.
+
 ## 18. Things to get right (recap for the model)
 
 - **Wrap:** always `{"actions":[ ... ]}`, never a bare array. Output **only** the JSON.

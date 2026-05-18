@@ -69,3 +69,10 @@ tests/stress_bullets/output/
 dist/
 build/
 .superpowers/
+
+# Citi-repro: keep code + docs + actions JSON + SRC/SBS evidence; ignore the
+# regenerable decks, render dumps, third-party source PDF, and verify logs
+tests/citi_repro/*.pptx
+tests/citi_repro/*_pngs/
+tests/citi_repro/*.pdf
+tests/citi_repro/*.verify_log.jsonl

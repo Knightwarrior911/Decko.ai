@@ -1781,12 +1781,16 @@ Private Sub DispatchAction(act As Object)
             If act.Exists("title") Then acTitle = CStr(act("title"))
             If act.Exists("clean_style") Then acClean = modActions.ToBool(act("clean_style"))
             If act.Exists("value_format") Then acFmt = CStr(act("value_format"))
+            Dim acCombo As Object: Set acCombo = Nothing
+            If act.Exists("combo") Then Set acCombo = act("combo")
+            Dim acTotals As Boolean: acTotals = False
+            If act.Exists("totals_label") Then acTotals = modActions.ToBool(act("totals_label"))
             modActionsChart.Do_add_chart CLng(act("slide")), CStr(act("chart_type")), _
                                           CSng(acPos("left")), CSng(acPos("top")), _
                                           CSng(acPos("width")), CSng(acPos("height")), _
                                           act("categories"), act("series"), _
                                           acRef, acLeg, acVals, acTitle, _
-                                          acClean, acFmt
+                                          acClean, acFmt, acCombo, acTotals
         Case "set_chart_axis"
             Dim caxProps As Object: Set caxProps = act("props")
             modActionsChart.Do_set_chart_axis CLng(act("slide")), CLng(act("shape_id")), _
@@ -2876,6 +2880,7 @@ Public Function GetActionGuidance(actionType As String) As String
                 """pos"":{""left"":60,""top"":120,""width"":560,""height"":340}," & _
                 """categories"":[""FY22"",""FY23"",""FY24""]," & _
                 """series"":[{""name"":""Revenue ($M)"",""values"":[120,138,151],""color"":""#15283C""}]}" & vbCrLf & _
+                "  OPTIONAL: combo(array of {series_index|name, chart_type, axis_group}) for combo charts; totals_label(bool) auto-adds stacked-total labels via an invisible line series excluded from the legend." & vbCrLf & _
                 "  NOTE: each series.values length MUST equal categories length."
         Case "find_replace_text"
             GetActionGuidance = _

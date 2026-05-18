@@ -324,6 +324,20 @@ Private Sub SetCellTextProp(cell As Object, propName As String, value As Variant
     On Error GoTo 0
 End Sub
 
+' P1: apply a single font property to EVERY cell of a table. Lets the
+' whole-shape font actions (set_font_size/bold/italic/color) work on a table
+' shape instead of erroring "no text frame". propName: size/color/bold/italic/
+' underline/name.
+Public Sub ApplyFontToWholeTable(sh As Shape, propName As String, value As Variant)
+    Dim tbl As Table: Set tbl = sh.Table
+    Dim r As Long, c As Long
+    For r = 1 To tbl.Rows.Count
+        For c = 1 To tbl.Columns.Count
+            SetCellTextProp tbl.Cell(r, c), propName, value
+        Next c
+    Next r
+End Sub
+
 ' Count elements in a JSON-parsed array (Collection) or VB array.
 Private Function ArrayCount(v As Variant) As Long
     If TypeName(v) = "Collection" Then

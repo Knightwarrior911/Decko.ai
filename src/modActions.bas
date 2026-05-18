@@ -89,6 +89,7 @@ End Sub
 Public Sub Do_set_font_size(slideNum As Long, shapeId As Long, value As Long)
     Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 2001, "Do_set_font_size", "shape not found"
+    If sh.HasTable Then modActionsTable.ApplyFontToWholeTable sh, "size", value: Exit Sub
     If Not sh.HasTextFrame Then Err.Raise vbObjectError + 2002, "Do_set_font_size", "no text frame"
     sh.TextFrame.TextRange.Font.Size = value
 End Sub
@@ -96,6 +97,7 @@ End Sub
 Public Sub Do_set_font_bold(slideNum As Long, shapeId As Long, value As Boolean)
     Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 2001, "Do_set_font_bold", "shape not found"
+    If sh.HasTable Then modActionsTable.ApplyFontToWholeTable sh, "bold", value: Exit Sub
     If Not sh.HasTextFrame Then Err.Raise vbObjectError + 2002, "Do_set_font_bold", "no text frame"
     sh.TextFrame.TextRange.Font.Bold = IIf(value, msoTrue, msoFalse)
 End Sub
@@ -103,6 +105,7 @@ End Sub
 Public Sub Do_set_font_italic(slideNum As Long, shapeId As Long, value As Boolean)
     Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 2001, "Do_set_font_italic", "shape not found"
+    If sh.HasTable Then modActionsTable.ApplyFontToWholeTable sh, "italic", value: Exit Sub
     If Not sh.HasTextFrame Then Err.Raise vbObjectError + 2002, "Do_set_font_italic", "no text frame"
     sh.TextFrame.TextRange.Font.Italic = IIf(value, msoTrue, msoFalse)
 End Sub
@@ -110,6 +113,7 @@ End Sub
 Public Sub Do_set_font_color(slideNum As Long, shapeId As Long, hexValue As String)
     Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 2001, "Do_set_font_color", "shape not found"
+    If sh.HasTable Then modActionsTable.ApplyFontToWholeTable sh, "color", hexValue: Exit Sub
     If Not sh.HasTextFrame Then Err.Raise vbObjectError + 2002, "Do_set_font_color", "no text frame"
     sh.TextFrame.TextRange.Font.Color.RGB = HexToRgb(hexValue)
 End Sub

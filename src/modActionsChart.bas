@@ -16,7 +16,9 @@ Public Sub Do_add_chart(slideNum As Long, chartType As String, _
                          Optional showValues As Boolean = False, _
                          Optional titleText As String = "", _
                          Optional cleanStyle As Boolean = False, _
-                         Optional valueFormat As String = "")
+                         Optional valueFormat As String = "", _
+                         Optional ByVal comboSpec As Object = Nothing, _
+                         Optional ByVal totalsLabel As Boolean = False)
     Dim pres As Presentation: Set pres = ActivePresentation
     If slideNum < 1 Or slideNum > pres.Slides.Count Then
         Err.Raise vbObjectError + 11010, "Do_add_chart", "slide_out_of_range"
@@ -112,6 +114,80 @@ Public Sub Do_add_chart(slideNum As Long, chartType As String, _
             On Error GoTo 0
         End If
     Next s
+
+    ' P4: combo spec — per-series chart_type / axis_group, in one add_chart.
+    ' Each entry: {series_index (1-based) OR name, chart_type, axis_group?}.
+    If Not comboSpec Is Nothing Then
+        On Error Resume Next
+        Dim ci As Long
+        For ci = 1 To comboSpec.Count
+            Dim ce As Object: Set ce = comboSpec(ci)
+            Dim cIdx As Long: cIdx = 0
+            If ce.Exists("series_index") Then
+                cIdx = CLng(ce("series_index"))
+            ElseIf ce.Exists("name") Then
+                Dim cn As String: cn = CStr(ce("name"))
+                Dim cs2 As Long
+                For cs2 = 1 To ch.SeriesCollection.Count
+                    If ch.SeriesCollection(cs2).Name = cn Then cIdx = cs2: Exit For
+                Next cs2
+            End If
+            If cIdx >= 1 And cIdx <= ch.SeriesCollection.Count Then
+                If ce.Exists("chart_type") Then _
+                    ch.SeriesCollection(cIdx).ChartType = ChartTypeFromName(CStr(ce("chart_type")))
+                If ce.Exists("axis_group") Then
+                    Select Case LCase(CStr(ce("axis_group")))
+                        Case "secondary": ch.SeriesCollection(cIdx).AxisGroup = 2
+                        Case "primary":   ch.SeriesCollection(cIdx).AxisGroup = 1
+                    End Select
+                End If
+            End If
+        Next ci
+        On Error GoTo 0
+    End If
+
+    ' P4: totals_label — auto stacked-total labels via an invisible line series.
+    ' Sums every primary-axis column/bar series (post-combo), adds a "Total"
+    ' line series with no line/marker, labels above, excluded from the legend.
+    If totalsLabel Then
+        On Error Resume Next
+        Dim tsum() As Double: ReDim tsum(1 To catCount)
+        Dim ts As Long, tp As Long
+        For ts = 1 To ch.SeriesCollection.Count
+            Dim sct As Long: sct = ch.SeriesCollection(ts).ChartType
+            Dim isLineLike As Boolean
+            isLineLike = (sct = 4 Or sct = 65 Or sct = 63 Or sct = 66 Or sct = -4169)
+            If ch.SeriesCollection(ts).AxisGroup = 1 And Not isLineLike Then
+                Dim sv As Variant: sv = ch.SeriesCollection(ts).Values
+                Dim slo As Long: slo = LBound(sv)
+                For tp = 1 To catCount
+                    If (slo + tp - 1) <= UBound(sv) Then _
+                        tsum(tp) = tsum(tp) + CDbl(sv(slo + tp - 1))
+                Next tp
+            End If
+        Next ts
+        ch.SeriesCollection.NewSeries
+        Dim tIdx As Long: tIdx = ch.SeriesCollection.Count
+        Dim tvalArr() As Variant: ReDim tvalArr(1 To catCount)
+        For tp = 1 To catCount
+            tvalArr(tp) = tsum(tp)
+        Next tp
+        With ch.SeriesCollection(tIdx)
+            .Name = "Total"
+            .Values = tvalArr
+            .XValues = catArr
+            .ChartType = 4                    ' xlLine
+            .AxisGroup = 1
+            .Format.Line.Visible = msoFalse
+            .MarkerStyle = -4142              ' none
+            .HasDataLabels = True
+            .DataLabels.Position = 0          ' xlLabelPositionOutsideEnd (above)
+            .DataLabels.Font.Bold = True
+            If Len(valueFormat) > 0 Then .DataLabels.NumberFormat = valueFormat
+        End With
+        HideSeriesFromLegend ch, tIdx
+        On Error GoTo 0
+    End If
 
     ' Show data labels if requested or clean style demands them
     If showValues Or cleanStyle Then
@@ -882,12 +958,14 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
             End If
         End If
     End If
-    ' Hide this series' entry from the legend (series stays in chart)
+    ' Hide this series' entry from the legend (series stays in chart).
+    ' P2: must run AFTER chart_type/axis_group conversion (combo) — converting a
+    ' series to a line re-lays-out the legend and resurrects a deleted entry.
+    ' HideSeriesFromLegend forces a layout pass (DoEvents) so the entry exists
+    ' before deleting, then verifies + retries so it persists on a combo chart.
     If props.Exists("hide_from_legend") Then
         If modActions.ToBool(props("hide_from_legend")) Then
-            On Error Resume Next
-            ch.Legend.LegendEntries(seriesIndex).Delete
-    Err.Clear
+            HideSeriesFromLegend ch, seriesIndex
         End If
     End If
     ' Per-point custom label text override.
@@ -1043,10 +1121,45 @@ Public Sub Do_set_chart_series(slideNum As Long, shapeId As Long, _
             End If
         Next plvi
     End If
+    ' P3: suppress data labels on zero-value points (e.g. a stacked segment that
+    ' is 0 in most categories). Runs last so it overrides show_labels/custom_labels.
+    If props.Exists("suppress_zero_labels") Then
+        If modActions.ToBool(props("suppress_zero_labels")) Then
+            Dim zv As Variant: zv = ser.Values
+            Dim zi As Long, zlo As Long: zlo = LBound(zv)
+            For zi = 1 To ser.Points.Count
+                If (zlo + zi - 1) <= UBound(zv) Then
+                    If CDbl(zv(zlo + zi - 1)) = 0 Then ser.Points(zi).HasDataLabel = False
+                End If
+            Next zi
+        End If
+    End If
     ' Clear any error flag accumulated during the swallow-all-errors run so the
     ' dispatcher (which inspects Err.Number after this returns) does not falsely
     ' mark this whole action as errored. Inner `On Error GoTo 0` would re-enable
     ' errors for every subsequent prop branch -- DO NOT add one back.
+    Err.Clear
+End Sub
+
+' P2: robustly remove one series' legend entry so it stays gone on a COMBO
+' chart. Converting a series to a line (chart_type) re-lays-out the legend and
+' resurrects a naively-deleted entry. Force a layout pass (DoEvents) so the
+' entry is realized before deleting, then verify the entry count dropped and
+' retry once. seriesIndex is 1-based (SeriesCollection order = legend order).
+Public Sub HideSeriesFromLegend(ByVal ch As Object, ByVal seriesIndex As Long)
+    On Error Resume Next
+    If Not ch.HasLegend Then ch.HasLegend = True
+    DoEvents
+    Dim before As Long: before = ch.Legend.LegendEntries.Count
+    If seriesIndex >= 1 And seriesIndex <= before Then
+        ch.Legend.LegendEntries(seriesIndex).Delete
+        DoEvents
+        ' Retry if the layout pass restored it.
+        If ch.Legend.LegendEntries.Count >= before Then
+            ch.Legend.LegendEntries(seriesIndex).Delete
+            DoEvents
+        End If
+    End If
     Err.Clear
 End Sub
 

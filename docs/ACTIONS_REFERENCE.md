@@ -395,9 +395,40 @@ string is also accepted per element).
   `opt:` `header_row`(bool), `total_row`(bool), `banded_rows`(bool), `first_column`(bool), `last_column`(bool), `banded_columns`(bool).
   `ex:` `{"type":"set_table_style_options","slide":1,"shape_id":4,"header_row":true,"banded_rows":true,"first_column":false}`
 
+#### Cell / row / column font (tables have no single text frame)
+
+`set_font_size`, `set_font_bold`, `set_font_color` operate on a shape's text
+frame. **A table shape has no text frame** — calling them on a table errors
+`no text frame`. To style table text use the cell/row/column font actions:
+
+- **`set_cell_font_size`** — `req:` `slide`, `shape_id`(table), `row`, `col`, `value`(int>0).
+- **`set_cell_font_bold`** / **`set_cell_font_italic`** / **`set_cell_font_underline`** — `req:` … `value`(bool).
+- **`set_cell_font_color`** — `req:` … `value`(`#RRGGBB`).
+- **`set_cell_font_name`** — `req:` … `value`(string).
+- **`set_row_font_size`** / **`set_row_font_color`** — whole row. `req:` `slide`, `shape_id`, `row`(1-based), `value`.
+- **`set_column_font_size`** / **`set_column_font_color`** — whole column. `req:` `slide`, `shape_id`, `col`(1-based), `value`.
+  `ex:` shrink every row of a dense financial table → one `set_row_font_size` per row:
+  `{"type":"set_row_font_size","slide":1,"shape_id":"tbl","row":3,"value":8}`
+
+> Dense financial tables (15+ rows): set a small per-row font (7–9 pt) +
+> `set_cell_padding` 1–3 pt so rows fit without wrapping. Whole-shape
+> `set_font_size` will NOT work on the table.
+
 ### 3.11 Charts
 
 > See [§2 chart types](#chart-types-add_chart-chart_type-set_chart_type-value) for the full type list and the modern-type limitation.
+
+> **Combo charts (stacked columns + a line on a secondary axis).** Build with
+> `add_chart` `columnstacked` including ALL series; then per line series:
+> `set_chart_series` `props.chart_type:"line"` + `axis_group:"secondary"`. To
+> show stacked-column **totals**, add one extra series equal to the column sums,
+> convert it to an invisible line (`chart_type:"line"`, `line_weight:0.1`,
+> `marker_style:"none"`, `hide_from_legend:true`) and `show_labels:true`
+> `label_position:"above"` with `custom_labels` = the totals.
+> **Gotcha:** on a combo chart, `set_chart_axis y {visible:false}` removes the
+> primary axis and **collapses the column series to nothing**. Hide the axis
+> but keep its scale instead: `{"min":0,"max":<top>,"tick_label_position":"none","line_visible":false}`.
+> Do the same for the secondary axis (`axis:"y2"`) with the line's value range.
 
 - **`add_chart`** — insert a new native chart.
   `req:` `slide`, `chart_type`(string, see list), `pos`({left,top,width,height}),
@@ -452,7 +483,7 @@ string is also accepted per element).
   - **Gradient fill (object):** `gradient_fill` = `{ "from": "#RRGGBB", "to": "#RRGGBB", "direction": "horizontal"|"vertical"|"diagonal_up"|"diagonal_down" }` (direction is nested **inside** `gradient_fill`)
   - **Line series:** `line_color`(`#RRGGBB`), `line_weight`(num pt), `line_dash`(`solid`|`dash`|`dot`|`round_dot`|`dash_dot`|`long_dash`|`long_dash_dot`)
   - **Markers:** `marker_style`(`circle`|`square`|`triangle`|`diamond`|`x`|`none`), `marker_size`(num), `marker_fill`(`#RRGGBB`), `marker_line`(`#RRGGBB`)
-  - **Data labels:** `show_labels`(bool), `label_format`(string Excel format), `label_position`(`outside_end`|`above`|`inside_end`|`inside_base`|`center`|`below`|`left`|`right`), `label_color`/`label_size`/`label_bold`/`label_italic`(font props), `label_fill`(`#RRGGBB`), `label_fill_visible`(bool), `label_line_visible`(bool)
+  - **Data labels:** `show_labels`(bool), `label_format`(string Excel format), `label_position`(`outside_end`|`above`|`inside_end`|`inside_base`|`center`|`below`|`left`|`right`), `label_color`/`label_size`/`label_bold`/`label_italic`(font props), `label_fill`(`#RRGGBB`), `label_fill_visible`(bool), `label_line_visible`(bool), `suppress_zero_labels`(bool — hide the label on any point whose value is 0; runs last, overrides show_labels/custom_labels — for sparse stacked segments like a goodwill charge that is 0 most quarters)
   - **Custom per-point label text:** `custom_labels`(array — per-point label text override; supersedes `label_format`; one element per category)
   - **Per-point overrides (arrays, one element per category):** `point_fills`(array of `#RRGGBB`), `point_marker_fills`(array of `#RRGGBB`), `point_marker_styles`(array — per-point marker style; pass `"none"` to hide one point, e.g. to clip last point of a line series), `point_line_visible`(array of bools — `false` hides the line segment ending at point i, useful to break the line before a sentinel last point), `point_label_colors`(array of `#RRGGBB`), `point_label_positions`(array of label-position strings)
   - **Pie/doughnut:** `show_leader_lines`(bool), `leader_line_color`(`#RRGGBB`)
@@ -802,6 +833,7 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: slide, chart_type(string), pos, categories(array), series(array of {name, values, color?})
   EXAMPLE:  {"type":"add_chart","slide":1,"chart_type":"columnclustered","pos":{"left":60,"top":120,"width":560,"height":340},"categories":["FY22","FY23","FY24"],"series":[{"name":"Revenue ($M)","values":[120,138,151],"color":"#15283C"}]}
+  OPTIONAL: combo(array of {series_index|name, chart_type, axis_group}) for combo charts; totals_label(bool) auto-adds stacked-total labels via an invisible line series excluded from the legend.
   NOTE: each series.values length MUST equal categories length.
 ```
 
