@@ -107,6 +107,19 @@ class DeckController:
         with open(tmp, "r", encoding="utf-8", errors="replace") as f:
             return f.read()
 
+    def get_deck_spec(self) -> str:
+        # Reverse of build_deck_from_spec — returns the deck's spec JSON.
+        return self._run("ExtractDeckSpecJson")
+
+    def captured_registry_path(self) -> str:
+        return self._run("DefaultRegistryPath")
+
+    def run_action(self, action: dict) -> str:
+        # One-off action batch via the frozen engine (verify loop on).
+        import json
+        return self._run("ExecuteFromString",
+                         json.dumps({"actions": [action]}))
+
     def run_actions(self, actions_json: str) -> str:
         self._require_nonempty()
         # ExecuteFromString runs the verify loop by default; returns a
