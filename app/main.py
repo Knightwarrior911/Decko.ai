@@ -88,11 +88,20 @@ class Api:
         return {"ok": True}
 
 
+def _web_index() -> str:
+    # Absolute path so pywebview resolves it in dev AND under PyInstaller
+    # (decko.spec bundles app/web -> sys._MEIPASS/app/web).
+    from pathlib import Path
+    base = Path(getattr(sys, "_MEIPASS",
+                        Path(__file__).resolve().parent.parent))
+    return str(base / "app" / "web" / "index.html")
+
+
 def main() -> int:
     if "--selfcheck" in sys.argv[1:]:
         return _selfcheck()
     api = Api()
-    webview.create_window("Decko", "app/web/index.html",
+    webview.create_window("Decko", _web_index(),
                           js_api=api, width=1100, height=720)
     webview.start()
     api.shutdown()
