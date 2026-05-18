@@ -1,6 +1,7 @@
 """pywebview window + js_api bridge wiring the chat + side panel to the
 Python core. UI is NOT in the deterministic gate (spec §8). `--selfcheck`
 is retained for packaging_smoke (proves the bundled carrier resolves)."""
+import concurrent.futures
 import sys
 
 import webview
@@ -35,6 +36,16 @@ class Api:
         self.store = Store(DB_PATH)
         self.dc = None
         self.orch = None
+        # pywebview dispatches each js_api call on a different thread.
+        # PowerPoint COM objects are apartment-bound — they must be
+        # created AND used on ONE thread. Route every COM-touching
+        # operation through this single worker so it stays in one STA.
+        self._com_pool = concurrent.futures.ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix="decko-com")
+
+    def _com(self, fn):
+        """Run fn on the single dedicated COM thread; re-raise its error."""
+        return self._com_pool.submit(fn).result()
 
     def boot(self):
         ensure_app_dirs()
@@ -51,13 +62,16 @@ class Api:
         return {"ok": True}
 
     def open_session(self, mode, file_path=""):
-        self.dc = DeckController()
-        try:
-            self.dc.start()
+        def _start():
+            dc = DeckController()
+            dc.start()
             if mode == "attach":
-                self.dc.attach_open_deck()
+                dc.attach_open_deck()
             else:
-                self.dc.open_file(file_path)
+                dc.open_file(file_path)
+            return dc
+        try:
+            self.dc = self._com(_start)
         except NoPowerPointError:
             return {"error": "Microsoft PowerPoint is required and was "
                              "not found. Install PowerPoint and retry."}
@@ -82,7 +96,7 @@ class Api:
         if self.orch is None:
             return {"error": "Start a session first."}
         try:
-            return self.orch.run(text)
+            return self._com(lambda: self.orch.run(text))
         except EmptyDeckError as e:
             return {"error": str(e)}
         except Exception as e:  # noqa: BLE001
@@ -103,8 +117,11 @@ class Api:
             return {"error": f"{type(e).__name__}: {e}"}
 
     def shutdown(self):
-        if self.dc is not None:
-            self.dc.close(save_deck=False)
+        try:
+            if self.dc is not None:
+                self._com(lambda: self.dc.close(save_deck=False))
+        finally:
+            self._com_pool.shutdown(wait=False)
         return {"ok": True}
 
 
