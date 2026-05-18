@@ -180,6 +180,58 @@ class Api:
                 pass
             return {"error": f"{type(e).__name__}: {e}"}
 
+    def _log_turn(self, request: str, summary: str, actions: dict):
+        import json
+        warnings = 0
+        try:
+            warnings = self.orch._warn_count(summary) if self.orch else 0
+        except Exception:
+            warnings = 0
+        if self.session_id is not None:
+            self.store.add_turn(request=request,
+                                actions_json=json.dumps(actions),
+                                result_summary=summary or "",
+                                warnings=warnings,
+                                session_id=self.session_id)
+
+    def _require_session(self):
+        if self.orch is None or self.dc is None:
+            return {"error": "Start a session first."}
+        return None
+
+    def apply_template(self, template, content, target):
+        g = self._require_session()
+        if g:
+            return g
+        act = {"type": "apply_template", "template": template,
+               "content": content}
+        tgt = "append"
+        if target and target.get("mode") == "replace":
+            act["slide"] = int(target.get("slide"))
+            tgt = f"replace slide {act['slide']}"
+        try:
+            summary = self._com(lambda: self.dc.run_action(act))
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"{type(e).__name__}: {e}"}
+        self._log_turn(f"Apply template: {template} ({tgt})",
+                       summary, {"actions": [act]})
+        return {"ok": True, "summary": summary}
+
+    def capture_template(self, name):
+        g = self._require_session()
+        if g:
+            return g
+        if not str(name).strip():
+            return {"error": "Enter a template name."}
+        act = {"type": "capture_template", "name": str(name).strip()}
+        try:
+            summary = self._com(lambda: self.dc.run_action(act))
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"{type(e).__name__}: {e}"}
+        self._log_turn(f"Capture template: {name}", summary,
+                       {"actions": [act]})
+        return {"ok": True, "summary": summary}
+
     def list_sessions(self):
         return {"sessions": self.store.list_sessions()}
 
