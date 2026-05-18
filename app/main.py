@@ -293,6 +293,14 @@ class Api:
                 spec = json.loads(spec)
             except Exception as e:  # noqa: BLE001
                 return {"error": f"Spec is not valid JSON: {e}"}
+        # Frozen engine contract: spec MUST be {"deck":[{template,
+        # content},...]} (ExtractDeckSpecJson emits the same shape).
+        # Accept a bare list for convenience and wrap it.
+        if isinstance(spec, list):
+            spec = {"deck": spec}
+        if not isinstance(spec, dict) or "deck" not in spec:
+            return {"error": 'spec must be a list of slides or '
+                             '{"deck":[{"template":...,"content":...}]}'}
         act = {"type": "build_deck_from_spec", "spec": spec}
         if clear_existing:
             act["clear_existing"] = True
