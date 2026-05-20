@@ -53,6 +53,17 @@ MONITOR_DEFAULTTOPRIMARY = 0x00000001
 
 WM_QUIT = 0x0012
 
+# SetWindowPos flags + special hwnd values for SP7 reflow + z-order.
+SWP_NOMOVE = 0x0002
+SWP_NOSIZE = 0x0001
+SWP_NOZORDER = 0x0004
+SWP_NOACTIVATE = 0x0010
+SWP_FRAMECHANGED = 0x0020
+HWND_TOPMOST = -1
+HWND_NOTOPMOST = -2
+HWND_TOP = 0
+HWND_BOTTOM = 1
+
 # Hook callback signature.
 if _IS_WIN:
     WINEVENTPROC = ctypes.WINFUNCTYPE(
@@ -258,15 +269,24 @@ def _emit(loop: DockLoop, name: str, payload: dict) -> None:
 
 def _recompute_and_emit(loop: DockLoop, reason: str) -> None:
     """Top-level event router. Called from hook callback AND polling
-    fallback. Decides between move_resize / minimize / restore /
-    slideshow_enter / slideshow_exit / ppt_gone."""
+    fallback. Decides between move_resize / restore / slideshow_lower /
+    slideshow_exit / ppt_gone.
+
+    SP7 changes: no longer hides on PPT minimize (Decko stays visible
+    so user can min/restore it independently via taskbar). No longer
+    hides on slideshow — emits `slideshow_lower` so the host can lower
+    Decko's z-order behind the slideshow window instead.
+    """
     global _last_slideshow_hwnd
+    # SP7: skip recompute while we are mid-reflow of PPT.
+    if is_reflowing():
+        return
     fg = _get_foreground_window()
     if fg and _is_slideshow(fg):
         _last_slideshow_hwnd = fg
         if loop._state != "slideshow":
             loop._state = "slideshow"
-            _emit(loop, "slideshow_enter", {})
+            _emit(loop, "slideshow_lower", {"slideshow_hwnd": fg})
         return
     # Foreground isn't a slideshow window. If we were in slideshow, exit.
     if loop._state == "slideshow":
@@ -285,23 +305,23 @@ def _recompute_and_emit(loop: DockLoop, reason: str) -> None:
             loop._last_emitted_rect = rect
             _emit(loop, "ppt_gone", {"rect": rect})
         return
+    # SP7: PPT being minimized no longer affects Decko. Skip silently —
+    # we'll re-dock when PPT restores.
     if _is_iconic(ppt):
-        if loop._state != "minimized":
-            loop._state = "minimized"
-            _emit(loop, "minimize", {})
         return
-    # Restore from minimize/gone if needed.
+    # Restore from gone if needed (but NOT from "minimized" — SP7 removed
+    # that branch since we stopped tracking minimize).
     rect = compute_dock_rect(ppt)
-    if loop._state in ("minimized", "ppt_gone"):
+    if loop._state == "ppt_gone":
         loop._state = "normal"
         loop._last_emitted_rect = rect
-        _emit(loop, "restore", {"rect": rect})
+        _emit(loop, "restore", {"rect": rect, "ppt_hwnd": int(ppt)})
         return
     # Move/resize: only emit when the rect actually changed.
     if rect != loop._last_emitted_rect:
         loop._last_emitted_rect = rect
         loop._state = "normal"
-        _emit(loop, "move_resize", {"rect": rect})
+        _emit(loop, "move_resize", {"rect": rect, "ppt_hwnd": int(ppt)})
 
 
 def _hook_callback_factory(loop: DockLoop):
@@ -419,3 +439,107 @@ def stop_dock_loop(loop: Optional[DockLoop]) -> None:
                 pass
     loop._hooks = []
     # Worker threads are daemon=True; they'll exit when _stop is set.
+    # SP7: restore any PowerPoint windows we shrank.
+    try:
+        for hwnd in list(_ORIGINAL_PPT_RECTS.keys()):
+            restore_ppt_window(hwnd)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+# ----------------------------------------------------------------------
+# SP7 — PowerPoint reflow + restore.
+#
+# When dock mode is active AND the user opted into "Resize PowerPoint to
+# make room", we shrink PowerPoint so its right edge meets Decko's left
+# edge. Cache the original rect per-hwnd so we can put PPT back when the
+# user undocks or closes Decko.
+#
+# Re-entry guard: SetWindowPos on a PPT window fires a
+# EVENT_OBJECT_LOCATIONCHANGE that our own hook would otherwise interpret
+# as "PPT moved, re-dock". The _REFLOWING flag suppresses one round-trip.
+
+_ORIGINAL_PPT_RECTS: dict[int, tuple[int, int, int, int]] = {}
+_REFLOWING: bool = False
+
+
+def is_reflowing() -> bool:
+    """Hook callbacks check this before recomputing dock rect so they
+    don't fight a SetWindowPos we just issued."""
+    return _REFLOWING
+
+
+def reflow_ppt_window(ppt_hwnd: int, decko_left: int,
+                      width_hint: Optional[int] = None) -> bool:
+    """Shrink PPT from the right so its right edge sits at decko_left.
+
+    Caches the pre-shrink rect for restore_ppt_window. Returns True on
+    success, False on no-op (PPT already fits, invalid hwnd, etc).
+
+    width_hint is the Decko width; passed only so we can detect the
+    "already fits" case when called speculatively.
+    """
+    global _REFLOWING
+    if not _IS_WIN or not ppt_hwnd or not _is_window(int(ppt_hwnd)):
+        return False
+    rect = _get_window_rect(int(ppt_hwnd))
+    if rect is None:
+        return False
+    p_left, p_top, p_right, p_bottom = rect
+    # Cache original rect on first reflow only — subsequent moves should
+    # NOT overwrite the user's authoritative original size.
+    if int(ppt_hwnd) not in _ORIGINAL_PPT_RECTS:
+        _ORIGINAL_PPT_RECTS[int(ppt_hwnd)] = (p_left, p_top, p_right, p_bottom)
+    target_right = int(decko_left)
+    if target_right <= p_left + 200:
+        # Refuse to shrink PPT below 200px — would be unusable.
+        return False
+    target_w = target_right - p_left
+    target_h = p_bottom - p_top
+    if target_w == (p_right - p_left):
+        return False  # already correctly sized
+    _REFLOWING = True
+    try:
+        user32.SetWindowPos(int(ppt_hwnd), 0,
+                            p_left, p_top, target_w, target_h,
+                            SWP_NOZORDER | SWP_NOACTIVATE)
+    except Exception:  # noqa: BLE001
+        _REFLOWING = False
+        return False
+    # Clear flag after a small delay so the resulting LOCATIONCHANGE event
+    # is suppressed. Worker is daemon — never blocks shutdown.
+    def _clear():
+        global _REFLOWING
+        time.sleep(0.08)
+        _REFLOWING = False
+    threading.Thread(target=_clear, daemon=True).start()
+    return True
+
+
+def restore_ppt_window(ppt_hwnd: int) -> bool:
+    """Restore PPT to its cached pre-shrink rect. Pops the cache entry."""
+    global _REFLOWING
+    if not _IS_WIN or not ppt_hwnd:
+        return False
+    cached = _ORIGINAL_PPT_RECTS.pop(int(ppt_hwnd), None)
+    if cached is None:
+        return False
+    if not _is_window(int(ppt_hwnd)):
+        return False
+    o_left, o_top, o_right, o_bottom = cached
+    _REFLOWING = True
+    try:
+        user32.SetWindowPos(int(ppt_hwnd), 0,
+                            o_left, o_top,
+                            o_right - o_left, o_bottom - o_top,
+                            SWP_NOZORDER | SWP_NOACTIVATE)
+    except Exception:  # noqa: BLE001
+        _REFLOWING = False
+        return False
+
+    def _clear():
+        global _REFLOWING
+        time.sleep(0.08)
+        _REFLOWING = False
+    threading.Thread(target=_clear, daemon=True).start()
+    return True

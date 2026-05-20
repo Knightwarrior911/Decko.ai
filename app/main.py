@@ -4,6 +4,7 @@ is retained for packaging_smoke (proves the bundled carrier resolves)."""
 import concurrent.futures
 import os
 import sys
+import time
 from datetime import datetime
 
 import webview
@@ -72,7 +73,10 @@ class Api:
             "settings": {"provider": self.settings.provider,
                          "model": self.settings.model,
                          "base_url": self.settings.base_url,
-                         "dock_mode": self.settings.dock_mode},
+                         "dock_mode": self.settings.dock_mode,
+                         "decko_on_top": self.settings.decko_on_top,
+                         "resize_ppt_for_dock":
+                             self.settings.resize_ppt_for_dock},
             "last_deck_path": p.get("last_deck_path", ""),
             "last_mode": p.get("last_mode", "attach"),
             "sessions": self.store.list_sessions(),
@@ -92,9 +96,21 @@ class Api:
             return {"templates": []}
         return {"templates": parse_captured_registry(path)}
 
-    def save_settings(self, provider, model, base_url, api_key):
-        self.settings = Settings(provider=provider, model=model,
-                                 base_url=base_url or "")
+    def save_settings(self, provider, model, base_url, api_key,
+                       decko_on_top=None, resize_ppt_for_dock=None):
+        # SP7: optional kwargs let the Settings dialog persist the two
+        # new dock toggles in the same round-trip as the legacy fields.
+        # Existing front-end callers pass 4 positional args — both new
+        # kwargs default to "keep current".
+        prev_on_top = self.settings.decko_on_top
+        self.settings = Settings(
+            provider=provider, model=model, base_url=base_url or "",
+            dock_mode=self.settings.dock_mode,
+            decko_on_top=(prev_on_top if decko_on_top is None
+                          else bool(decko_on_top)),
+            resize_ppt_for_dock=(self.settings.resize_ppt_for_dock
+                                 if resize_ppt_for_dock is None
+                                 else bool(resize_ppt_for_dock)))
         self.settings.validate()
         if api_key:
             secrets.set_api_key(api_key)
@@ -102,6 +118,19 @@ class Api:
         save_persisted(self.settings,
                        pr.get("last_deck_path", ""),
                        pr.get("last_mode", "attach"))
+        # Apply on-top live.
+        try:
+            _apply_on_top(_decko_hwnd(), bool(self.settings.decko_on_top))
+        except Exception:  # noqa: BLE001
+            pass
+        # If reflow toggled off, restore any cached PPT rect immediately.
+        try:
+            if resize_ppt_for_dock is False:
+                from app import dock as _dock
+                for h in list(_dock._ORIGINAL_PPT_RECTS.keys()):
+                    _dock.restore_ppt_window(h)
+        except Exception:  # noqa: BLE001
+            pass
         return {"ok": True}
 
     def new_session(self):
@@ -402,8 +431,18 @@ class Api:
             return ""
 
     def window_minimize(self):
-        # SP6: custom title-bar control for frameless dock mode.
+        # SP7: bypass pywebview's Window.minimize and call ShowWindow
+        # directly. After SP7's WS_EX_APPWINDOW fix the taskbar restore
+        # works natively even on frameless windows.
         try:
+            if sys.platform.startswith("win"):
+                import ctypes
+                SW_MINIMIZE = 6
+                hwnd = _decko_hwnd()
+                if hwnd:
+                    ctypes.windll.user32.ShowWindow(int(hwnd), SW_MINIMIZE)
+                    return {"ok": True}
+            # Non-Windows fallback to pywebview's helper.
             if webview.windows:
                 w = webview.windows[0]
                 if hasattr(w, "minimize"):
@@ -449,9 +488,17 @@ class Api:
                     w.resize(rect[2], rect[3])
                 except Exception:  # noqa: BLE001
                     pass
+                # Force taskbar entry on frameless dock window (SP7).
+                _force_app_window_taskbar(_decko_hwnd())
                 _start_dock_loop_for_window(w)
             else:
                 # Switch to detached SP5 layout (1180x760, framed, no dock).
+                # SP7: restore any PowerPoint window we shrank.
+                try:
+                    for h in list(_dock._ORIGINAL_PPT_RECTS.keys()):
+                        _dock.restore_ppt_window(h)
+                except Exception:  # noqa: BLE001
+                    pass
                 _stop_existing_dock_loop()
                 _apply_frameless_style(False)
                 try:
@@ -467,6 +514,13 @@ class Api:
             return {"error": f"{type(e).__name__}: {e}"}
 
     def shutdown(self):
+        # SP7: restore any PowerPoint window we shrank for dock mode.
+        try:
+            from app import dock as _dock
+            for h in list(_dock._ORIGINAL_PPT_RECTS.keys()):
+                _dock.restore_ppt_window(h)
+        except Exception:  # noqa: BLE001
+            pass
         try:
             _stop_existing_dock_loop()
         except Exception:  # noqa: BLE001
@@ -583,13 +637,22 @@ def _apply_frameless_style(frameless: bool):
 def _dock_event_handler(name: str, payload: dict):
     """Translate dock-loop events into pywebview window mutations.
     Runs on the dock thread — pywebview's move/resize/hide/show/minimize
-    are thread-safe shims that marshal back to the UI thread internally."""
+    are thread-safe shims that marshal back to the UI thread internally.
+
+    SP7 changes:
+      - Decko no longer hides on PPT minimize (we don't even receive
+        that event anymore — see app.dock).
+      - Slideshow lowers Decko's z-order instead of hiding it.
+      - On move_resize / restore: optionally shrink PPT to free Decko's
+        width when Settings.resize_ppt_for_dock=True.
+    """
     if not webview.windows:
         return
     w = webview.windows[0]
     try:
         if name in ("move_resize", "restore", "slideshow_exit", "ppt_gone"):
             rect = payload.get("rect")
+            ppt_hwnd = payload.get("ppt_hwnd") or 0
             if rect:
                 x, y, ww, hh = rect
                 try:
@@ -601,17 +664,96 @@ def _dock_event_handler(name: str, payload: dict):
                     w.resize(ww, hh)
                 except Exception:  # noqa: BLE001
                     pass
-        elif name == "minimize":
+                # SP7 reflow PPT to free Decko's gutter when enabled.
+                if ppt_hwnd and name in ("move_resize", "restore"):
+                    try:
+                        from app.config import settings_from_persisted
+                        s = settings_from_persisted()
+                        if s.resize_ppt_for_dock:
+                            from app import dock as _dock
+                            _dock.reflow_ppt_window(ppt_hwnd, x, ww)
+                    except Exception:  # noqa: BLE001
+                        pass
+        elif name == "slideshow_lower":
+            slideshow_hwnd = payload.get("slideshow_hwnd") or 0
             try:
-                if hasattr(w, "minimize"):
-                    w.minimize()
+                _lower_decko_zorder_behind(slideshow_hwnd)
             except Exception:  # noqa: BLE001
                 pass
-        elif name == "slideshow_enter":
-            try:
-                w.hide()
-            except Exception:  # noqa: BLE001
-                pass
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _lower_decko_zorder_behind(other_hwnd: int):
+    """Drop Decko's z-order below `other_hwnd` without hiding the window.
+    User can still alt-tab back to Decko anytime."""
+    if not sys.platform.startswith("win"):
+        return
+    try:
+        import ctypes
+        decko_hwnd = _decko_hwnd()
+        if not decko_hwnd or not other_hwnd:
+            return
+        SWP_NOMOVE = 0x0002
+        SWP_NOSIZE = 0x0001
+        SWP_NOACTIVATE = 0x0010
+        ctypes.windll.user32.SetWindowPos(
+            int(decko_hwnd), int(other_hwnd), 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _force_app_window_taskbar(hwnd: int):
+    """Force WS_EX_APPWINDOW (taskbar entry) and clear WS_EX_TOOLWINDOW.
+    Frameless pywebview windows sometimes default to tool-window style
+    which hides them from the taskbar — fatal for a 'dock' UX since
+    minimized Decko can't be restored without a taskbar button.
+
+    Cycle Hide→Show with SWP_NOACTIVATE so Windows re-registers the
+    taskbar entry without stealing focus from PowerPoint."""
+    if not sys.platform.startswith("win") or not hwnd:
+        return
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        GWL_EXSTYLE = -20
+        WS_EX_APPWINDOW = 0x00040000
+        WS_EX_TOOLWINDOW = 0x00000080
+        SW_HIDE = 0
+        SW_SHOWNA = 8  # show without activating
+        # Prefer the Ptr variant if available (64-bit).
+        get_ex = getattr(user32, "GetWindowLongPtrW", None) \
+            or user32.GetWindowLongW
+        set_ex = getattr(user32, "SetWindowLongPtrW", None) \
+            or user32.SetWindowLongW
+        cur = get_ex(int(hwnd), GWL_EXSTYLE)
+        new = (cur | WS_EX_APPWINDOW) & ~WS_EX_TOOLWINDOW
+        set_ex(int(hwnd), GWL_EXSTYLE, new)
+        # Cycle visibility to force taskbar re-registration.
+        user32.ShowWindow(int(hwnd), SW_HIDE)
+        user32.ShowWindow(int(hwnd), SW_SHOWNA)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _apply_on_top(hwnd: int, on_top: bool):
+    """SetWindowPos with HWND_TOPMOST / HWND_NOTOPMOST. Lets the user
+    toggle 'Keep Decko on top' live without restarting."""
+    if not sys.platform.startswith("win") or not hwnd:
+        return
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        HWND_TOPMOST = -1
+        HWND_NOTOPMOST = -2
+        SWP_NOMOVE = 0x0002
+        SWP_NOSIZE = 0x0001
+        SWP_NOACTIVATE = 0x0010
+        user32.SetWindowPos(int(hwnd),
+                            HWND_TOPMOST if on_top else HWND_NOTOPMOST,
+                            0, 0, 0, 0,
+                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
     except Exception:  # noqa: BLE001
         pass
 
@@ -631,6 +773,15 @@ def _on_window_ready():
     """Pywebview start() callback — runs after the window is created."""
     from app.config import settings_from_persisted
     s = settings_from_persisted()
+    # SP7: force taskbar entry on every launch (frameless or not) so the
+    # user can always restore Decko from the taskbar after minimizing.
+    try:
+        time.sleep(0.2)  # give pywebview time to register OS window
+    except Exception:  # noqa: BLE001
+        pass
+    decko_hwnd = _decko_hwnd()
+    _force_app_window_taskbar(decko_hwnd)
+    _apply_on_top(decko_hwnd, bool(s.decko_on_top))
     if s.dock_mode:
         _start_dock_loop_for_window(webview.windows[0] if webview.windows else None)
 
@@ -648,9 +799,10 @@ def main() -> int:
             x, y, w, h = _dock.compute_dock_rect(_dock.find_ppt_window())
         except Exception:  # noqa: BLE001
             x, y, w, h = 100, 100, 380, 720
+        # SP7: drop on_top=True default; user controls via Settings.
         webview.create_window("Decko", _web_index(), js_api=api,
                               width=w, height=h, x=x, y=y,
-                              frameless=True, easy_drag=True, on_top=True,
+                              frameless=True, easy_drag=True,
                               text_select=True)
     else:
         webview.create_window("Decko", _web_index(), js_api=api,
