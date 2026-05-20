@@ -71,7 +71,8 @@ class Api:
             "has_key": secrets.has_api_key(),
             "settings": {"provider": self.settings.provider,
                          "model": self.settings.model,
-                         "base_url": self.settings.base_url},
+                         "base_url": self.settings.base_url,
+                         "dock_mode": self.settings.dock_mode},
             "last_deck_path": p.get("last_deck_path", ""),
             "last_mode": p.get("last_mode", "attach"),
             "sessions": self.store.list_sessions(),
@@ -400,7 +401,76 @@ class Api:
         except Exception:  # noqa: BLE001
             return ""
 
+    def window_minimize(self):
+        # SP6: custom title-bar control for frameless dock mode.
+        try:
+            if webview.windows:
+                w = webview.windows[0]
+                if hasattr(w, "minimize"):
+                    w.minimize()
+            return {"ok": True}
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"{type(e).__name__}: {e}"}
+
+    def window_close(self):
+        # SP6: custom title-bar control for frameless dock mode.
+        try:
+            if webview.windows:
+                webview.windows[0].destroy()
+            return {"ok": True}
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"{type(e).__name__}: {e}"}
+
+    def set_dock_mode(self, enabled):
+        # SP6: live toggle between dock (frameless, snapped to PPT) and
+        # detached (framed, free-floating SP5 layout). Persists. Does NOT
+        # recreate the window — mutates style + geometry in place so chat
+        # state survives.
+        from app import dock as _dock
+        enabled = bool(enabled)
+        try:
+            # Persist.
+            self.settings.dock_mode = enabled
+            pr = load_persisted()
+            save_persisted(self.settings,
+                           pr.get("last_deck_path", ""),
+                           pr.get("last_mode", "attach"))
+            # Apply at runtime.
+            if not webview.windows:
+                return {"ok": True, "dock_mode": enabled}
+            w = webview.windows[0]
+            if enabled:
+                # Switch to docked layout.
+                _stop_existing_dock_loop()
+                rect = _dock.compute_dock_rect(_dock.find_ppt_window())
+                _apply_frameless_style(True)
+                try:
+                    w.move(rect[0], rect[1])
+                    w.resize(rect[2], rect[3])
+                except Exception:  # noqa: BLE001
+                    pass
+                _start_dock_loop_for_window(w)
+            else:
+                # Switch to detached SP5 layout (1180x760, framed, no dock).
+                _stop_existing_dock_loop()
+                _apply_frameless_style(False)
+                try:
+                    mleft, mtop, mright, mbottom = _dock._monitor_rect_for_hwnd(0)
+                    cx = mleft + ((mright - mleft) - 1180) // 2
+                    cy = mtop + ((mbottom - mtop) - 760) // 2
+                    w.move(cx, cy)
+                    w.resize(1180, 760)
+                except Exception:  # noqa: BLE001
+                    pass
+            return {"ok": True, "dock_mode": enabled}
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"{type(e).__name__}: {e}"}
+
     def shutdown(self):
+        try:
+            _stop_existing_dock_loop()
+        except Exception:  # noqa: BLE001
+            pass
         try:
             if self.dc is not None:
                 self._com(lambda: self.dc.close(save_deck=False))
@@ -418,13 +488,174 @@ def _web_index() -> str:
     return str(base / "app" / "web" / "index.html")
 
 
+# ----------------------------------------------------------------------
+# SP6 dock-loop helpers (module-level so set_dock_mode + main can share).
+
+_DOCK_LOOP = None
+
+
+def _stop_existing_dock_loop():
+    global _DOCK_LOOP
+    if _DOCK_LOOP is None:
+        return
+    try:
+        from app import dock
+        dock.stop_dock_loop(_DOCK_LOOP)
+    except Exception:  # noqa: BLE001
+        pass
+    _DOCK_LOOP = None
+
+
+def _decko_hwnd():
+    """Return the OS hwnd of the active Decko window, or 0."""
+    try:
+        if not webview.windows:
+            return 0
+        w = webview.windows[0]
+        hwnd = getattr(getattr(w, "native", None), "Handle", None)
+        if hwnd:
+            return int(hwnd)
+    except Exception:  # noqa: BLE001
+        pass
+    # Fallback: enumerate top-level windows and match title "Decko".
+    try:
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        hits = []
+
+        def _cb(hwnd, _):
+            if not user32.IsWindowVisible(hwnd):
+                return True
+            n = user32.GetWindowTextLengthW(hwnd)
+            buf = ctypes.create_unicode_buffer(n + 1)
+            user32.GetWindowTextW(hwnd, buf, n + 1)
+            if buf.value and buf.value.startswith("Decko"):
+                hits.append(int(hwnd))
+            return True
+
+        EnumWindowsProc = ctypes.WINFUNCTYPE(
+            wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        user32.EnumWindows(EnumWindowsProc(_cb), 0)
+        return hits[0] if hits else 0
+    except Exception:  # noqa: BLE001
+        return 0
+
+
+def _apply_frameless_style(frameless: bool):
+    """Mutate the live Decko window's GWL_STYLE to add/remove WS_CAPTION +
+    WS_THICKFRAME. Lets us toggle dock ↔ detached without recreating the
+    window (which would destroy chat state)."""
+    if not sys.platform.startswith("win"):
+        return
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        GWL_STYLE = -16
+        WS_CAPTION = 0x00C00000
+        WS_THICKFRAME = 0x00040000
+        WS_SYSMENU = 0x00080000
+        WS_MINIMIZEBOX = 0x00020000
+        WS_MAXIMIZEBOX = 0x00010000
+        SWP_NOMOVE = 0x0002
+        SWP_NOSIZE = 0x0001
+        SWP_NOZORDER = 0x0004
+        SWP_FRAMECHANGED = 0x0020
+        hwnd = _decko_hwnd()
+        if not hwnd:
+            return
+        # GetWindowLongW returns LONG; on 64-bit you'd want GetWindowLongPtrW,
+        # but ctypes exposes the W variant which is sufficient for style.
+        cur = user32.GetWindowLongW(hwnd, GWL_STYLE)
+        mask = WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
+        if frameless:
+            new = cur & ~mask
+        else:
+            new = cur | mask
+        user32.SetWindowLongW(hwnd, GWL_STYLE, new)
+        user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0,
+                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
+                            | SWP_FRAMECHANGED)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _dock_event_handler(name: str, payload: dict):
+    """Translate dock-loop events into pywebview window mutations.
+    Runs on the dock thread — pywebview's move/resize/hide/show/minimize
+    are thread-safe shims that marshal back to the UI thread internally."""
+    if not webview.windows:
+        return
+    w = webview.windows[0]
+    try:
+        if name in ("move_resize", "restore", "slideshow_exit", "ppt_gone"):
+            rect = payload.get("rect")
+            if rect:
+                x, y, ww, hh = rect
+                try:
+                    w.show()
+                except Exception:  # noqa: BLE001
+                    pass
+                try:
+                    w.move(x, y)
+                    w.resize(ww, hh)
+                except Exception:  # noqa: BLE001
+                    pass
+        elif name == "minimize":
+            try:
+                if hasattr(w, "minimize"):
+                    w.minimize()
+            except Exception:  # noqa: BLE001
+                pass
+        elif name == "slideshow_enter":
+            try:
+                w.hide()
+            except Exception:  # noqa: BLE001
+                pass
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _start_dock_loop_for_window(_w):
+    """Find the OS hwnd of the Decko window and install the dock loop."""
+    global _DOCK_LOOP
+    try:
+        from app import dock
+        hwnd = _decko_hwnd()
+        _DOCK_LOOP = dock.start_dock_loop(hwnd, on_dock_event=_dock_event_handler)
+    except Exception:  # noqa: BLE001
+        _DOCK_LOOP = None
+
+
+def _on_window_ready():
+    """Pywebview start() callback — runs after the window is created."""
+    from app.config import settings_from_persisted
+    s = settings_from_persisted()
+    if s.dock_mode:
+        _start_dock_loop_for_window(webview.windows[0] if webview.windows else None)
+
+
 def main() -> int:
     if "--selfcheck" in sys.argv[1:]:
         return _selfcheck()
     api = Api()
-    webview.create_window("Decko", _web_index(), js_api=api,
-                          width=1180, height=760, text_select=True)
-    webview.start()
+    from app.config import settings_from_persisted
+    s = settings_from_persisted()
+    if s.dock_mode:
+        # Compute initial dock geometry against the active PowerPoint window.
+        try:
+            from app import dock as _dock
+            x, y, w, h = _dock.compute_dock_rect(_dock.find_ppt_window())
+        except Exception:  # noqa: BLE001
+            x, y, w, h = 100, 100, 380, 720
+        webview.create_window("Decko", _web_index(), js_api=api,
+                              width=w, height=h, x=x, y=y,
+                              frameless=True, easy_drag=True, on_top=True,
+                              text_select=True)
+    else:
+        webview.create_window("Decko", _web_index(), js_api=api,
+                              width=1180, height=760, text_select=True)
+    webview.start(_on_window_ready)
     api.shutdown()
     return 0
 
