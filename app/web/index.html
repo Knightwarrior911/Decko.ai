@@ -1,86 +1,246 @@
-<!doctype html><html><head><meta charset="utf-8">
-<link rel="stylesheet" href="app.css"></head><body>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Decko</title>
+  <link rel="icon" href="decko_icon.svg">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header id="appHeader">
+  <img src="decko_icon.svg" alt="Decko">
+  <span class="wordmark">Decko</span>
+  <span id="headerSpacer"></span>
+  <button id="gearBtn" title="Open settings" aria-label="Settings">&#9881;</button>
+</header>
+
 <div id="layout">
+
   <aside id="side">
-    <h2>Decko</h2>
-
-    <section><h3>Deck</h3>
-      <select id="mode">
-        <option value="attach">Attach to open deck</option>
-        <option value="file">Open a .pptx file</option>
-      </select>
-      <input id="file" placeholder="C:\\path\\deck.pptx" hidden>
-      <button id="startBtn">Start session</button>
-      <button id="savePptBtn" class="ghost">Save PowerPoint</button>
-      <button id="tplBtn" class="ghost">Templates ▸</button>
-    </section>
-
-    <section><h3>LLM</h3>
-      <select id="provider">
-        <option>anthropic</option><option>openai</option><option>generic</option>
-      </select>
-      <input id="model" placeholder="model (e.g. claude-opus-4-7 / gpt-4o / deepseek-chat)">
-      <input id="baseUrl" placeholder="base URL (generic only)" hidden>
-      <input id="apiKey" type="password" placeholder="API key (saved securely)">
-      <button id="saveBtn">Save settings</button>
-      <div id="activeCfg" class="muted"></div>
+    <section>
+      <h3>Deck</h3>
+      <div id="deckStatus" title="The PowerPoint deck Decko is currently editing.">No deck connected.</div>
+      <button id="switchDeckBtn" class="ghost" title="Connect to a different deck.">Switch deck</button>
+      <button id="savePptBtn" class="ghost" title="Save changes back to PowerPoint.">Save deck</button>
+      <button id="tplBtn" class="ghost" title="Browse layouts you can apply.">Templates</button>
     </section>
 
     <section>
-      <button id="newBtn" class="ghost">+ New session</button>
-      <h3>Sessions</h3>
+      <button id="newBtn" class="ghost" title="Start a fresh chat session.">+ New chat</button>
+      <h3>Recent chats</h3>
       <ul id="sessions"></ul>
     </section>
   </aside>
 
   <main id="chat">
-    <div id="threadTitle" class="muted"></div>
+    <div id="threadTitle"></div>
+
+    <div id="hero">
+      <h1>What deck do you want to edit today?</h1>
+      <p>Decko sends your request to your AI of choice, then edits the
+        PowerPoint deck on this PC. No deck data leaves your machine
+        except the slide content you ask the AI about.</p>
+      <div id="heroBtns">
+        <button id="heroConnect" title="Use the PowerPoint deck currently open on this PC.">Connect to open deck</button>
+        <button id="heroOpenFile" class="ghost" title="Pick a .pptx file from this PC.">Open a PowerPoint file&hellip;</button>
+      </div>
+    </div>
+
     <div id="thread"></div>
-    <div id="composer">
-      <textarea id="msg" placeholder="Describe the change…  (Ctrl+Enter to send)"></textarea>
-      <button id="sendBtn">Send</button>
+
+    <div id="composerWrap" class="hidden">
+      <div id="chips">
+        <div class="chip" data-prefill="Rewrite slide 3 for a different company called Acme.">Rewrite slide 3 for a different company</div>
+        <div class="chip" data-prefill="Make this chart a stacked bar.">Make this chart a stacked bar</div>
+        <div class="chip" data-prefill="Apply our brand colors across the deck.">Apply our brand colors</div>
+        <div class="chip" data-prefill="Make slide 1 more visual.">Make slide 1 more visual</div>
+      </div>
+      <div id="composer">
+        <textarea id="msg" title="Describe the edit in plain English."
+          placeholder='What would you like to change?  Try: "rewrite slide 3 for Acme"'></textarea>
+        <button id="sendBtn" title="Send to AI (Ctrl+Enter).">Send</button>
+      </div>
+      <div id="composerHint">Ctrl+Enter to send</div>
     </div>
   </main>
 
   <aside id="tplPanel" class="tpl-hidden">
-    <div class="tplHead"><b>Templates &amp; Deck DNA</b>
-      <button id="tplClose" class="ghost">✕</button></div>
+    <div class="tplHead">
+      <b>Templates</b>
+      <button id="tplClose" class="ghost" title="Close.">&#10006;</button>
+    </div>
 
-    <details open><summary>Built-in templates</summary>
-      <select id="tplPick"></select>
+    <details open>
+      <summary>Built-in templates</summary>
+      <label class="muted">Pick a layout</label>
+      <select id="tplPick" title="Built-in slide layouts."></select>
       <div id="tplSlots"></div>
       <div class="tplRow">
-        <select id="tplTarget">
+        <select id="tplTarget" title="Add a new slide or replace an existing one.">
           <option value="append">Append new slide</option>
-          <option value="replace">Replace slide…</option>
+          <option value="replace">Replace slide&hellip;</option>
         </select>
-        <input id="tplSlideNo" type="number" min="1" value="1" hidden>
+        <input id="tplSlideNo" type="number" min="1" value="1" hidden
+          title="Slide number to replace.">
       </div>
-      <input id="tplBrief" placeholder="Optional: one-line brief for Fill-with-AI">
+      <input id="tplBrief" title="A short hint for the AI when filling the slots."
+        placeholder="One-line brief (optional)">
       <div class="tplRow">
-        <button id="tplFill" class="ghost">Fill with AI</button>
-        <button id="tplApply">Apply</button>
+        <button id="tplFill" class="ghost" title="Let the AI suggest content for each slot.">Fill with AI</button>
+        <button id="tplApply" class="primary" title="Apply the chosen layout to the deck.">Apply</button>
       </div>
     </details>
 
-    <details><summary>Deck DNA (captured)</summary>
-      <input id="capName" placeholder="Name to capture active slide as">
-      <button id="capBtn">Capture active slide</button>
+    <details>
+      <summary>My saved layouts</summary>
+      <input id="capName" title="A short name for the layout you're capturing."
+        placeholder="Name this layout">
+      <button id="capBtn" class="ghost" title="Save the current slide as a reusable layout.">Capture current slide</button>
       <ul id="capList"></ul>
     </details>
 
-    <details><summary>Variants</summary>
-      <select id="varTpl"></select>
-      <input id="varN" type="number" min="1" value="3">
-      <button id="varBtn">Generate variants (append)</button>
+    <details>
+      <summary>Variants</summary>
+      <label class="muted">Layout</label>
+      <select id="varTpl" title="Layout to generate variants of."></select>
+      <label class="muted">How many</label>
+      <input id="varN" type="number" min="1" value="3"
+        title="Number of variants to create.">
+      <button id="varBtn" class="ghost" title="Append N variants of this layout to the deck.">Generate variants</button>
     </details>
 
-    <details><summary>Decks-as-code</summary>
-      <button id="specExtract" class="ghost">Extract spec from deck</button>
-      <textarea id="specBox" placeholder='{"deck":[{"template":"title","content":{...}}]}'></textarea>
-      <label class="muted"><input type="checkbox" id="specClear"> Replace whole deck</label>
-      <button id="specBuild">Build deck from spec</button>
+    <details>
+      <summary>Power user tools</summary>
+      <button id="specExtract" class="ghost" title="Pull the deck out as a JSON description you can save and tweak.">Export deck as JSON</button>
+      <textarea id="specBox" title="Paste a deck description in JSON."
+        placeholder='{"deck":[{"template":"title","content":{...}}]}'></textarea>
+      <label title="When checked, wipes existing slides before building from JSON.">
+        <input type="checkbox" id="specClear"> Replace the whole deck
+      </label>
+      <button id="specBuild" class="ghost" title="Build slides from the JSON above.">Build from JSON</button>
     </details>
   </aside>
+
 </div>
-<script src="app.js"></script></body></html>
+
+<!-- First-run wizard -->
+<div id="wizard" class="hidden">
+  <div class="wizCard">
+    <div class="wizSteps">
+      <div class="wizDot" id="wizDot1"></div>
+      <div class="wizDot" id="wizDot2"></div>
+      <div class="wizDot" id="wizDot3"></div>
+    </div>
+
+    <div id="wizardStep1" class="wizPanel">
+      <h2>Welcome to Decko</h2>
+      <p>AI edits for your PowerPoint decks. Decko runs on this PC and
+        talks to the AI service you choose &mdash; your slides never leave your
+        machine.</p>
+      <div class="wizBtns">
+        <button class="primary full" id="wizStart" title="Begin setup.">Get started</button>
+      </div>
+    </div>
+
+    <div id="wizardStep2" class="wizPanel hidden">
+      <h2>Choose your AI</h2>
+      <p>Decko uses your own API key. Pick a service and a model.</p>
+
+      <label for="wizProvider" title="Which AI service to use.">AI service</label>
+      <select id="wizProvider" title="Which AI service Decko sends edit requests to.">
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="openai">OpenAI</option>
+        <option value="generic">Other</option>
+      </select>
+
+      <label for="wizModel" title="Recommended defaults are pre-selected.">Model</label>
+      <select id="wizModel" title="Which model to use. Recommended defaults are pre-selected."></select>
+
+      <details class="wizAdvanced">
+        <summary>Advanced</summary>
+        <label for="wizModelFree" title="Free-text model id for custom endpoints.">Custom model id</label>
+        <input id="wizModelFree" title="Free-text model id (used when service is 'Other').">
+        <label for="wizBaseUrl" title="Only needed if your AI is hosted at a non-standard URL.">Custom base URL</label>
+        <input id="wizBaseUrl" title="Only needed for 'Other' / self-hosted endpoints." placeholder="https://api.example.com/v1">
+      </details>
+
+      <label for="wizKey" title="Your AI key. Stored only on this PC.">API key</label>
+      <input id="wizKey" type="password" title="Your own key for the chosen AI service. Stored only on this PC.">
+
+      <div class="wizNote">We store your key locally only &mdash; never sent to Decko servers.</div>
+
+      <div class="wizBtns">
+        <button id="wizBack2" title="Back.">Back</button>
+        <button class="primary" id="wizSaveKey" title="Save and continue.">Save and continue</button>
+      </div>
+    </div>
+
+    <div id="wizardStep3" class="wizPanel hidden">
+      <h2>Pick a deck</h2>
+      <p>You can connect to a deck already open in PowerPoint, or open a
+        .pptx file from this PC.</p>
+      <div class="wizBtns">
+        <button class="primary wizBig" id="wizConnect" title="Use the deck already open in PowerPoint.">Connect to open deck</button>
+      </div>
+      <div class="wizBtns">
+        <button class="wizBig" id="wizOpenFile" title="Pick a .pptx from this PC.">Open a PowerPoint file&hellip;</button>
+      </div>
+      <div class="wizBtns" style="margin-top:.6rem">
+        <button id="wizBack3" title="Back.">Back</button>
+        <button id="wizSkip" title="Skip for now &mdash; you can connect later.">Skip for now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings dialog -->
+<div id="settingsDialog" class="hidden">
+  <div class="dlgCard">
+    <h2>Settings</h2>
+
+    <label for="setProvider" title="Which AI service to use.">AI service</label>
+    <select id="setProvider" title="Which AI service Decko sends edit requests to.">
+      <option value="anthropic">Anthropic (Claude)</option>
+      <option value="openai">OpenAI</option>
+      <option value="generic">Other</option>
+    </select>
+
+    <label for="modelPick" title="Recommended defaults are pre-selected.">Model</label>
+    <select id="modelPick" title="Which model to use. Recommended defaults are pre-selected."></select>
+
+    <details class="dlgAdvanced">
+      <summary>Advanced</summary>
+      <label for="setModelFree" title="Free-text model id for custom endpoints.">Custom model id</label>
+      <input id="setModelFree" title="Free-text model id (used when service is 'Other').">
+      <label for="setBaseUrl" title="Only needed for 'Other' / self-hosted endpoints.">Custom base URL</label>
+      <input id="setBaseUrl" title="Only needed for 'Other' / self-hosted endpoints." placeholder="https://api.example.com/v1">
+    </details>
+
+    <label title="Your AI key. Stored only on this PC.">API key</label>
+    <div id="keyDisplay" class="keyStatus">
+      <span id="keyMask">No key saved</span>
+      <a id="updateKeyLink" title="Replace your saved key.">Update key</a>
+    </div>
+    <input id="setKey" type="password" hidden
+      title="Your own key for the chosen AI service. Stored only on this PC.">
+
+    <label title="Light or dark appearance.">Theme</label>
+    <div class="themeRow">
+      <button id="themeDark"  title="Dark mode.">Dark</button>
+      <button id="themeLight" title="Light mode.">Light</button>
+    </div>
+
+    <div class="dlgBtns">
+      <button id="setCancel" title="Discard changes.">Cancel</button>
+      <button class="primary" id="setSave" title="Save settings.">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -375,6 +375,31 @@ class Api:
         except Exception as e:  # noqa: BLE001
             return {"error": f"Save failed: {type(e).__name__}: {e}"}
 
+    def set_window_title(self, title):
+        # Narrow cosmetic-only addition (SP5). Sets the OS window title bar
+        # so the consumer UI can show the current deck name + dirty marker.
+        try:
+            if webview.windows:
+                webview.windows[0].title = str(title or "Decko")
+            return {"ok": True}
+        except Exception as e:  # noqa: BLE001
+            return {"error": f"{type(e).__name__}: {e}"}
+
+    def pick_pptx_path(self):
+        # Native file picker for consumer flow. Returns the selected path or
+        # empty string on cancel. Stays on the UI thread (no COM).
+        try:
+            if not webview.windows:
+                return ""
+            res = webview.windows[0].create_file_dialog(
+                webview.OPEN_DIALOG, allow_multiple=False,
+                file_types=("PowerPoint files (*.pptx;*.pptm)", "All files (*.*)"))
+            if not res:
+                return ""
+            return res[0] if isinstance(res, (list, tuple)) else str(res)
+        except Exception:  # noqa: BLE001
+            return ""
+
     def shutdown(self):
         try:
             if self.dc is not None:
