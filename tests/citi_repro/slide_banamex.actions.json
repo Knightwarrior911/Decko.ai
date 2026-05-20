@@ -1,0 +1,2688 @@
+{
+ "actions": [
+  {
+   "type": "add_slide",
+   "position": 1,
+   "layout_index": 6
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Banamex 24% stake – estimated financial impacts at closing(1)",
+   "pos": {
+    "left": 24,
+    "top": 12,
+    "width": 860,
+    "height": 28
+   },
+   "font_color": "#255BE3",
+   "font_size": 22,
+   "font_bold": true
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "citi",
+   "pos": {
+    "left": 902,
+    "top": 14,
+    "width": 36,
+    "height": 20
+   },
+   "font_color": "#255BE3",
+   "font_size": 15,
+   "font_bold": true,
+   "h_align": "right"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "pos": {
+    "left": 24,
+    "top": 45,
+    "width": 912,
+    "height": 2
+   },
+   "fill": "#255BE3",
+   "stroke": null
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "oval",
+   "pos": {
+    "left": 24,
+    "top": 58,
+    "width": 16,
+    "height": 16
+   },
+   "fill": "#1F4E79",
+   "stroke": null,
+   "text": "a",
+   "font_color": "#FFFFFF",
+   "font_size": 9,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "At closing, assets will increase reflecting the consideration received for the 24% stake based on a fixed price of ~MXN 43 billion or ~USD 2.5 billion(2)",
+   "pos": {
+    "left": 46,
+    "top": 58,
+    "width": 438,
+    "height": 50
+   },
+   "font_color": "#0F1632",
+   "font_size": 9,
+   "ref_name": "lc_a"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "lc_a",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "lc_a",
+   "paragraph_index": 0,
+   "value": "none"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "lc_a",
+   "paragraph_index": 0,
+   "value": 9
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "lc_a",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "oval",
+   "pos": {
+    "left": 24,
+    "top": 118,
+    "width": 16,
+    "height": 16
+   },
+   "fill": "#1F4E79",
+   "stroke": null,
+   "text": "b",
+   "font_color": "#FFFFFF",
+   "font_size": 9,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "The net loss on sale is recorded primarily in Additional Paid-in Capital (APIC) and is made up of the net of the sale consideration received and 24% of the Banamex U.S. GAAP Book Value",
+   "pos": {
+    "left": 46,
+    "top": 118,
+    "width": 438,
+    "height": 50
+   },
+   "font_color": "#0F1632",
+   "font_size": 9,
+   "ref_name": "lc_b"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "lc_b",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "lc_b",
+   "paragraph_index": 0,
+   "value": "none"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "lc_b",
+   "paragraph_index": 0,
+   "value": 9
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "lc_b",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "oval",
+   "pos": {
+    "left": 24,
+    "top": 178,
+    "width": 16,
+    "height": 16
+   },
+   "fill": "#1F4E79",
+   "stroke": null,
+   "text": "c",
+   "font_color": "#FFFFFF",
+   "font_size": 9,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "24% of the approximately $8.6B of total Banamex CTA (inclusive of amounts already reclassified to NCI), as of February 27, 2026, moves from AOCI to NCI - this causes a benefit to stockholders' equity since an unrealized loss is moving out of stockholders' equity",
+   "pos": {
+    "left": 46,
+    "top": 178,
+    "width": 438,
+    "height": 66
+   },
+   "font_color": "#0F1632",
+   "font_size": 9,
+   "ref_name": "lc_c"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "lc_c",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "lc_c",
+   "paragraph_index": 0,
+   "value": "none"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "lc_c",
+   "paragraph_index": 0,
+   "value": 9
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "lc_c",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "oval",
+   "pos": {
+    "left": 24,
+    "top": 254,
+    "width": 16,
+    "height": 16
+   },
+   "fill": "#1F4E79",
+   "stroke": null,
+   "text": "d",
+   "font_color": "#FFFFFF",
+   "font_size": 9,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Therefore, Stockholder's equity increases by ~$1.7B\nAs a reminder, the CTA to NCI reclass results in a temporary increase to stockholders' equity and CET1 until it reverses at deconsolidation",
+   "pos": {
+    "left": 46,
+    "top": 254,
+    "width": 438,
+    "height": 56
+   },
+   "font_color": "#0F1632",
+   "font_size": 9,
+   "ref_name": "lc_d"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "lc_d",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "lc_d",
+   "paragraph_index": 0,
+   "value": "none"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "lc_d",
+   "paragraph_index": 0,
+   "value": 9
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "lc_d",
+   "paragraph_index": 1,
+   "value": 1
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "lc_d",
+   "paragraph_index": 1,
+   "value": "dash"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "lc_d",
+   "paragraph_index": 1,
+   "value": 8
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "lc_d",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "oval",
+   "pos": {
+    "left": 24,
+    "top": 320,
+    "width": 16,
+    "height": 16
+   },
+   "fill": "#1F4E79",
+   "stroke": null,
+   "text": "e",
+   "font_color": "#FFFFFF",
+   "font_size": 9,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "NCI increases by 24% of the Banamex U.S. GAAP Book Value largely offset by 24% of the CTA losses reclassed from AOCI",
+   "pos": {
+    "left": 46,
+    "top": 320,
+    "width": 438,
+    "height": 42
+   },
+   "font_color": "#0F1632",
+   "font_size": 9,
+   "ref_name": "lc_e"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "lc_e",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "lc_e",
+   "paragraph_index": 0,
+   "value": "none"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "lc_e",
+   "paragraph_index": 0,
+   "value": 9
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "lc_e",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "oval",
+   "pos": {
+    "left": 26,
+    "top": 376,
+    "width": 5,
+    "height": 5
+   },
+   "fill": "#0F1632",
+   "stroke": null
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Upon closing of all committed purchases, Citi will have sold 49% of Banamex. Therefore, 49% of all financial impacts of Banamex will impact the NCI(3)",
+   "pos": {
+    "left": 46,
+    "top": 372,
+    "width": 438,
+    "height": 42
+   },
+   "font_color": "#0F1632",
+   "font_size": 9,
+   "ref_name": "lc_z"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "lc_z",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "lc_z",
+   "paragraph_index": 0,
+   "value": "none"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "lc_z",
+   "paragraph_index": 0,
+   "value": 9
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "lc_z",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "pos": {
+    "left": 500,
+    "top": 58,
+    "width": 436,
+    "height": 32
+   },
+   "fill": "#255BE3",
+   "stroke": null,
+   "text": "Estimated Balance Sheet Impacts at Closing of the 24% stake sale - subject to changes including FX",
+   "font_color": "#FFFFFF",
+   "font_size": 9,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_table",
+   "slide": 1,
+   "rows": 14,
+   "cols": 4,
+   "pos": {
+    "left": 500,
+    "top": 96,
+    "width": 436,
+    "height": 364
+   },
+   "ref_name": "tbl"
+  },
+  {
+   "type": "apply_table_style",
+   "slide": 1,
+   "shape_id": "tbl",
+   "style_id": "no_style_no_grid"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 1,
+   "value": "$USD in B"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 1,
+   "color": "#255BE3"
+  },
+  {
+   "type": "set_cell_font_color",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 1,
+   "value": "#FFFFFF"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 1,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 2,
+   "value": "25% Stake(4)\nClose"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 2,
+   "color": "#255BE3"
+  },
+  {
+   "type": "set_cell_font_color",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 2,
+   "value": "#FFFFFF"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 2,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 3,
+   "value": "24% Stake"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 3,
+   "color": "#255BE3"
+  },
+  {
+   "type": "set_cell_font_color",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 3,
+   "value": "#FFFFFF"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 3,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 4,
+   "value": "Total"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 4,
+   "color": "#255BE3"
+  },
+  {
+   "type": "set_cell_font_color",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 4,
+   "value": "#FFFFFF"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "col": 4,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "col": 1,
+   "value": "Total Estimated Sale Consideration"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "col": 2,
+   "value": "2.3"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "col": 3,
+   "value": "2.5"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "col": 4,
+   "value": "4.8"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 1,
+   "value": "Impact to Total Assets (Debit)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 1,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 1,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 2,
+   "value": "2.3"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 2,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 2,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 3,
+   "value": "2.5"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 3,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 3,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 4,
+   "value": "4.8"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 4,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 4,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "col": 1,
+   "value": "Total Estimated Sale Consideration"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "col": 2,
+   "value": "2.3"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "col": 3,
+   "value": "2.5"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "col": 4,
+   "value": "4.8"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "col": 1,
+   "value": "Less:  % of Banamex U.S. GAAP Book Value"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "col": 2,
+   "value": "(2.9)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "col": 3,
+   "value": "(2.9)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "col": 4,
+   "value": "(5.8)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 1,
+   "value": "Loss on Sale"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 1,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 1,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 2,
+   "value": "(0.6)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 2,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 2,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 3,
+   "value": "(0.4)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 3,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 3,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 4,
+   "value": "(1.0)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 4,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 4,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "col": 1,
+   "value": "Reclassification of Negative CTA(5)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "col": 2,
+   "value": "2.3"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "col": 3,
+   "value": "2.1"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "col": 4,
+   "value": "4.4"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 1,
+   "value": "Impact to Stockholders' Equity (Credit)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 1,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 1,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 2,
+   "value": "1.7"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 2,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 2,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 3,
+   "value": "1.7"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 3,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 3,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 4,
+   "value": "3.4"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 4,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 4,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "col": 1,
+   "value": "% of Banamex U.S. GAAP Book Value"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "col": 2,
+   "value": "2.9"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "col": 3,
+   "value": "2.9"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "col": 4,
+   "value": "5.8"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "col": 1,
+   "value": "Reclassification of Negative CTA(5)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "col": 2,
+   "value": "(2.3)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "col": 3,
+   "value": "(2.1)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "col": 4,
+   "value": "(4.4)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 1,
+   "value": "Impact to NCI (Credit)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 1,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 1,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 2,
+   "value": "0.6"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 2,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 2,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 3,
+   "value": "0.8"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 3,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 3,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 4,
+   "value": "1.4"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 4,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 4,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "col": 1,
+   "value": "Impact to Stockholders' Equity"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "col": 2,
+   "value": "1.7"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "col": 3,
+   "value": "1.7"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "col": 4,
+   "value": "3.4"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "col": 1,
+   "value": "Impact to NCI"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "col": 2,
+   "value": "0.6"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "col": 3,
+   "value": "0.8"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "col": 4,
+   "value": "1.4"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 1,
+   "value": "Impact to Total Equity (Credit)"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 1,
+   "h_align": "left",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 1,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 1,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 2,
+   "value": "2.3"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 2,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 2,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 2,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 3,
+   "value": "2.5"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 3,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 3,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 3,
+   "value": true
+  },
+  {
+   "type": "set_cell_text",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 4,
+   "value": "4.8"
+  },
+  {
+   "type": "set_cell_text_align",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 4,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "set_cell_fill",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 4,
+   "color": "#DCE6F7"
+  },
+  {
+   "type": "set_cell_font_bold",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 4,
+   "value": true
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 1,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "value": 8
+  },
+  {
+   "type": "set_row_font_size",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "value": 8
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 2,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 3,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 4,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 5,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 6,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 7,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 8,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 9,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 10,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 11,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 12,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 13,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 1,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 2,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 3,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_cell_border",
+   "slide": 1,
+   "shape_id": "tbl",
+   "row": 14,
+   "col": 4,
+   "side": "bottom",
+   "color": "#D7DEE8",
+   "weight_pt": 0.5,
+   "visible": true
+  },
+  {
+   "type": "set_table_col_width",
+   "slide": 1,
+   "shape_id": "tbl",
+   "col": 1,
+   "width_pt": 214
+  },
+  {
+   "type": "set_table_col_width",
+   "slide": 1,
+   "shape_id": "tbl",
+   "col": 2,
+   "width_pt": 74
+  },
+  {
+   "type": "set_table_col_width",
+   "slide": 1,
+   "shape_id": "tbl",
+   "col": 3,
+   "width_pt": 74
+  },
+  {
+   "type": "set_table_col_width",
+   "slide": 1,
+   "shape_id": "tbl",
+   "col": 4,
+   "width_pt": 74
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "oval",
+   "ref_name": "mk_a",
+   "pos": {
+    "left": 482,
+    "top": 154.0,
+    "width": 14,
+    "height": 14
+   },
+   "fill": "#1F4E79",
+   "stroke": null,
+   "text": "a",
+   "font_color": "#FFFFFF",
+   "font_size": 8,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "oval",
+   "ref_name": "mk_b",
+   "pos": {
+    "left": 482,
+    "top": 232.0,
+    "width": 14,
+    "height": 14
+   },
+   "fill": "#1F4E79",
+   "stroke": null,
+   "text": "b",
+   "font_color": "#FFFFFF",
+   "font_size": 8,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "oval",
+   "ref_name": "mk_c",
+   "pos": {
+    "left": 482,
+    "top": 284.0,
+    "width": 14,
+    "height": 14
+   },
+   "fill": "#1F4E79",
+   "stroke": null,
+   "text": "c",
+   "font_color": "#FFFFFF",
+   "font_size": 8,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "oval",
+   "ref_name": "mk_d",
+   "pos": {
+    "left": 482,
+    "top": 362.0,
+    "width": 14,
+    "height": 14
+   },
+   "fill": "#1F4E79",
+   "stroke": null,
+   "text": "d",
+   "font_color": "#FFFFFF",
+   "font_size": 8,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "oval",
+   "ref_name": "mk_e",
+   "pos": {
+    "left": 482,
+    "top": 440.0,
+    "width": 14,
+    "height": 14
+   },
+   "fill": "#1F4E79",
+   "stroke": null,
+   "text": "e",
+   "font_color": "#FFFFFF",
+   "font_size": 8,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "group_shapes",
+   "slide": 1,
+   "shape_ids": [
+    "mk_a",
+    "mk_b",
+    "mk_c",
+    "mk_d",
+    "mk_e"
+   ],
+   "ref_name": "mk_grp"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "pos": {
+    "left": 24,
+    "top": 486,
+    "width": 912,
+    "height": 34
+   },
+   "fill": "#0F1632",
+   "stroke": null,
+   "text": "Once Citi's voting stock ownership in Banamex is below 50%, Citi will deconsolidate the entity(6)",
+   "font_color": "#FFFFFF",
+   "font_size": 12,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Note: As of February 27, 2026. All footnotes are presented starting on Slide 28.",
+   "pos": {
+    "left": 24,
+    "top": 522,
+    "width": 700,
+    "height": 14
+   },
+   "font_color": "#7C7C7C",
+   "font_size": 8
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "22",
+   "pos": {
+    "left": 908,
+    "top": 521,
+    "width": 28,
+    "height": 16
+   },
+   "font_color": "#7C7C7C",
+   "font_size": 9,
+   "h_align": "right"
+  }
+ ]
+}

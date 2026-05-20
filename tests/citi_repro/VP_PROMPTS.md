@@ -69,3 +69,80 @@ Combined 2-slide deck regenerated from the above:
 `python tests/citi_repro/run_citi.py tests/citi_repro/citi_final.actions.json --deck citi_final`
 → **508/508 actions, 0 non-ok**, slide 1 + slide 2 each = 1 real ChartObject +
 1 real table, zero autoshape-as-chart.
+
+---
+
+## Slide 4 — "Five interconnected businesses driving strong 1Q26 performance"
+
+> Build a 16:9 slide in Citi blue titled "Five interconnected businesses
+> driving strong 1Q26 performance" with a citi wordmark top-right and a rule
+> under the title (group the title block). Across the top put three grouping
+> labels with thin bracket rules: GLOBAL NETWORK over the first two cards,
+> INTERCONNECTED over the middle card, DIVERSIFIED over the last two. Lay out
+> five business cards left-to-right — Services (navy), Markets (dark blue),
+> Banking (brown), Wealth (Citi blue), U.S. Consumer Cards (purple) — each a
+> colored header band over a rounded card. In each card put bold-italic stat
+> lines (e.g. Services "TTS: #1 Rank(1) / gained ~100 bps share YoY / Securities
+> Services: #1 in Direct Custody(2)"), a centered green "X% YoY ▲" growth note,
+> and a real native stacked-column chart of 1Q25 vs 1Q26 revenue ($B) with the
+> segment values inside the bars and the $ total above each bar via an invisible
+> total line. Services 3.9/4.6 TTS + 1.3/1.5 Securities Services ($5.2/$6.1, 17%);
+> Markets 4.6/5.2 Fixed Income + 1.5/2.1 Equities ($6.1/$7.2, 19%); Banking
+> 1.8/2.1 IB + 0.7/0.8 Corp Lending + 0.3/0.2 loan hedges ($2.8/$3.1, 11%);
+> Wealth 0.4/0.4 Private Bank + 1.1/1.4 Wealth at Work/Citigold ($1.5/$1.8, 20%);
+> U.S. Consumer Cards 4.6/4.8 ($4.6/$4.8, 4%). Add disc bullets where the source
+> has them (Markets "Record prime balances(4)...", Banking "Record 1Q in
+> Advisory(6)", Wealth "18% EBT Margin / Net new investment asset flows ~$15B",
+> Cards "Spend volume up 6% YoY..."), and a green "Positive operating leverage"
+> footer under every card except Banking. Link the five cards with thin
+> double-headed connectors (the interconnected motif). Close with a full-width
+> dark band: "Best quarterly revenue in a decade for the firm and Markets,
+> Wealth and U.S. Consumer Cards; Highest 1Q revenues in Services in a
+> decade(6)". Footnote bottom-left, page number "4" bottom-right.
+
+Action JSON: `tests/citi_repro/slide_biz.actions.json` (98 actions, 0 non-ok).
+Builder: `tests/citi_repro/build_slide_biz.py`. 5 real ChartObjects
+(columnstacked), 0 autoshape-as-chart, 0 verify warnings.
+
+---
+
+## Slide 22 — "Banamex 24% stake – estimated financial impacts at closing(1)"
+
+> Build a 16:9 slide in Citi blue titled "Banamex 24% stake – estimated
+> financial impacts at closing(1)" with citi wordmark and a title rule. Down
+> the left, a column of lettered navy-circle callouts a–e each with a wrapped
+> paragraph plus a closing unlettered note: (a) at closing assets increase by
+> the ~MXN 43B / ~USD 2.5B consideration(2); (b) net loss on sale recorded
+> primarily in APIC; (c) 24% of ~$8.6B Banamex CTA moves AOCI→NCI, benefiting
+> stockholders' equity; (d) therefore stockholders' equity increases ~$1.7B
+> (with a dashed sub-note on the temporary CET1 increase); (e) NCI increases by
+> 24% of Book Value offset by 24% of CTA; closing note that Citi will have sold
+> 49% so 49% of impacts hit NCI(3). On the right, a blue banner "Estimated
+> Balance Sheet Impacts at Closing of the 24% stake sale - subject to changes
+> including FX" over a real native table — columns "$USD in B / 25% Stake(4)
+> Close / 24% Stake / Total", 13 data rows (Total Estimated Sale Consideration
+> 2.3/2.5/4.8; Impact to Total Assets (Debit) 2.3/2.5/4.8; … Loss on Sale
+> (0.6)/(0.4)/(1.0); Impact to Stockholders' Equity (Credit) 1.7/1.7/3.4;
+> Impact to NCI (Credit) 0.6/0.8/1.4; … Impact to Total Equity (Credit)
+> 2.3/2.5/4.8) — with the five subtotal rows bold on a light-blue band, faint
+> row separators, and small lettered a–e markers down the table's left edge
+> (grouped) linking back to the notes. Close with a full-width dark band:
+> "Once Citi's voting stock ownership in Banamex is below 50%, Citi will
+> deconsolidate the entity(6)". Footnote bottom-left, page number "22".
+
+Action JSON: `tests/citi_repro/slide_banamex.actions.json` (289 actions, 0
+non-ok). Builder: `tests/citi_repro/build_slide_banamex.py`. 1 native table,
+0 autoshape-as-chart, 0 verify warnings.
+
+---
+
+## Reproducibility (slides 4 & 22)
+
+```
+python tests/citi_repro/build_slide_biz.py
+python tests/citi_repro/build_slide_banamex.py
+python tests/citi_repro/run_citi.py tests/citi_repro/slide_biz.actions.json --deck biz
+python tests/citi_repro/run_citi.py tests/citi_repro/slide_banamex.actions.json --deck banamex
+```
+→ biz 98/98 ok (5 real ChartObjects), banamex 289/289 ok (1 native table),
+0 verify warnings each.

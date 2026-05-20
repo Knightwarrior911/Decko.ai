@@ -187,6 +187,10 @@ Public Sub Do_add_line(slideNum As Long, x1 As Single, y1 As Single, _
     End If
     Dim ln As Shape
     Set ln = pres.Slides(slideNum).Shapes.AddLine(x1, y1, x2, y2)
+    ' Tag as decorative rule so the verify loop's orphan_connector check
+    ' (which sees AddLine output as a connector with no endpoint shapes)
+    ' can distinguish it from an intentional add_connector that was never wired.
+    ln.Tags.Add "DECKO_KIND", "rule"
     ln.Line.ForeColor.RGB = modActions.HexToRgb(hexColor)
     ln.Line.Weight = weightPt
     ln.Line.EndArrowheadStyle = ResolveArrowheadStyle(arrowEnd)

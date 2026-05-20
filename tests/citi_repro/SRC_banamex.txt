@@ -1,0 +1,101 @@
+Banamex 24% stake – estimated financial impacts at closing(1)
+22
+•
+At closing, assets will increase reflecting the consideration received 
+for the 24% stake based on a fixed price of ~MXN 43 billion or ~USD 
+2.5 billion(2)
+•
+The net loss on sale is recorded primarily in Additional Paid-in 
+Capital (APIC) and is made up of the net of the sale consideration 
+received and 24% of the Banamex U.S. GAAP Book Value
+•
+24% of the approximately $8.6B of total Banamex CTA (inclusive of 
+amounts already reclassified to NCI), as of February 27, 2026, moves 
+from AOCI to NCI - this causes a benefit to stockholders’ equity since 
+an unrealized loss is moving out of stockholders’ equity 
+•
+Therefore, Stockholder’s equity increases by ~$1.7B
+‒
+As a reminder, the CTA to NCI reclass results in a temporary 
+increase to stockholders’ equity and CET1 until it reverses at 
+deconsolidation
+•
+NCI increases by 24% of the Banamex U.S. GAAP Book Value largely 
+offset by 24% of the CTA losses reclassed from AOCI
+•
+Upon closing of all committed purchases, Citi will have sold 49% of 
+Banamex. Therefore, 49% of all financial impacts of Banamex will 
+impact the NCI(3) 
+a
+b
+c
+d
+e
+a
+b
+c
+c
+d
+e
+Once Citi's voting stock ownership in Banamex is below 50%, 
+Citi will deconsolidate the entity(6)  
+Estimated Balance Sheet Impacts at Closing of the 24% stake sale 
+- subject to changes including FX
+Note: As of February 27, 2026. All footnotes are presented starting on Slide 28. 
+$USD in B
+25% Stake(4) 
+Close
+24% Stake
+Total
+Total Estimated Sale Consideration
+2.3
+2.5
+4.8
+Impact to Total Assets (Debit)
+2.3
+2.5
+4.8
+Total Estimated Sale Consideration
+2.3
+2.5
+4.8
+Less:  % of Banamex U.S. GAAP Book Value
+(2.9)
+(2.9)
+(5.8)
+Loss on Sale
+(0.6)
+(0.4)
+(1.0)
+Reclassification of Negative CTA(5) 
+2.3
+2.1
+4.4
+Impact to Stockholders' Equity (Credit)
+1.7
+1.7
+3.4
+% of Banamex U.S. GAAP Book Value
+2.9
+2.9
+5.8
+Reclassification of Negative CTA(5) 
+(2.3)
+(2.1)
+(4.4)
+Impact to NCI (Credit)
+0.6
+0.8
+1.4
+Impact to Stockholders' Equity
+1.7
+1.7
+3.4
+Impact to NCI
+0.6
+0.8
+1.4
+Impact to Total Equity (Credit)
+2.3
+2.5
+4.8

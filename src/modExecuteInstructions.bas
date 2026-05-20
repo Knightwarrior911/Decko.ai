@@ -679,6 +679,9 @@ Private Function ValidateAction(act As Object) As String
                 If mf <> "none" And mf <> "shrink" And mf <> "resize" Then _
                     ValidateAction = "mode: must be none/shrink/resize"
             End If
+        Case "add_footnote"
+            ValidateAction = RequireFields(act, Array("slide", "text"))
+            If Len(ValidateAction) = 0 Then ValidateAction = ValidateSlide(act)
         Case "enable_text_shrink_for_overflow"
             ValidateAction = RequireFields(act, Array("scope"))
         Case "set_text_margin"
@@ -1475,9 +1478,10 @@ Private Function ResolveActShapeIdArray(act As Object, idsKey As String) As Vari
         ResolveActShapeIdArray = outArr
     Else
         ' single scalar — resolve and wrap as 1-element Collection so callers see uniform shape
-        Dim single As Object: Set single = New Collection
-        single.Add modActions.ResolveShapeRef(slideN, act(key), key)
-        Set ResolveActShapeIdArray = single
+        ' (variable named `coll`, NOT `single`; `Single` is a reserved VBA type name)
+        Dim coll As Object: Set coll = New Collection
+        coll.Add modActions.ResolveShapeRef(slideN, act(key), key)
+        Set ResolveActShapeIdArray = coll
     End If
 End Function
 
@@ -1928,7 +1932,14 @@ Private Sub DispatchAction(act As Object)
             modActionsText.Do_set_text_vertical_align CLng(act("slide")), CLng(act("shape_id")), _
                                                       CStr(act("value"))
         Case "set_text_autofit"
-            modActionsText.Do_set_text_autofit CLng(act("slide")), CLng(act("shape_id")), CStr(act("mode"))
+            Dim staMin As Double: staMin = 0
+            If act.Exists("min_size") Then staMin = CDbl(act("min_size"))
+            modActionsText.Do_set_text_autofit CLng(act("slide")), CLng(act("shape_id")), _
+                                               CStr(act("mode")), staMin
+        Case "add_footnote"
+            Dim afPg As String: afPg = ""
+            If act.Exists("page_number") Then afPg = CStr(act("page_number"))
+            modActionsText.Do_add_footnote CLng(act("slide")), CStr(act("text")), afPg
         Case "enable_text_shrink_for_overflow"
             Dim incTitlesArg As String: incTitlesArg = "false"
             If act.Exists("include_titles") Then incTitlesArg = CStr(act("include_titles"))
@@ -2765,6 +2776,7 @@ Private Function GetAllActionTypes_Part3() As String
     ' Notes
     s = s & "set_speaker_notes,append_speaker_notes,clear_speaker_notes,set_notes_font_size,"
     s = s & "set_notes_font_color,set_notes_font_bold,set_notes_font_italic,set_notes_font_name,"
+    s = s & "add_footnote,"
     ' Effects
     s = s & "set_line_color,set_line_weight,set_line_style,set_shadow,set_glow,set_reflection,"
     s = s & "set_transparency,set_gradient_fill,set_3d_bevel,set_3d_rotation,set_soft_edge,"
@@ -3060,7 +3072,13 @@ Public Function GetActionGuidance(actionType As String) As String
         Case "set_text_autofit"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, mode(""none""|""shrink""|""resize"")  -- note: field is 'mode' NOT 'value'" & vbCrLf & _
-                "  EXAMPLE:  {""type"":""set_text_autofit"",""slide"":1,""shape_id"":3,""mode"":""shrink""}"
+                "  OPTIONAL: min_size(num, pt) -- when mode=shrink, after PowerPoint's shrink-to-fit settles, clamp every run's font.size UP to this floor. Use to prevent shrink from driving text below readability." & vbCrLf & _
+                "  EXAMPLE:  {""type"":""set_text_autofit"",""slide"":1,""shape_id"":3,""mode"":""shrink"",""min_size"":8}"
+        Case "add_footnote"
+            GetActionGuidance = _
+                "  REQUIRED: slide, text(string)" & vbCrLf & _
+                "  OPTIONAL: page_number(string) -- if set, also emits a bottom-right page-number textbox" & vbCrLf & _
+                "  EXAMPLE:  {""type"":""add_footnote"",""slide"":1,""text"":""Note: Totals may not sum due to rounding."",""page_number"":""6""}"
         Case "set_text_margin"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, left(num>=0), right(num>=0), top(num>=0), bottom(num>=0)" & vbCrLf & _

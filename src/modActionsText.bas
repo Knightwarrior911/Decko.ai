@@ -286,7 +286,8 @@ End Sub
 '   "resize" - resize the shape to fit the text
 ' Uses TextFrame2 (Office 2007+) which exposes msoAutoSize enum:
 '   0 = msoAutoSizeNone, 1 = msoAutoSizeShapeToFitText, 2 = msoAutoSizeTextToFitShape
-Public Sub Do_set_text_autofit(slideNum As Long, shapeId As Long, mode As String)
+Public Sub Do_set_text_autofit(slideNum As Long, shapeId As Long, mode As String, _
+                               Optional minSize As Double = 0)
     Dim sh As Shape: Set sh = modActions.FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 6005, "Do_set_text_autofit", "shape not found"
     If Not sh.HasTextFrame Then Err.Raise vbObjectError + 6005, "Do_set_text_autofit", "no text frame"
@@ -300,6 +301,62 @@ Public Sub Do_set_text_autofit(slideNum As Long, shapeId As Long, mode As String
     On Error Resume Next
     sh.TextFrame2.AutoSize = m
     On Error GoTo 0
+    ' min_size clamp: PowerPoint's shrink autofit can drive font well below
+    ' the readable threshold to fit overflow. After autofit settles, walk
+    ' every run and clamp Font.Size up to min_size. Overflow may return,
+    ' but the floor is preserved.
+    If minSize > 0 Then
+        Dim tr As TextRange: Set tr = sh.TextFrame.TextRange
+        Dim pN As Long: pN = tr.Paragraphs().Count
+        Dim p As Long, r As Long, rN As Long
+        For p = 1 To pN
+            rN = tr.Paragraphs(p).Runs.Count
+            For r = 1 To rN
+                On Error Resume Next
+                If tr.Paragraphs(p).Runs(r).Font.Size < minSize Then _
+                    tr.Paragraphs(p).Runs(r).Font.Size = minSize
+                On Error GoTo 0
+            Next r
+        Next p
+    End If
+End Sub
+
+' Bottom-left footnote convention used by every Citi-style repro: 8pt gray
+' text at (24, 520, 700x14), optional bottom-right page-number text box.
+' Eliminates the per-builder boilerplate that Wave-1 and Wave-2 each
+' re-derived. The "Note:" prefix is left to the caller -- pass the exact
+' footnote string the source slide shows.
+Public Sub Do_add_footnote(slideNum As Long, footnoteText As String, _
+                           Optional pageNumber As String = "")
+    Dim pres As Presentation: Set pres = ActivePresentation
+    If slideNum < 1 Or slideNum > pres.Slides.Count Then
+        Err.Raise vbObjectError + 4011, "Do_add_footnote", "slide_out_of_range"
+    End If
+    Dim sl As slide: Set sl = pres.Slides(slideNum)
+    Dim sw As Single: sw = pres.PageSetup.SlideWidth
+    Dim sh As Single: sh = pres.PageSetup.SlideHeight
+    ' Footnote textbox
+    Dim ft As Shape
+    Set ft = sl.Shapes.AddTextbox(msoTextOrientationHorizontal, _
+                                  24, sh - 20, sw - 60, 14)
+    ft.TextFrame.TextRange.Text = footnoteText
+    ft.TextFrame.TextRange.Font.Size = 8
+    ft.TextFrame.TextRange.Font.Color.RGB = modActions.HexToRgb("#7C7C7C")
+    ft.TextFrame.MarginLeft = 0
+    ft.TextFrame.MarginRight = 0
+    ft.TextFrame.MarginTop = 0
+    ft.TextFrame.MarginBottom = 0
+    ft.Tags.Add "DECKO_KIND", "footnote"
+    If Len(pageNumber) > 0 Then
+        Dim pn As Shape
+        Set pn = sl.Shapes.AddTextbox(msoTextOrientationHorizontal, _
+                                      sw - 40, sh - 22, 28, 16)
+        pn.TextFrame.TextRange.Text = pageNumber
+        pn.TextFrame.TextRange.Font.Size = 9
+        pn.TextFrame.TextRange.Font.Color.RGB = modActions.HexToRgb("#7C7C7C")
+        pn.TextFrame.TextRange.ParagraphFormat.Alignment = ppAlignRight
+        pn.Tags.Add "DECKO_KIND", "page_number"
+    End If
 End Sub
 
 ' Sweep all text shapes in scope and enable shrink-on-overflow. Call this

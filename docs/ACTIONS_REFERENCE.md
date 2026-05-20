@@ -278,6 +278,19 @@ Format: **`action_name`** — what it does.
 - **`add_line`** — straight line/divider between two points.
   `req:` `slide`, `x1`,`y1`,`x2`,`y2`(num), `color`(`#RRGGBB`), `weight_pt`(num).
   `opt:` `arrow_end`(string)=`none`, `arrow_start`(string)=`none`, `dash_style`(string)=`solid`.
+  > **Decorative rules:** lines emitted by `add_line` are tagged
+  > `DECKO_KIND="rule"` so the verify loop's `orphan_connector` check
+  > recognises them as decorative (not a forgotten connector). You can use
+  > `add_line` for title rules, brackets, accent dividers without warnings.
+  > Alternatively, a thin `add_shape` rect (`height: 2`) is equally safe and
+  > has the advantage of accepting fill text.
+- **`add_footnote`** — bottom-left footnote with optional bottom-right page number.
+  `req:` `slide`, `text`(string).
+  `opt:` `page_number`(string).
+  Replaces the per-builder bottom-left textbox boilerplate every Citi-style
+  repro re-derives. Emits an 8pt `#7C7C7C` text box at `(24, slide_h-20)`
+  spanning the slide width; when `page_number` is set, also a right-aligned
+  page-number text box bottom-right.
 - **`set_shape_kind`** — morph an existing shape to a different `kind` (keeps pos/text).
   `req:` `slide`, `shape_id`, `kind`(string).
 
@@ -367,6 +380,10 @@ string is also accepted per element).
   `color`(`#RRGGBB`)=`#000000`, `weight_pt`(num)=1.0, `from_point`/`to_point`(`auto`|`top`|`bottom`|`left`|`right`)=`auto`, `dash_style`(string)=`solid`.
   `ex:` `{"type":"add_connector","slide":3,"kind":"elbow","from_shape_name":"box_p1","to_shape_name":"box_p2","arrow_end":"filled"}`
 - **`group_shapes`** — `req:` `slide`, `shape_ids`(array). `opt:` `ref_name`(string).
+  > Per universal aliasing (§0 rule 4), `shape_ids` accepts an array of
+  > integer shape IDs **or** of `ref_name` strings created earlier in the
+  > same batch (or a mix). `"shape_names": ["hdr0","hdr1",...]` is also
+  > accepted as the parallel form.
 - **`ungroup`** — `req:` `slide`, `shape_id`(the group).
 
 ### 3.10 Tables
@@ -820,7 +837,7 @@ This appendix is auto-extracted from `modExecuteInstructions.GetActionGuidance` 
 
 If a new action is added to the dispatcher, update GetActionGuidance and GetAllActionTypes, then re-run the sync script.
 
-**Action types covered: 246.**
+**Action types covered: 247.**
 
 ### `add_cell_paragraph`
 
@@ -850,6 +867,14 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: slide, kind("straight"|"elbow"|"curved"), from_shape_id (or from_shape_name), to_shape_id (or to_shape_name)
   EXAMPLE:  {"type":"add_connector","slide":1,"kind":"elbow","from_shape_name":"box1","to_shape_name":"box2","arrow_end":"filled"}
+```
+
+### `add_footnote`
+
+```
+  REQUIRED: slide, text(string)
+  OPTIONAL: page_number(string) -- if set, also emits a bottom-right page-number textbox
+  EXAMPLE:  {"type":"add_footnote","slide":1,"text":"Note: Totals may not sum due to rounding.","page_number":"6"}
 ```
 
 ### `add_line`
@@ -2484,7 +2509,8 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 
 ```
   REQUIRED: slide, shape_id, mode("none"|"shrink"|"resize")  -- note: field is 'mode' NOT 'value'
-  EXAMPLE:  {"type":"set_text_autofit","slide":1,"shape_id":3,"mode":"shrink"}
+  OPTIONAL: min_size(num, pt) -- when mode=shrink, after PowerPoint's shrink-to-fit settles, clamp every run's font.size UP to this floor. Use to prevent shrink from driving text below readability.
+  EXAMPLE:  {"type":"set_text_autofit","slide":1,"shape_id":3,"mode":"shrink","min_size":8}
 ```
 
 ### `set_text_margin`

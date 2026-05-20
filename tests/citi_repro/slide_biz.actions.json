@@ -1,0 +1,1354 @@
+{
+ "actions": [
+  {
+   "type": "add_slide",
+   "position": 1,
+   "layout_index": 6
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Five interconnected businesses driving strong 1Q26 performance",
+   "pos": {
+    "left": 24,
+    "top": 12,
+    "width": 820,
+    "height": 28
+   },
+   "font_color": "#255BE3",
+   "font_size": 22,
+   "font_bold": true,
+   "ref_name": "ttl"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "citi",
+   "pos": {
+    "left": 902,
+    "top": 14,
+    "width": 36,
+    "height": 20
+   },
+   "font_color": "#255BE3",
+   "font_size": 15,
+   "font_bold": true,
+   "h_align": "right",
+   "ref_name": "wm"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "pos": {
+    "left": 24,
+    "top": 45,
+    "width": 912,
+    "height": 2
+   },
+   "fill": "#255BE3",
+   "stroke": null,
+   "ref_name": "rule"
+  },
+  {
+   "type": "group_shapes",
+   "slide": 1,
+   "shape_ids": [
+    "ttl",
+    "wm",
+    "rule"
+   ],
+   "ref_name": "hdr_grp"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "GLOBAL NETWORK",
+   "pos": {
+    "left": 24,
+    "top": 50,
+    "width": 358,
+    "height": 16
+   },
+   "font_color": "#7C7C7C",
+   "font_size": 10,
+   "font_bold": true,
+   "h_align": "center"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "pos": {
+    "left": 38,
+    "top": 68,
+    "width": 330,
+    "height": 2
+   },
+   "fill": "#7C7C7C",
+   "stroke": null
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "pos": {
+    "left": 202.0,
+    "top": 68,
+    "width": 2,
+    "height": 7
+   },
+   "fill": "#7C7C7C",
+   "stroke": null
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "INTERCONNECTED",
+   "pos": {
+    "left": 392,
+    "top": 50,
+    "width": 174,
+    "height": 16
+   },
+   "font_color": "#7C7C7C",
+   "font_size": 10,
+   "font_bold": true,
+   "h_align": "center"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "pos": {
+    "left": 406,
+    "top": 68,
+    "width": 146,
+    "height": 2
+   },
+   "fill": "#7C7C7C",
+   "stroke": null
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "pos": {
+    "left": 478.0,
+    "top": 68,
+    "width": 2,
+    "height": 7
+   },
+   "fill": "#7C7C7C",
+   "stroke": null
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "DIVERSIFIED",
+   "pos": {
+    "left": 576,
+    "top": 50,
+    "width": 358,
+    "height": 16
+   },
+   "font_color": "#7C7C7C",
+   "font_size": 10,
+   "font_bold": true,
+   "h_align": "center"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "pos": {
+    "left": 590,
+    "top": 68,
+    "width": 330,
+    "height": 2
+   },
+   "fill": "#7C7C7C",
+   "stroke": null
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "pos": {
+    "left": 754.0,
+    "top": 68,
+    "width": 2,
+    "height": 7
+   },
+   "fill": "#7C7C7C",
+   "stroke": null
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "ref_name": "hdr0",
+   "pos": {
+    "left": 24,
+    "top": 90,
+    "width": 174,
+    "height": 22
+   },
+   "fill": "#0F1632",
+   "stroke": null,
+   "text": "Services",
+   "font_color": "#FFFFFF",
+   "font_size": 11,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "round_rect",
+   "pos": {
+    "left": 24,
+    "top": 112,
+    "width": 174,
+    "height": 344
+   },
+   "fill": "#F5F7FA",
+   "stroke": "#D7DEE8",
+   "stroke_weight_pt": 0.5
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "TTS: #1 Rank(1)\nTTS: gained ~100 bps of market share YoY(1)\nSecurities Services: #1 in Direct Custody(2)",
+   "pos": {
+    "left": 30,
+    "top": 118,
+    "width": 162,
+    "height": 64
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "font_bold": true,
+   "font_italic": true,
+   "ref_name": "stat0"
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "stat0",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "17% YoY  ▲",
+   "pos": {
+    "left": 30,
+    "top": 182,
+    "width": 162,
+    "height": 14
+   },
+   "font_color": "#2E7D32",
+   "font_size": 9,
+   "font_bold": true,
+   "h_align": "center"
+  },
+  {
+   "type": "add_chart",
+   "slide": 1,
+   "chart_type": "columnstacked",
+   "pos": {
+    "left": 30,
+    "top": 198,
+    "width": 162,
+    "height": 200
+   },
+   "categories": [
+    "1Q25",
+    "1Q26"
+   ],
+   "series": [
+    {
+     "name": "TTS",
+     "values": [
+      3.9,
+      4.6
+     ],
+     "color": "#0F1632"
+    },
+    {
+     "name": "Securities Services",
+     "values": [
+      1.3,
+      1.5
+     ],
+     "color": "#5B6B8C"
+    },
+    {
+     "name": "Total",
+     "values": [
+      5.2,
+      6.1
+     ],
+     "color": "#FFFFFF"
+    }
+   ],
+   "show_legend": false,
+   "value_format": "0.0",
+   "ref_name": "ch0"
+  },
+  {
+   "type": "set_chart_axis",
+   "slide": 1,
+   "shape_id": "ch0",
+   "axis": "y",
+   "props": {
+    "visible": false
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch0",
+   "series_index": 1,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch0",
+   "series_index": 2,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch0",
+   "series_index": 3,
+   "props": {
+    "chart_type": "line",
+    "line_color": "#FFFFFF",
+    "line_weight": 0.1,
+    "marker_style": "none",
+    "show_labels": true,
+    "label_position": "above",
+    "label_color": "#0F1632",
+    "label_size": 9,
+    "label_bold": true,
+    "custom_labels": [
+     "$5.2",
+     "$6.1"
+    ]
+   }
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Positive operating leverage",
+   "pos": {
+    "left": 24,
+    "top": 458,
+    "width": 174,
+    "height": 14
+   },
+   "font_color": "#2E7D32",
+   "font_size": 8,
+   "font_bold": true,
+   "h_align": "center"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "ref_name": "hdr1",
+   "pos": {
+    "left": 208,
+    "top": 90,
+    "width": 174,
+    "height": 22
+   },
+   "fill": "#1F4E79",
+   "stroke": null,
+   "text": "Markets",
+   "font_color": "#FFFFFF",
+   "font_size": 11,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "round_rect",
+   "pos": {
+    "left": 208,
+    "top": 112,
+    "width": 174,
+    "height": 344
+   },
+   "fill": "#F5F7FA",
+   "stroke": "#D7DEE8",
+   "stroke_weight_pt": 0.5
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "#3 Overall Rank (tied)(3)\nFixed Income: #2 Rank(3)\nEquities: #6 Rank (tied)(3)",
+   "pos": {
+    "left": 214,
+    "top": 118,
+    "width": 162,
+    "height": 64
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "font_bold": true,
+   "font_italic": true,
+   "ref_name": "stat1"
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "stat1",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "19% YoY  ▲",
+   "pos": {
+    "left": 214,
+    "top": 182,
+    "width": 162,
+    "height": 14
+   },
+   "font_color": "#2E7D32",
+   "font_size": 9,
+   "font_bold": true,
+   "h_align": "center"
+  },
+  {
+   "type": "add_chart",
+   "slide": 1,
+   "chart_type": "columnstacked",
+   "pos": {
+    "left": 214,
+    "top": 198,
+    "width": 162,
+    "height": 200
+   },
+   "categories": [
+    "1Q25",
+    "1Q26"
+   ],
+   "series": [
+    {
+     "name": "Fixed Income Markets",
+     "values": [
+      4.6,
+      5.2
+     ],
+     "color": "#1F4E79"
+    },
+    {
+     "name": "Equity Markets",
+     "values": [
+      1.5,
+      2.1
+     ],
+     "color": "#6FA8DC"
+    },
+    {
+     "name": "Total",
+     "values": [
+      6.1,
+      7.3
+     ],
+     "color": "#FFFFFF"
+    }
+   ],
+   "show_legend": false,
+   "value_format": "0.0",
+   "ref_name": "ch1"
+  },
+  {
+   "type": "set_chart_axis",
+   "slide": 1,
+   "shape_id": "ch1",
+   "axis": "y",
+   "props": {
+    "visible": false
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch1",
+   "series_index": 1,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch1",
+   "series_index": 2,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch1",
+   "series_index": 3,
+   "props": {
+    "chart_type": "line",
+    "line_color": "#FFFFFF",
+    "line_weight": 0.1,
+    "marker_style": "none",
+    "show_labels": true,
+    "label_position": "above",
+    "label_color": "#0F1632",
+    "label_size": 9,
+    "label_bold": true,
+    "custom_labels": [
+     "$6.1",
+     "$7.2"
+    ]
+   }
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Record prime balances(4), up more than 50% YoY",
+   "pos": {
+    "left": 214,
+    "top": 400,
+    "width": 162,
+    "height": 54
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "ref_name": "bul1"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "bul1",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "bul1",
+   "paragraph_index": 0,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "bul1",
+   "paragraph_index": 0,
+   "value": 8
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "bul1",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Positive operating leverage",
+   "pos": {
+    "left": 208,
+    "top": 458,
+    "width": 174,
+    "height": 14
+   },
+   "font_color": "#2E7D32",
+   "font_size": 8,
+   "font_bold": true,
+   "h_align": "center"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "ref_name": "hdr2",
+   "pos": {
+    "left": 392,
+    "top": 90,
+    "width": 174,
+    "height": 22
+   },
+   "fill": "#6B5D3E",
+   "stroke": null,
+   "text": "Banking",
+   "font_color": "#FFFFFF",
+   "font_size": 11,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "round_rect",
+   "pos": {
+    "left": 392,
+    "top": 112,
+    "width": 174,
+    "height": 344
+   },
+   "fill": "#F5F7FA",
+   "stroke": "#D7DEE8",
+   "stroke_weight_pt": 0.5
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Investment Banking: #5 Rank(5)\nIB Fees: up 12% YoY",
+   "pos": {
+    "left": 398,
+    "top": 118,
+    "width": 162,
+    "height": 64
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "font_bold": true,
+   "font_italic": true,
+   "ref_name": "stat2"
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "stat2",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "11% YoY  ▲",
+   "pos": {
+    "left": 398,
+    "top": 182,
+    "width": 162,
+    "height": 14
+   },
+   "font_color": "#2E7D32",
+   "font_size": 9,
+   "font_bold": true,
+   "h_align": "center"
+  },
+  {
+   "type": "add_chart",
+   "slide": 1,
+   "chart_type": "columnstacked",
+   "pos": {
+    "left": 398,
+    "top": 198,
+    "width": 162,
+    "height": 200
+   },
+   "categories": [
+    "1Q25",
+    "1Q26"
+   ],
+   "series": [
+    {
+     "name": "Investment Banking",
+     "values": [
+      1.8,
+      2.1
+     ],
+     "color": "#6B5D3E"
+    },
+    {
+     "name": "Corporate Lending",
+     "values": [
+      0.7,
+      0.8
+     ],
+     "color": "#A89368"
+    },
+    {
+     "name": "Gain/(loss) on loan hedges",
+     "values": [
+      0.3,
+      0.2
+     ],
+     "color": "#D8CBA8"
+    },
+    {
+     "name": "Total",
+     "values": [
+      2.8,
+      3.1
+     ],
+     "color": "#FFFFFF"
+    }
+   ],
+   "show_legend": false,
+   "value_format": "0.0",
+   "ref_name": "ch2"
+  },
+  {
+   "type": "set_chart_axis",
+   "slide": 1,
+   "shape_id": "ch2",
+   "axis": "y",
+   "props": {
+    "visible": false
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch2",
+   "series_index": 1,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch2",
+   "series_index": 2,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch2",
+   "series_index": 3,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch2",
+   "series_index": 4,
+   "props": {
+    "chart_type": "line",
+    "line_color": "#FFFFFF",
+    "line_weight": 0.1,
+    "marker_style": "none",
+    "show_labels": true,
+    "label_position": "above",
+    "label_color": "#0F1632",
+    "label_size": 9,
+    "label_bold": true,
+    "custom_labels": [
+     "$2.8",
+     "$3.1"
+    ]
+   }
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Record 1Q in Advisory(6)",
+   "pos": {
+    "left": 398,
+    "top": 400,
+    "width": 162,
+    "height": 54
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "ref_name": "bul2"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "bul2",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "bul2",
+   "paragraph_index": 0,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "bul2",
+   "paragraph_index": 0,
+   "value": 8
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "bul2",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "ref_name": "hdr3",
+   "pos": {
+    "left": 576,
+    "top": 90,
+    "width": 174,
+    "height": 22
+   },
+   "fill": "#255BE3",
+   "stroke": null,
+   "text": "Wealth",
+   "font_color": "#FFFFFF",
+   "font_size": 11,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "round_rect",
+   "pos": {
+    "left": 576,
+    "top": 112,
+    "width": 174,
+    "height": 344
+   },
+   "fill": "#F5F7FA",
+   "stroke": "#D7DEE8",
+   "stroke_weight_pt": 0.5
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Private Bank (Global): #6 Rank, with APAC and MEA Private Bank: #3 Rank (tied)(7)",
+   "pos": {
+    "left": 582,
+    "top": 118,
+    "width": 162,
+    "height": 64
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "font_bold": true,
+   "font_italic": true,
+   "ref_name": "stat3"
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "stat3",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "20% YoY  ▲",
+   "pos": {
+    "left": 582,
+    "top": 182,
+    "width": 162,
+    "height": 14
+   },
+   "font_color": "#2E7D32",
+   "font_size": 9,
+   "font_bold": true,
+   "h_align": "center"
+  },
+  {
+   "type": "add_chart",
+   "slide": 1,
+   "chart_type": "columnstacked",
+   "pos": {
+    "left": 582,
+    "top": 198,
+    "width": 162,
+    "height": 200
+   },
+   "categories": [
+    "1Q25",
+    "1Q26"
+   ],
+   "series": [
+    {
+     "name": "Private Bank",
+     "values": [
+      0.4,
+      0.4
+     ],
+     "color": "#255BE3"
+    },
+    {
+     "name": "Wealth at Work / Citigold & Retail Banking",
+     "values": [
+      1.1,
+      1.4
+     ],
+     "color": "#7FA8E8"
+    },
+    {
+     "name": "Total",
+     "values": [
+      1.5,
+      1.8
+     ],
+     "color": "#FFFFFF"
+    }
+   ],
+   "show_legend": false,
+   "value_format": "0.0",
+   "ref_name": "ch3"
+  },
+  {
+   "type": "set_chart_axis",
+   "slide": 1,
+   "shape_id": "ch3",
+   "axis": "y",
+   "props": {
+    "visible": false
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch3",
+   "series_index": 1,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch3",
+   "series_index": 2,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch3",
+   "series_index": 3,
+   "props": {
+    "chart_type": "line",
+    "line_color": "#FFFFFF",
+    "line_weight": 0.1,
+    "marker_style": "none",
+    "show_labels": true,
+    "label_position": "above",
+    "label_color": "#0F1632",
+    "label_size": 9,
+    "label_bold": true,
+    "custom_labels": [
+     "$1.5",
+     "$1.8"
+    ]
+   }
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "18% EBT Margin\nNet new investment asset(f) flows of ~$15 billion",
+   "pos": {
+    "left": 582,
+    "top": 400,
+    "width": 162,
+    "height": 54
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "ref_name": "bul3"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "bul3",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "bul3",
+   "paragraph_index": 0,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "bul3",
+   "paragraph_index": 0,
+   "value": 8
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "bul3",
+   "paragraph_index": 1,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "bul3",
+   "paragraph_index": 1,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "bul3",
+   "paragraph_index": 1,
+   "value": 8
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "bul3",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Positive operating leverage",
+   "pos": {
+    "left": 576,
+    "top": 458,
+    "width": 174,
+    "height": 14
+   },
+   "font_color": "#2E7D32",
+   "font_size": 8,
+   "font_bold": true,
+   "h_align": "center"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "ref_name": "hdr4",
+   "pos": {
+    "left": 760,
+    "top": 90,
+    "width": 174,
+    "height": 22
+   },
+   "fill": "#5B2C6F",
+   "stroke": null,
+   "text": "U.S. Consumer Cards",
+   "font_color": "#FFFFFF",
+   "font_size": 11,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "round_rect",
+   "pos": {
+    "left": 760,
+    "top": 112,
+    "width": 174,
+    "height": 344
+   },
+   "fill": "#F5F7FA",
+   "stroke": "#D7DEE8",
+   "stroke_weight_pt": 0.5
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "#3 Rank in U.S. Cards(8)",
+   "pos": {
+    "left": 766,
+    "top": 118,
+    "width": 162,
+    "height": 64
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "font_bold": true,
+   "font_italic": true,
+   "ref_name": "stat4"
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "stat4",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "4% YoY  ▲",
+   "pos": {
+    "left": 766,
+    "top": 182,
+    "width": 162,
+    "height": 14
+   },
+   "font_color": "#2E7D32",
+   "font_size": 9,
+   "font_bold": true,
+   "h_align": "center"
+  },
+  {
+   "type": "add_chart",
+   "slide": 1,
+   "chart_type": "columnstacked",
+   "pos": {
+    "left": 766,
+    "top": 198,
+    "width": 162,
+    "height": 200
+   },
+   "categories": [
+    "1Q25",
+    "1Q26"
+   ],
+   "series": [
+    {
+     "name": "U.S. Consumer Cards",
+     "values": [
+      4.6,
+      4.8
+     ],
+     "color": "#5B2C6F"
+    },
+    {
+     "name": "Total",
+     "values": [
+      4.6,
+      4.8
+     ],
+     "color": "#FFFFFF"
+    }
+   ],
+   "show_legend": false,
+   "value_format": "0.0",
+   "ref_name": "ch4"
+  },
+  {
+   "type": "set_chart_axis",
+   "slide": 1,
+   "shape_id": "ch4",
+   "axis": "y",
+   "props": {
+    "visible": false
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch4",
+   "series_index": 1,
+   "props": {
+    "show_labels": true,
+    "label_position": "center",
+    "label_color": "#FFFFFF",
+    "label_size": 7
+   }
+  },
+  {
+   "type": "set_chart_series",
+   "slide": 1,
+   "shape_id": "ch4",
+   "series_index": 2,
+   "props": {
+    "chart_type": "line",
+    "line_color": "#FFFFFF",
+    "line_weight": 0.1,
+    "marker_style": "none",
+    "show_labels": true,
+    "label_position": "above",
+    "label_color": "#0F1632",
+    "label_size": 9,
+    "label_bold": true,
+    "custom_labels": [
+     "$4.6",
+     "$4.8"
+    ]
+   }
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Spend volume up 6% YoY in General Purpose Credit Cards",
+   "pos": {
+    "left": 766,
+    "top": 400,
+    "width": 162,
+    "height": 54
+   },
+   "font_color": "#0F1632",
+   "font_size": 8,
+   "ref_name": "bul4"
+  },
+  {
+   "type": "set_indent_level",
+   "slide": 1,
+   "shape_id": "bul4",
+   "paragraph_index": 0,
+   "value": 0
+  },
+  {
+   "type": "set_bullet_style",
+   "slide": 1,
+   "shape_id": "bul4",
+   "paragraph_index": 0,
+   "value": "disc"
+  },
+  {
+   "type": "set_paragraph_font_size",
+   "slide": 1,
+   "shape_id": "bul4",
+   "paragraph_index": 0,
+   "value": 8
+  },
+  {
+   "type": "set_text_autofit",
+   "slide": 1,
+   "shape_id": "bul4",
+   "mode": "shrink"
+  },
+  {
+   "type": "add_text_box",
+   "slide": 1,
+   "text": "Positive operating leverage",
+   "pos": {
+    "left": 760,
+    "top": 458,
+    "width": 174,
+    "height": 14
+   },
+   "font_color": "#2E7D32",
+   "font_size": 8,
+   "font_bold": true,
+   "h_align": "center"
+  },
+  {
+   "type": "add_connector",
+   "slide": 1,
+   "kind": "elbow",
+   "from_shape_name": "hdr0",
+   "to_shape_name": "hdr1",
+   "from_point": "bottom",
+   "to_point": "top",
+   "color": "#7C7C7C",
+   "weight_pt": 1.0,
+   "arrow_start": "filled",
+   "arrow_end": "filled"
+  },
+  {
+   "type": "add_connector",
+   "slide": 1,
+   "kind": "elbow",
+   "from_shape_name": "hdr1",
+   "to_shape_name": "hdr2",
+   "from_point": "bottom",
+   "to_point": "top",
+   "color": "#7C7C7C",
+   "weight_pt": 1.0,
+   "arrow_start": "filled",
+   "arrow_end": "filled"
+  },
+  {
+   "type": "add_connector",
+   "slide": 1,
+   "kind": "elbow",
+   "from_shape_name": "hdr2",
+   "to_shape_name": "hdr3",
+   "from_point": "bottom",
+   "to_point": "top",
+   "color": "#7C7C7C",
+   "weight_pt": 1.0,
+   "arrow_start": "filled",
+   "arrow_end": "filled"
+  },
+  {
+   "type": "add_connector",
+   "slide": 1,
+   "kind": "elbow",
+   "from_shape_name": "hdr3",
+   "to_shape_name": "hdr4",
+   "from_point": "bottom",
+   "to_point": "top",
+   "color": "#7C7C7C",
+   "weight_pt": 1.0,
+   "arrow_start": "filled",
+   "arrow_end": "filled"
+  },
+  {
+   "type": "add_shape",
+   "slide": 1,
+   "kind": "rect",
+   "pos": {
+    "left": 24,
+    "top": 470,
+    "width": 912,
+    "height": 38
+   },
+   "fill": "#0F1632",
+   "stroke": null,
+   "text": "Best quarterly revenue in a decade for the firm and Markets, Wealth and U.S. Consumer Cards; Highest 1Q revenues in Services in a decade(6)",
+   "font_color": "#FFFFFF",
+   "font_size": 11,
+   "font_bold": true,
+   "h_align": "center",
+   "v_align": "middle"
+  },
+  {
+   "type": "add_footnote",
+   "slide": 1,
+   "text": "Note: Totals may not sum due to rounding. All footnotes are presented starting on Slide 28.",
+   "page_number": "4"
+  }
+ ]
+}

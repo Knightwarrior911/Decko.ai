@@ -24,7 +24,7 @@ Option Explicit
 
 ' ---- Tunables ------------------------------------------------------------
 Private Const SLIDE_BOUNDS_TOL_PT As Double = 2#       ' tolerance for off-slide
-Private Const TINY_TABLE_FONT_PT As Double = 8#        ' below this = warn
+Private Const TINY_TABLE_FONT_PT As Double = 7#        ' below this = warn (lowered from 8 to support dense financial slides; source decks frequently render at 7pt)
 Private Const MAX_WARNINGS_DEFAULT As Long = 100
 Private Const MAX_SHAPES_PER_SLIDE_FOR_DEEP As Long = 100
 Private Const MAX_CHART_SERIES_FOR_DEEP As Long = 20
@@ -370,12 +370,16 @@ NextCell:
 End Sub
 
 ' ---- Check 7: zero-size / micro-size shape -------------------------------
+' A shape is only effectively invisible if BOTH dimensions are sub-pixel.
+' A horizontal rule (h=0, w=200) or a vertical accent (w=0, h=100) is a
+' legitimate decorative primitive — flagging those produced false positives
+' for every add_line and every same-y add_connector.
 Private Sub CheckZeroSize(sh As Shape, slideNum As Long, warnings As Collection)
     On Error Resume Next
     Dim w As Double: w = sh.Width
     Dim h As Double: h = sh.Height
     If Err.Number <> 0 Then Err.Clear: Exit Sub
-    If w < 1 Or h < 1 Then
+    If w < 1 And h < 1 Then
         AddWarning warnings, "warn", "zero_size_shape", slideNum, sh.Id, _
             sh.Name & " has size " & Format(w, "0.#") & " x " & Format(h, "0.#") & _
             " pt — effectively invisible", _
@@ -593,9 +597,14 @@ Private Sub CheckShapeInSafeArea(sh As Shape, slideNum As Long, _
 End Sub
 
 ' ---- Check 16: orphan / free-floating connector -------------------------
+' Decorative lines emitted via add_line look like connectors to PowerPoint
+' (Shapes.AddLine returns a Connector). Those are tagged DECKO_KIND="rule"
+' by Do_add_line and are skipped here — the user never intended to wire them.
 Private Sub CheckOrphanConnector(sh As Shape, slideNum As Long, warnings As Collection)
     On Error Resume Next
     If Not sh.Connector Then Exit Sub
+    Dim deckoKind As String: deckoKind = sh.Tags("DECKO_KIND")
+    If deckoKind = "rule" Then Exit Sub
     Dim beginOk As Boolean: beginOk = sh.ConnectorFormat.BeginConnected
     Dim endOk As Boolean: endOk = sh.ConnectorFormat.EndConnected
     If Not (beginOk And endOk) Then
