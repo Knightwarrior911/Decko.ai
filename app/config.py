@@ -22,6 +22,7 @@ class Settings:
     provider: str = "anthropic"          # one of VALID_PROVIDERS
     model: str = "claude-opus-4-7"
     base_url: str = ""                   # required only when provider == "generic"
+    dock_mode: bool = True               # SP6: snap to active PowerPoint window
 
     def validate(self) -> None:
         if self.provider not in VALID_PROVIDERS:
@@ -51,6 +52,7 @@ def save_persisted(settings: "Settings", last_deck_path: str = "",
         "provider": settings.provider,
         "model": settings.model,
         "base_url": settings.base_url,
+        "dock_mode": settings.dock_mode,
         "last_deck_path": last_deck_path,
         "last_mode": last_mode,
     }, indent=2), encoding="utf-8")
@@ -62,4 +64,5 @@ def settings_from_persisted() -> "Settings":
         provider=d.get("provider", "anthropic"),
         model=d.get("model", "claude-opus-4-7"),
         base_url=d.get("base_url", ""),
+        dock_mode=bool(d.get("dock_mode", True)),
     )

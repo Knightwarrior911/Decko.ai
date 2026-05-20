@@ -65,6 +65,36 @@ button:disabled { opacity: .5; cursor: default; }
   font-size: 1.05rem; padding: 0; }
 #gearBtn:hover { border-color: var(--accent); color: var(--accent); }
 
+/* SP6 — frameless title-bar controls + drag area */
+.dragArea { flex: 1; height: 100%; -webkit-app-region: drag;
+  app-region: drag; min-width: 40px; }
+.winctl { width: 32px; height: 32px; padding: 0; background: transparent;
+  border: 1px solid transparent; border-radius: 6px;
+  color: var(--muted); font-size: .95rem; -webkit-app-region: no-drag;
+  app-region: no-drag; cursor: pointer; }
+.winctl:hover { background: var(--surface-2); color: var(--text);
+  border-color: var(--border); }
+#winCloseBtn:hover { background: #a14040; color: #fff;
+  border-color: #a14040; }
+body[data-dock="off"] #winMinBtn,
+body[data-dock="off"] #winCloseBtn { display: none; }
+body[data-dock="on"] #undockBtn { color: var(--accent); }
+
+/* Dock-on narrow layout */
+body[data-dock="on"] #side { width: 220px; }
+body[data-dock="on"] #hero { padding: 24px 16px; gap: 16px; }
+body[data-dock="on"] #hero h1 { font-size: 1.25rem; }
+body[data-dock="on"] #hero p { font-size: .82rem; }
+body[data-dock="on"] #heroBtns { flex-direction: column; width: 100%; }
+body[data-dock="on"] #hero button { min-width: 100%; padding: 12px 16px;
+  font-size: .95rem; }
+body[data-dock="on"] #chips { gap: 6px; }
+body[data-dock="on"] .chip { font-size: .74rem; padding: .3rem .6rem; }
+body[data-dock="on"] #composer { flex-direction: column; }
+body[data-dock="on"] #sendBtn { width: 100%; padding: .55rem; }
+body[data-dock="on"] #msg { height: 60px; }
+body[data-dock="on"] #tplPanel { width: 100%; right: 0; }
+
 /* Layout */
 #layout { display: flex; height: calc(100vh - var(--header-h)); }
 #side { width: var(--side-w); background: var(--side-bg); padding: 16px;
