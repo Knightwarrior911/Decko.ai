@@ -228,6 +228,16 @@ def compute_dock_rect(ppt_hwnd: Optional[int],
     if p is None:
         return compute_dock_rect(0, width, min_height)
     p_left, p_top, p_right, p_bottom = p
+    # SP8 — if we've already reflowed this PPT, treat its ORIGINAL right
+    # edge as the dock anchor. Otherwise the dock rect would drift left
+    # every time the loop recomputed against the shrunk PPT.
+    orig = _ORIGINAL_PPT_RECTS.get(int(ppt_hwnd))
+    if orig is not None:
+        # original tuple is (left, top, right, bottom)
+        _ol, _ot, _or, _ob = orig
+        p_right = _or
+        p_top = _ot
+        p_bottom = _ob
     m_left, m_top, m_right, m_bottom = _monitor_rect_for_hwnd(int(ppt_hwnd))
     h = max(min_height, p_bottom - p_top)
     y = max(p_top, m_top)
@@ -500,9 +510,8 @@ def reflow_ppt_window(ppt_hwnd: int, decko_left: int,
         return False  # already correctly sized
     _REFLOWING = True
     try:
-        user32.SetWindowPos(int(ppt_hwnd), 0,
-                            p_left, p_top, target_w, target_h,
-                            SWP_NOZORDER | SWP_NOACTIVATE)
+        _set_window_pos_physical(int(ppt_hwnd), p_left, p_top,
+                                  target_w, target_h)
     except Exception:  # noqa: BLE001
         _REFLOWING = False
         return False
@@ -514,6 +523,54 @@ def reflow_ppt_window(ppt_hwnd: int, decko_left: int,
         _REFLOWING = False
     threading.Thread(target=_clear, daemon=True).start()
     return True
+
+
+def _set_window_pos_physical(hwnd: int, x: int, y: int, w: int, h: int):
+    """SP8 — SetWindowPos with PER_MONITOR_AWARE_V2 thread context pinned
+    so coords are honored as physical pixels even when called from a
+    thread that inherited a different DPI context."""
+    if not _IS_WIN:
+        return
+    prev = 0
+    set_ctx = getattr(user32, "SetThreadDpiAwarenessContext", None)
+    if set_ctx is not None:
+        try:
+            set_ctx.restype = ctypes.c_void_p
+            prev = set_ctx(ctypes.c_void_p(-4))  # PER_MONITOR_AWARE_V2
+        except Exception:  # noqa: BLE001
+            prev = 0
+    try:
+        user32.SetWindowPos(int(hwnd), 0, int(x), int(y),
+                            int(w), int(h),
+                            SWP_NOZORDER | SWP_NOACTIVATE)
+    finally:
+        if prev and set_ctx is not None:
+            try:
+                set_ctx(ctypes.c_void_p(prev))
+            except Exception:  # noqa: BLE001
+                pass
+
+
+def is_window_offscreen(hwnd: int, min_visible: int = 200) -> bool:
+    """True if hwnd's rect doesn't overlap any monitor by at least
+    `min_visible` pixels in either dimension. Used by the watchdog to
+    detect a Decko window stranded off-screen (DPI bugs, monitor
+    disconnect, etc) and trigger re-snap."""
+    if not _IS_WIN or not hwnd or not _is_window(int(hwnd)):
+        return True
+    r = _get_window_rect(int(hwnd))
+    if r is None:
+        return True
+    l, t, rt, b = r
+    w, h = rt - l, b - t
+    if w < min_visible or h < min_visible:
+        return True
+    # Use the work area of the monitor nearest to Decko.
+    m_l, m_t, m_r, m_b = _monitor_rect_for_hwnd(int(hwnd))
+    # Visible overlap with that monitor.
+    ov_w = max(0, min(rt, m_r) - max(l, m_l))
+    ov_h = max(0, min(b, m_b) - max(t, m_t))
+    return ov_w < min_visible or ov_h < min_visible
 
 
 def restore_ppt_window(ppt_hwnd: int) -> bool:
@@ -529,10 +586,8 @@ def restore_ppt_window(ppt_hwnd: int) -> bool:
     o_left, o_top, o_right, o_bottom = cached
     _REFLOWING = True
     try:
-        user32.SetWindowPos(int(ppt_hwnd), 0,
-                            o_left, o_top,
-                            o_right - o_left, o_bottom - o_top,
-                            SWP_NOZORDER | SWP_NOACTIVATE)
+        _set_window_pos_physical(int(ppt_hwnd), o_left, o_top,
+                                  o_right - o_left, o_bottom - o_top)
     except Exception:  # noqa: BLE001
         _REFLOWING = False
         return False

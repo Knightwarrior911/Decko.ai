@@ -427,10 +427,22 @@ Private Function ValidateAction(act As Object) As String
             ValidateAction = RequireFields(act, Array("slide", "shape_id", "value"))
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "move_shape"
-            ValidateAction = RequireFields(act, Array("slide", "shape_id", "left", "top"))
+            ' SP9: partial mutation allowed. Require shape + at least one of left/top.
+            ValidateAction = RequireFields(act, Array("slide", "shape_id"))
+            If Len(ValidateAction) = 0 Then
+                If Not act.Exists("left") And Not act.Exists("top") Then
+                    ValidateAction = "missing_field: left or top"
+                End If
+            End If
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "resize_shape"
-            ValidateAction = RequireFields(act, Array("slide", "shape_id", "width", "height"))
+            ' SP9: partial mutation allowed. Require shape + at least one of width/height.
+            ValidateAction = RequireFields(act, Array("slide", "shape_id"))
+            If Len(ValidateAction) = 0 Then
+                If Not act.Exists("width") And Not act.Exists("height") Then
+                    ValidateAction = "missing_field: width or height"
+                End If
+            End If
             If Len(ValidateAction) = 0 Then ValidateAction = ValidateShape(act)
         Case "delete_shape"
             ValidateAction = RequireFields(act, Array("slide", "shape_id"))
@@ -1550,11 +1562,19 @@ Private Sub DispatchAction(act As Object)
         Case "set_fill_color"
             modActions.Do_set_fill_color CLng(act("slide")), CLng(act("shape_id")), CStr(act("value"))
         Case "move_shape"
-            modActions.Do_move_shape CLng(act("slide")), CLng(act("shape_id")), _
-                                     CSng(act("left")), CSng(act("top"))
+            ' SP9: missing left/top means "keep current". Pass sentinel
+            ' -99999 — Do_move_shape skips assignment for that axis.
+            Dim mvL As Single, mvT As Single
+            mvL = -99999#: mvT = -99999#
+            If act.Exists("left") Then mvL = CSng(act("left"))
+            If act.Exists("top") Then mvT = CSng(act("top"))
+            modActions.Do_move_shape CLng(act("slide")), CLng(act("shape_id")), mvL, mvT
         Case "resize_shape"
-            modActions.Do_resize_shape CLng(act("slide")), CLng(act("shape_id")), _
-                                       CSng(act("width")), CSng(act("height"))
+            Dim rzW As Single, rzH As Single
+            rzW = -99999#: rzH = -99999#
+            If act.Exists("width") Then rzW = CSng(act("width"))
+            If act.Exists("height") Then rzH = CSng(act("height"))
+            modActions.Do_resize_shape CLng(act("slide")), CLng(act("shape_id")), rzW, rzH
         Case "delete_shape"
             modActions.Do_delete_shape CLng(act("slide")), CLng(act("shape_id"))
         Case "add_slide"
@@ -2877,11 +2897,13 @@ Public Function GetActionGuidance(actionType As String) As String
                 "  EXAMPLE:  {""type"":""add_line"",""slide"":1,""x1"":60,""y1"":100,""x2"":300,""y2"":100,""color"":""#15283C"",""weight_pt"":1.5}"
         Case "move_shape"
             GetActionGuidance = _
-                "  REQUIRED: slide, shape_id, left(num), top(num)" & vbCrLf & _
+                "  REQUIRED: slide, shape_id, at least one of {left, top}" & vbCrLf & _
+                "  OPTIONAL: left(num), top(num) — omit either to keep that axis unchanged" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""move_shape"",""slide"":1,""shape_id"":3,""left"":100,""top"":120}"
         Case "resize_shape"
             GetActionGuidance = _
-                "  REQUIRED: slide, shape_id, width(num), height(num)" & vbCrLf & _
+                "  REQUIRED: slide, shape_id, at least one of {width, height}" & vbCrLf & _
+                "  OPTIONAL: width(num), height(num) — omit either to keep that dimension unchanged" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""resize_shape"",""slide"":1,""shape_id"":3,""width"":300,""height"":200}"
         Case "delete_shape"
             GetActionGuidance = _

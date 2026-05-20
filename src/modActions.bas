@@ -211,18 +211,20 @@ End Sub
 ' --- Geometry actions --------------------------------------------------------
 
 Public Sub Do_move_shape(slideNum As Long, shapeId As Long, leftPt As Single, topPt As Single)
+    ' SP9: passing -99999 for either axis means "keep current value".
     Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 2001, "Do_move_shape", "shape not found"
-    sh.Left = leftPt
-    sh.Top = topPt
+    If leftPt > -99998# Then sh.Left = leftPt
+    If topPt > -99998# Then sh.Top = topPt
 End Sub
 
 Public Sub Do_resize_shape(slideNum As Long, shapeId As Long, widthPt As Single, heightPt As Single)
+    ' SP9: passing -99999 for either dimension means "keep current value".
     Dim sh As Shape: Set sh = FindShape(slideNum, shapeId)
     If sh Is Nothing Then Err.Raise vbObjectError + 2001, "Do_resize_shape", "shape not found"
     sh.LockAspectRatio = msoFalse
-    sh.Width = widthPt
-    sh.Height = heightPt
+    If widthPt > -99998# Then sh.Width = widthPt
+    If heightPt > -99998# Then sh.Height = heightPt
 End Sub
 
 Public Sub Do_delete_shape(slideNum As Long, shapeId As Long)

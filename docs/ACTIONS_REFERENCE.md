@@ -1471,7 +1471,8 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ### `move_shape`
 
 ```
-  REQUIRED: slide, shape_id, left(num), top(num)
+  REQUIRED: slide, shape_id, at least one of {left, top}
+  OPTIONAL: left(num), top(num) â€” omit either to keep that axis unchanged
   EXAMPLE:  {"type":"move_shape","slide":1,"shape_id":3,"left":100,"top":120}
 ```
 
@@ -1601,7 +1602,8 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ### `resize_shape`
 
 ```
-  REQUIRED: slide, shape_id, width(num), height(num)
+  REQUIRED: slide, shape_id, at least one of {width, height}
+  OPTIONAL: width(num), height(num) â€” omit either to keep that dimension unchanged
   EXAMPLE:  {"type":"resize_shape","slide":1,"shape_id":3,"width":300,"height":200}
 ```
 

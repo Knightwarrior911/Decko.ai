@@ -80,10 +80,36 @@ body[data-dock="off"] #winMinBtn,
 body[data-dock="off"] #winCloseBtn { display: none; }
 body[data-dock="on"] #undockBtn { color: var(--accent); }
 
-/* Dock-on narrow layout */
-body[data-dock="on"] #side { width: 220px; }
-body[data-dock="on"] #hero { padding: 24px 16px; gap: 16px; }
-body[data-dock="on"] #hero h1 { font-size: 1.25rem; }
+/* SP8 — Dock mode is CHAT-FIRST. Sidebar collapses to a 4px hover
+   tab on the left edge of the chat pane; full sidebar slides in only
+   while the cursor is over the chat container's left strip. */
+body[data-dock="on"] { overflow: hidden; }
+body[data-dock="on"] #layout { position: relative; }
+body[data-dock="on"] #side {
+  position: absolute; top: 0; left: 0; height: 100%;
+  width: 220px;
+  transform: translateX(-216px);
+  transition: transform .18s ease-out;
+  z-index: 40;
+  box-shadow: 4px 0 12px rgba(0, 0, 0, .45);
+}
+body[data-dock="on"] #side::after {
+  content: ""; position: absolute; right: -4px; top: 0;
+  width: 4px; height: 100%; background: var(--accent);
+  opacity: .55;
+}
+body[data-dock="on"] #side:hover,
+body[data-dock="on"] #side.show-hover,
+body[data-dock="on"] #side.pinned { transform: translateX(0); }
+body[data-dock="on"] #sideHoverTab {
+  position: absolute; top: 0; left: 0; width: 16px; height: 100%;
+  z-index: 35; cursor: pointer;
+}
+body[data-dock="off"] #sideHoverTab { display: none; }
+
+body[data-dock="on"] #chat { padding-left: 0; }
+body[data-dock="on"] #hero { padding: 20px 16px; gap: 16px; }
+body[data-dock="on"] #hero h1 { font-size: 1.15rem; }
 body[data-dock="on"] #hero p { font-size: .82rem; }
 body[data-dock="on"] #heroBtns { flex-direction: column; width: 100%; }
 body[data-dock="on"] #hero button { min-width: 100%; padding: 12px 16px;
@@ -94,6 +120,10 @@ body[data-dock="on"] #composer { flex-direction: column; }
 body[data-dock="on"] #sendBtn { width: 100%; padding: .55rem; }
 body[data-dock="on"] #msg { height: 60px; }
 body[data-dock="on"] #tplPanel { width: 100%; right: 0; }
+body[data-dock="on"] #threadTitle { padding: 10px 14px 0;
+  font-size: .8rem; }
+body[data-dock="on"] #thread { padding: 10px 14px; }
+body[data-dock="on"] .bubble { max-width: 95%; }
 
 /* Layout */
 #layout { display: flex; height: calc(100vh - var(--header-h)); }
