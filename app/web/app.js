@@ -168,6 +168,34 @@ function loadTheme() {
   applyTheme(localStorage.getItem("decko_theme") || "dark");
 }
 
+/* ---------- dock mode (SP6) ------------------------------------------ */
+function applyDockMode(enabled) {
+  document.body.dataset.dock = enabled ? "on" : "off";
+  const cb = $("setDockMode");
+  if (cb) cb.checked = !!enabled;
+  const pin = $("undockBtn");
+  if (pin) {
+    pin.title = enabled
+      ? "Detach Decko from PowerPoint."
+      : "Dock Decko to PowerPoint.";
+    pin.textContent = enabled ? "📌" : "📍";
+  }
+}
+
+async function toggleDockMode() {
+  const next = document.body.dataset.dock !== "on";
+  const r = await api.set_dock_mode(next);
+  if (r && r.error) {
+    showToast(friendlyError(r.error), "error");
+    return;
+  }
+  applyDockMode(next);
+  if (bootSnapshot && bootSnapshot.settings) {
+    bootSnapshot.settings.dock_mode = next;
+  }
+  showToast(next ? "Docked to PowerPoint." : "Detached.", "success");
+}
+
 /* ---------- boot ------------------------------------------------------ */
 let bootSnapshot = null;
 
@@ -175,6 +203,7 @@ window.addEventListener("pywebviewready", async () => {
   api = window.pywebview.api;
   loadTheme();
   bootSnapshot = await api.boot();
+  applyDockMode(bootSnapshot.settings.dock_mode !== false);
   // Populate Settings dialog defaults from persisted settings.
   $("setProvider").value = bootSnapshot.settings.provider;
   $("setBaseUrl").value = bootSnapshot.settings.base_url || "";
@@ -197,8 +226,15 @@ window.addEventListener("pywebviewready", async () => {
   }
 });
 
-/* ---------- header / gear -------------------------------------------- */
+/* ---------- header / gear / window controls -------------------------- */
 $("gearBtn").onclick = () => openSettings();
+$("undockBtn").onclick = toggleDockMode;
+$("winMinBtn").onclick = async () => {
+  try { await api.window_minimize(); } catch (_) {}
+};
+$("winCloseBtn").onclick = async () => {
+  try { await api.window_close(); } catch (_) {}
+};
 
 /* ---------- wizard ---------------------------------------------------- */
 function setWizStep(n) {
@@ -310,6 +346,20 @@ $("themeDark").onclick = () => {
   localStorage.setItem("decko_theme", "dark"); applyTheme("dark"); };
 $("themeLight").onclick = () => {
   localStorage.setItem("decko_theme", "light"); applyTheme("light"); };
+
+$("setDockMode").onchange = async (e) => {
+  const next = !!e.target.checked;
+  const r = await api.set_dock_mode(next);
+  if (r && r.error) {
+    showToast(friendlyError(r.error), "error");
+    e.target.checked = !next;
+    return;
+  }
+  applyDockMode(next);
+  if (bootSnapshot && bootSnapshot.settings) {
+    bootSnapshot.settings.dock_mode = next;
+  }
+};
 
 $("setSave").onclick = async () => {
   const provider = $("setProvider").value;

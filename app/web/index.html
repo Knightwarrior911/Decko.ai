@@ -11,8 +11,13 @@
 <header id="appHeader">
   <img src="decko_icon.svg" alt="Decko">
   <span class="wordmark">Decko</span>
-  <span id="headerSpacer"></span>
-  <button id="gearBtn" title="Open settings" aria-label="Settings">&#9881;</button>
+  <div class="dragArea" title="Drag to move Decko."></div>
+  <button id="undockBtn" class="winctl"
+    title="Detach Decko from PowerPoint.">&#128204;</button>
+  <button id="gearBtn" class="winctl" title="Open settings"
+    aria-label="Settings">&#9881;</button>
+  <button id="winMinBtn" class="winctl" title="Minimize">&#9472;</button>
+  <button id="winCloseBtn" class="winctl" title="Close">&#10006;</button>
 </header>
 
 <div id="layout">
@@ -230,6 +235,11 @@
       <button id="themeDark"  title="Dark mode.">Dark</button>
       <button id="themeLight" title="Light mode.">Light</button>
     </div>
+
+    <label title="When on, Decko snaps to the right edge of your PowerPoint window.">
+      <input type="checkbox" id="setDockMode" checked>
+      Dock to PowerPoint
+    </label>
 
     <div class="dlgBtns">
       <button id="setCancel" title="Discard changes.">Cancel</button>
