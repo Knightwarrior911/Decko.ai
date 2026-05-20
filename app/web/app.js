@@ -327,6 +327,13 @@ function openSettings() {
     }
     $("setModelFree").value = bootSnapshot.settings.model || "";
     $("setBaseUrl").value = bootSnapshot.settings.base_url || "";
+    if ($("setDeckoOnTop")) {
+      $("setDeckoOnTop").checked = !!bootSnapshot.settings.decko_on_top;
+    }
+    if ($("setResizePpt")) {
+      $("setResizePpt").checked =
+        bootSnapshot.settings.resize_ppt_for_dock !== false;
+    }
     refreshKeyStatus(bootSnapshot.has_key);
   }
 }
@@ -371,12 +378,35 @@ $("setSave").onclick = async () => {
   if (provider !== "generic" && !model) {
     showToast("Pick a model.", "error"); return;
   }
-  const r = await api.save_settings(provider, model, baseUrl, key);
+  const onTop = !!$("setDeckoOnTop").checked;
+  const resizePpt = !!$("setResizePpt").checked;
+  const r = await api.save_settings(provider, model, baseUrl, key,
+                                    onTop, resizePpt);
   if (!r.ok) { showToast(friendlyError(r.error), "error"); return; }
   bootSnapshot = await api.boot();
   refreshKeyStatus(bootSnapshot.has_key);
   showToast("Settings saved.", "success");
   closeSettings();
+};
+
+// SP7 — live-toggle on change so user sees behavior without reopening.
+$("setDeckoOnTop").onchange = async (e) => {
+  await api.save_settings(
+    $("setProvider").value,
+    ($("setProvider").value === "generic")
+      ? ($("setModelFree").value || "")
+      : ($("modelPick").value || ""),
+    $("setBaseUrl").value, "",
+    !!e.target.checked, !!$("setResizePpt").checked);
+};
+$("setResizePpt").onchange = async (e) => {
+  await api.save_settings(
+    $("setProvider").value,
+    ($("setProvider").value === "generic")
+      ? ($("setModelFree").value || "")
+      : ($("modelPick").value || ""),
+    $("setBaseUrl").value, "",
+    !!$("setDeckoOnTop").checked, !!e.target.checked);
 };
 
 /* ---------- hero handlers -------------------------------------------- */
