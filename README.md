@@ -62,16 +62,33 @@ verified, not in the deterministic gate, per the design's honest scope).
 
 ### Templates panel (SP2)
 
-The desktop app has a slide-over **Templates ▸** panel: apply the 7
-built-in layouts or your captured "Deck DNA" templates with instant
-placeholders (optional Fill-with-AI), capture the active slide,
-rename/delete captured templates, generate layout variants, and
-extract / build a deck spec (`{"deck":[…]}`) — all without an LLM
-round-trip for the deterministic operations; each is logged as a
-session turn. Gate: the `templates` gate inside
+The desktop app has a slide-over **Templates** panel: apply the 7
+built-in layouts or your saved layouts ("Deck DNA" captures, surfaced
+in the UI as **My saved layouts**) with instant placeholders (optional
+Fill-with-AI), capture the active slide, rename/delete saved layouts,
+generate layout variants, and — under **Power user tools** — export
+the deck as JSON / build a deck from JSON (`{"deck":[…]}`). All
+deterministic operations skip the LLM round-trip and are logged as
+session turns. Gate: the `templates` gate inside
 `python tests/run_smoke_app.py`; the panel itself is verified manually.
 Design: `docs/superpowers/specs/2026-05-18-sp2-templates-ui-design.md`.
 Plan: `docs/superpowers/plans/2026-05-18-sp2-templates-ui.md`.
+
+### Consumer-polish UI (SP5)
+
+The desktop app's frontend (`app/web/`) has shed engineer-test jargon
+and grown a consumer-grade onboarding flow: first-run 3-step wizard
+(Welcome → Choose AI → Pick deck), Settings dialog behind a gear icon
+with a curated per-provider model dropdown, hero empty state with two
+large CTAs (Connect to open deck / Open a PowerPoint file…), composer
+example chips, friendly-error translation, toast notifications,
+dirty-deck indicator, and a light theme toggle. Engine and existing
+`Api` signatures untouched — added two narrow cosmetic methods only
+(`Api.set_window_title`, `Api.pick_pptx_path`). New gate:
+`tests/run_smoke_ui_polish.py` (jargon blocklist + selector allowlist).
+Design: `docs/superpowers/specs/2026-05-20-desktop-consumer-polish.md`.
+Plan: `docs/superpowers/plans/2026-05-20-desktop-consumer-polish.md`.
+Before/after walkthrough: `docs/screenshots/consumer-polish/`.
 
 ## One-time developer setup
 

@@ -19,6 +19,7 @@ GATES = [
     ("templates",      [sys.executable,
                         "tests/run_smoke_app_templates.py"]),
     ("packaging_smoke",[sys.executable, "tests/run_smoke_app_packaging.py"]),
+    ("ui_polish",      [sys.executable, "tests/run_smoke_ui_polish.py"]),
 ]
 
 
