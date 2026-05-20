@@ -146,8 +146,8 @@ Private Function ResolveDashStyle(dashStyle As String) As Long
     Select Case LCase(Trim(dashStyle))
         Case "solid":         ResolveDashStyle = 1   ' msoLineSolid
         Case "dash":          ResolveDashStyle = 4   ' msoLineDash
-        Case "dot":           ResolveDashStyle = 3   ' msoLineRoundDot
-        Case "round_dot":     ResolveDashStyle = 3
+        Case "dot":           ResolveDashStyle = 2   ' msoLineSquareDot
+        Case "round_dot":     ResolveDashStyle = 3   ' msoLineRoundDot
         Case "dash_dot":      ResolveDashStyle = 5   ' msoLineDashDot
         Case "long_dash":     ResolveDashStyle = 7   ' msoLineLongDash
         Case "long_dash_dot": ResolveDashStyle = 8   ' msoLineLongDashDot
@@ -974,6 +974,12 @@ Public Sub Do_build_image_grid_table_act(act As Object)
     If Not act.Exists("rows") Then
         Err.Raise vbObjectError + 8030, "Do_build_image_grid_table", "rows array required"
     End If
+    If Not act.Exists("slide") Then
+        Err.Raise vbObjectError + 8032, "Do_build_image_grid_table", "slide field required"
+    End If
+    If Not act.Exists("pos") Then
+        Err.Raise vbObjectError + 8033, "Do_build_image_grid_table", "pos object required (keys: left, top, width, height)"
+    End If
     stage = "read_rows"
     Dim rows As Object: Set rows = act("rows")
     Dim n As Long: n = rows.Count
@@ -986,6 +992,11 @@ Public Sub Do_build_image_grid_table_act(act As Object)
     If slideNum < 1 Or slideNum > pres.Slides.Count Then slideNum = pres.Slides.Count
 
     Dim posD As Object: Set posD = act("pos")
+    If Not posD.Exists("left") Or Not posD.Exists("top") _
+       Or Not posD.Exists("width") Or Not posD.Exists("height") Then
+        Err.Raise vbObjectError + 8034, "Do_build_image_grid_table", _
+                  "pos requires all of: left, top, width, height"
+    End If
     Dim totalLeft As Single: totalLeft = CSng(posD("left"))
     Dim totalTop As Single: totalTop = CSng(posD("top"))
     Dim totalW As Single: totalW = CSng(posD("width"))

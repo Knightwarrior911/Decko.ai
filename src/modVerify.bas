@@ -695,7 +695,17 @@ Private Sub CheckBrokenInternalHyperlink(sh As Shape, slideNum As Long, warnings
             Dim ru As TextRange: Set ru = para.Runs(r)
             Dim u As String: u = ru.ActionSettings(1).Hyperlink.Address
             If LCase(Left(u, 7)) = "#slide:" Then
-                Dim n2 As Long: n2 = Val(Mid(u, 8))
+                Dim slideStr As String: slideStr = Mid(u, 8)
+                Dim slideOk As Boolean: slideOk = (Len(slideStr) > 0)
+                Dim ci As Long
+                For ci = 1 To Len(slideStr)
+                    If Mid(slideStr, ci, 1) < "0" Or Mid(slideStr, ci, 1) > "9" Then
+                        slideOk = False
+                        Exit For
+                    End If
+                Next ci
+                If Not slideOk Then GoTo NextHyperlink
+                Dim n2 As Long: n2 = CLng(slideStr)
                 If n2 < 1 Or n2 > deckCount Then
                     AddWarning warnings, "warn", "broken_internal_hyperlink", slideNum, sh.Id, _
                         sh.Name & " paragraph " & (p - 1) & " run " & (r - 1) & _
@@ -704,6 +714,7 @@ Private Sub CheckBrokenInternalHyperlink(sh As Shape, slideNum As Long, warnings
                         " paragraph_index=" & (p - 1) & " run_index=" & (r - 1) & " value=""""  (clear)"
                 End If
             End If
+NextHyperlink:
         Next r
     Next p
 End Sub

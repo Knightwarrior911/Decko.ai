@@ -158,6 +158,10 @@ Private Function BuildShapeDict(sh As Shape) As Object
             d.Add "text", sh.TextFrame.TextRange.Text
             d.Add "font", BuildFontDict(sh.TextFrame.TextRange.Font)
             d.Add "paragraphs", BuildParagraphsCollection(sh.TextFrame.TextRange)
+        Else
+            ' Always emit "text" alongside "text_frame" so downstream consumers
+            ' can rely on the pair being present together.
+            d.Add "text", ""
         End If
         Dim tfDict As Object: Set tfDict = CreateObject("Scripting.Dictionary")
         tfDict.Add "vertical_align", VerticalAnchorName(sh.TextFrame.VerticalAnchor)

@@ -49,40 +49,36 @@ Public Sub Do_add_paragraph(slideNum As Long, shapeId As Long, _
     Dim tr As TextRange: Set tr = sh.TextFrame.TextRange
     Dim n As Long: n = tr.Paragraphs().Count
 
+    ' Empty text frame: nothing to preserve, just set the text.
+    If n = 0 Or Len(tr.Text) = 0 Then
+        tr.Text = value
+        Exit Sub
+    End If
+
+    ' Prior implementation rebuilt the entire text frame via tr.Text = newText,
+    ' which discarded per-run formatting (bold/italic/size/color) on every
+    ' existing paragraph. TextRange.InsertBefore / InsertAfter mutate only the
+    ' boundary and leave surrounding runs untouched.
     If afterParagraphIndex < 0 Then
-        tr.Text = value & Chr(13) & tr.Text
+        tr.Paragraphs(1).InsertBefore value & Chr(13)
         Exit Sub
     End If
 
     If afterParagraphIndex >= n Then
-        tr.Text = tr.Text & Chr(13) & value
+        ' Append after the last paragraph. If the existing text already ends
+        ' with a terminator, avoid doubling it (would create a blank line).
+        If Right(tr.Text, 1) = Chr(13) Then
+            tr.InsertAfter value
+        Else
+            tr.InsertAfter Chr(13) & value
+        End If
         Exit Sub
     End If
 
-    ' Build new text by splitting at paragraph boundary
-    ' Strip trailing Chr(13) from each paragraph's .Text before rebuilding
-    Dim parts() As String
-    Dim i As Long
-    ReDim parts(n - 1)
-    For i = 1 To n
-        Dim pText As String
-        pText = tr.Paragraphs(i).Text
-        If Right(pText, 1) = Chr(13) Then pText = Left(pText, Len(pText) - 1)
-        parts(i - 1) = pText
-    Next i
-
-    Dim newText As String
-    newText = ""
-    For i = 0 To afterParagraphIndex
-        If i > 0 Then newText = newText & Chr(13)
-        newText = newText & parts(i)
-    Next i
-    newText = newText & Chr(13) & value
-    For i = afterParagraphIndex + 1 To n - 1
-        newText = newText & Chr(13) & parts(i)
-    Next i
-
-    tr.Text = newText
+    ' Insert between paragraphs. tr.Paragraphs(K).InsertAfter places the new
+    ' text at K's end (just past K's terminator) = start of K+1, so the result
+    ' is paraK\rvalue\rparaK+1, with every other paragraph's runs preserved.
+    tr.Paragraphs(afterParagraphIndex + 1).InsertAfter value & Chr(13)
 End Sub
 
 Public Sub Do_delete_paragraph(slideNum As Long, shapeId As Long, paragraphIndex As Long)

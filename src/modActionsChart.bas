@@ -492,7 +492,21 @@ Public Sub Do_set_chart_error_bars(slideNum As Long, shapeId As Long, _
 
     On Error Resume Next
     ser.HasErrorBars = True
-    ser.ErrorBar Direction:=direction, Include:=include, Type:=ebType, Amount:=amount
+    ' Excel/PowerPoint custom error bars expect MinusValues passed separately
+    ' from Amount (which here represents PlusValues). Default minusValues to
+    ' amount when only a single value is supplied for backwards compat.
+    If ebType = -4114 Then  ' xlErrorBarTypeCustom
+        If props.Exists("plus_amount") Then amount = CDbl(props("plus_amount"))
+        If props.Exists("minus_amount") Then
+            minusValues = CDbl(props("minus_amount"))
+        Else
+            minusValues = amount
+        End If
+        ser.ErrorBar Direction:=direction, Include:=include, Type:=ebType, _
+                     Amount:=amount, MinusValues:=minusValues
+    Else
+        ser.ErrorBar Direction:=direction, Include:=include, Type:=ebType, Amount:=amount
+    End If
     ' Force error bars visible — defaults are sometimes hidden after method call
     ser.ErrorBars.Format.Line.Visible = msoTrue
     ser.ErrorBars.Format.Line.Weight = 1.5

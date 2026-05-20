@@ -69,8 +69,9 @@ Public Sub Do_extract_slides(slideIndices As Variant, outputPath As String)
     ' each requested slide by index via Slides.InsertFromFile — no
     ' clipboard, no window, deterministic.
     Dim tmpSrc As String
+    Randomize  ' seed PRNG so concurrent extracts in same session don't collide
     tmpSrc = Environ$("TEMP") & "\decko_extract_" & _
-             Format(Now, "yyyymmddhhnnss") & Int(Rnd * 100000) & ".pptx"
+             Format(Now, "yyyymmddHHnnss") & Int(Rnd * 100000) & ".pptx"
     src.SaveCopyAs tmpSrc
 
     Dim outPres As Presentation
@@ -215,7 +216,7 @@ Private Function ResolveTransitionEffect(effect As String) As Long
         Case "fade":            ResolveTransitionEffect = 1793
         Case "push":            ResolveTransitionEffect = 1796
         Case "wipe":            ResolveTransitionEffect = 1539
-        Case "split":           ResolveTransitionEffect = 257
+        Case "split":           ResolveTransitionEffect = 1032   ' ppEffectSplitVerticalOut
         Case "reveal":          ResolveTransitionEffect = 1795
         Case "dissolve":        ResolveTransitionEffect = 1281
         Case "checkerboard":    ResolveTransitionEffect = 769

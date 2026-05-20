@@ -492,7 +492,8 @@ frame. **A table shape has no text frame** — calling them on a table errors
 - **`set_chart_legend`** — `req:` `slide`, `shape_id`, `props`(object — `visible`(bool), `position`(`top`|`right`|`bottom`|`left`|`corner`), `font_size`(int), `font_color`(`#RRGGBB`)).
   > Compared to `set_chart_legend_position`, this action's `position` vocab drops `none` but adds `corner`. To hide the legend, pass `visible:false` here OR pass `value:"none"` to `set_chart_legend_position`.
 - **`add_chart_trendline`** — `req:` `slide`, `shape_id`, `series_index`, `props`(object — `kind`(`linear`|`log`|`polynomial`|`power`|`exponential`|`moving_avg`), `order`(int, for polynomial), `period`(int, for moving_avg), `display_equation`(bool), `display_r2`(bool), `dash`(`solid`|`dash`|`dot`|`round_dot`|`dash_dot`|`long_dash`|`long_dash_dot`), `color`(`#RRGGBB`))).
-- **`set_chart_error_bars`** — `req:` `slide`, `shape_id`, `series_index`, `props`(object — `direction`(`x`|`y`|`both`), `include`(`both`|`plus`|`minus`), `type`(`fixed`|`percent`|`stdev`|`stderr`|`custom`), `amount`(num), `end_style`(`cap`|`no_cap`))).
+- **`set_chart_error_bars`** — `req:` `slide`, `shape_id`, `series_index`, `props`(object — `direction`(`x`|`y`|`both`), `include`(`both`|`plus`|`minus`), `type`(`fixed`|`percent`|`stdev`|`stderr`|`custom`), `amount`(num), `plus_amount`(num — `custom` only; defaults to `amount`), `minus_amount`(num — `custom` only; defaults to `amount`), `end_style`(`cap`|`no_cap`), `color`(`#RRGGBB`), `weight`(num pt))).
+  > For `type:"custom"`, pass `plus_amount` and `minus_amount` separately — Excel custom error bars expect distinct positive/negative magnitudes. Other types use the single `amount`.
 - **`set_chart_data_table`** — show/hide the spreadsheet-style data grid under a chart. `req:` `slide`, `shape_id`, `visible`(bool). `opt:` `props`(object — `show_legend_key`(bool), `horizontal_border`(bool), `vertical_border`(bool), `outline_border`(bool), `font_size`(int), `font_color`(`#RRGGBB`)).
   `ex:` `{"type":"set_chart_data_table","slide":1,"shape_id":4,"visible":true,"props":{"font_size":9,"horizontal_border":true}}`
 - **`set_line_smoothing`** — toggle Bezier smoothing on a line/scatter series. `req:` `slide`, `shape_id`, `series_index`(1-based), `value`(bool — `true` smooths, `false` straightens).
@@ -702,9 +703,11 @@ If the snapshot already shows the right colors/sizes per paragraph level, only
 emit `set_paragraph_text`. Adding `set_font_color`/`set_font_size` resets the
 formatting and overwrites the per-level styling.
 
-**Exception:** NEW paragraphs added with `add_paragraph` have no inherited
-formatting and MUST have `set_paragraph_font_color`, `set_paragraph_font_size`,
-`set_indent_level` set explicitly.
+**Note:** `add_paragraph` now PRESERVES surrounding paragraph/run formatting
+(uses `TextRange.InsertBefore`/`InsertAfter` rather than rebuilding the text
+frame). The new paragraph inherits formatting from the neighbour at the
+insertion point. Override with `set_paragraph_*` / `set_indent_level` AFTER
+`add_paragraph` only when the inherited style is wrong for that level.
 
 ```json
 // WRONG — existing para already has correct color; setting it again may override
@@ -714,11 +717,9 @@ formatting and MUST have `set_paragraph_font_color`, `set_paragraph_font_size`,
 // RIGHT — existing para: text only
 {"type":"set_paragraph_text","slide":1,"shape_id":3,"paragraph_index":1,"value":"New text"}
 
-// RIGHT — new added para: needs explicit font
+// RIGHT — new added para: inherits from neighbour; override only when needed
 {"type":"add_paragraph","slide":1,"shape_id":3,"after_paragraph_index":3,"value":"New bullet"}
 {"type":"set_indent_level","slide":1,"shape_id":3,"paragraph_index":4,"value":1}
-{"type":"set_paragraph_font_color","slide":1,"shape_id":3,"paragraph_index":4,"value":"#000000"}
-{"type":"set_paragraph_font_size","slide":1,"shape_id":3,"paragraph_index":4,"value":10}
 ```
 
 ### Mistake 5 — Shape-level font actions on multi-paragraph shapes
@@ -863,7 +864,7 @@ If a new action is added to the dispatcher, update GetActionGuidance and GetAllA
 ```
   REQUIRED: slide, shape_id, after_paragraph_index(int; -1 prepends), value(string)
   EXAMPLE:  {"type":"add_paragraph","slide":1,"shape_id":3,"after_paragraph_index":2,"value":"New bullet"}
-  ORDER: emit ALL add_paragraph for a shape BEFORE any set_run_*/set_bullet_style/set_indent_level/add_run on it; add_paragraph rebuilds the text frame and discards earlier run/paragraph formatting.
+  NOTE: preserves existing paragraph/run formatting. The new paragraph inherits formatting from the neighbouring paragraph at the insertion point â€” apply set_run_*/set_bullet_style/set_indent_level AFTER add_paragraph to override.
 ```
 
 ### `add_run`

@@ -69,8 +69,9 @@ Private Function ToJsonNumOrNull(v As Variant) As String
 End Function
 
 Private Function FormatIsoUtc(dt As Date) As String
-    ' Local time, no tz suffix — keep simple. Spec accepts this.
-    FormatIsoUtc = Format(dt, "yyyy-mm-dd") & "T" & Format(dt, "hh:nn:ss") & "Z"
+    ' Local time, ISO 8601-style. "Z" suffix removed (timestamps are local, not UTC).
+    ' HH = 24-hour clock; lowercase hh would produce 12-hour values for afternoon times.
+    FormatIsoUtc = Format(dt, "yyyy-mm-dd") & "T" & Format(dt, "HH:nn:ss")
 End Function
 
 Public Function EscapeJsonString(s As String) As String

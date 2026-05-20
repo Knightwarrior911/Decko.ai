@@ -523,14 +523,25 @@ Public Sub Do_scan_palette(scope As String)
     Print #fNum, jsonOut
     Close #fNum
 
-    ' Set Windows clipboard via PowerShell (synchronous, hidden window)
+    ' Set Windows clipboard via PowerShell (synchronous, hidden window).
+    ' If PowerShell execution policy or WScript.Shell is blocked, surface a
+    ' Debug.Print warning so the failure is visible during development; the
+    ' palette JSON is still written to tmpPath and reported in the result.
     On Error Resume Next
     Dim wsh As Object: Set wsh = CreateObject("WScript.Shell")
-    If Err.Number = 0 Then
-        Dim psCmd As String
-        psCmd = "powershell -NonInteractive -Command " & _
-                """Get-Content -Raw -Encoding UTF8 '" & tmpPath & "' | Set-Clipboard"""
-        wsh.Run psCmd, 0, True
+    If Err.Number <> 0 Then
+        Debug.Print "[scan_palette] clipboard set failed (WScript.Shell unavailable): " & _
+                    Err.Description & " — palette saved at " & tmpPath
+        Err.Clear: On Error GoTo 0
+        Exit Sub
+    End If
+    Dim psCmd As String
+    psCmd = "powershell -NonInteractive -Command " & _
+            """Get-Content -Raw -Encoding UTF8 '" & tmpPath & "' | Set-Clipboard"""
+    Dim psRc As Long: psRc = wsh.Run(psCmd, 0, True)
+    If Err.Number <> 0 Or psRc <> 0 Then
+        Debug.Print "[scan_palette] PowerShell clipboard set failed (rc=" & psRc & _
+                    "): " & Err.Description & " — palette saved at " & tmpPath
     End If
     Err.Clear: On Error GoTo 0
 End Sub

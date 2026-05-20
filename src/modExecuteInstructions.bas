@@ -1451,10 +1451,33 @@ Private Function ResolveActShapeIdArray(act As Object, idsKey As String) As Vari
         Err.Raise vbObjectError + 2061, "ResolveActShapeIdArray", _
                   "missing field " & idsKey & " or " & namesKey
     End If
+    ' Resolve each element via ResolveShapeRef so downstream dispatch can pass
+    ' the array (or Collection) to NormalizeIdsArray with numeric ids in place.
+    Dim slideN As Long: slideN = CLng(act("slide"))
+    Dim raw As Variant: raw = Null
     If IsObject(act(key)) Then
-        Set ResolveActShapeIdArray = act(key)
+        Dim col As Object: Set col = act(key)
+        Dim newCol As Object: Set newCol = New Collection
+        Dim i As Long
+        For i = 1 To col.Count
+            newCol.Add modActions.ResolveShapeRef(slideN, col(i), key & "[" & (i - 1) & "]")
+        Next i
+        Set ResolveActShapeIdArray = newCol
+    ElseIf IsArray(act(key)) Then
+        Dim arr As Variant: arr = act(key)
+        Dim lo As Long: lo = LBound(arr)
+        Dim hi As Long: hi = UBound(arr)
+        Dim outArr() As Long
+        ReDim outArr(lo To hi)
+        For i = lo To hi
+            outArr(i) = modActions.ResolveShapeRef(slideN, arr(i), key & "[" & (i - lo) & "]")
+        Next i
+        ResolveActShapeIdArray = outArr
     Else
-        ResolveActShapeIdArray = act(key)
+        ' single scalar — resolve and wrap as 1-element Collection so callers see uniform shape
+        Dim single As Object: Set single = New Collection
+        single.Add modActions.ResolveShapeRef(slideN, act(key), key)
+        Set ResolveActShapeIdArray = single
     End If
 End Function
 
@@ -2771,7 +2794,7 @@ Public Function GetActionGuidance(actionType As String) As String
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, after_paragraph_index(int; -1 prepends), value(string)" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""add_paragraph"",""slide"":1,""shape_id"":3,""after_paragraph_index"":2,""value"":""New bullet""}" & vbCrLf & _
-                "  ORDER: emit ALL add_paragraph for a shape BEFORE any set_run_*/set_bullet_style/set_indent_level/add_run on it; add_paragraph rebuilds the text frame and discards earlier run/paragraph formatting."
+                "  NOTE: preserves existing paragraph/run formatting. The new paragraph inherits formatting from the neighbouring paragraph at the insertion point — apply set_run_*/set_bullet_style/set_indent_level AFTER add_paragraph to override."
         Case "delete_paragraph"
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, paragraph_index" & vbCrLf & _
@@ -3029,10 +3052,6 @@ Public Function GetActionGuidance(actionType As String) As String
             GetActionGuidance = _
                 "  REQUIRED: slide, shape_id, paragraph_index, run_index, value(num -1.0..1.0; fraction of font height)" & vbCrLf & _
                 "  EXAMPLE:  {""type"":""set_run_baseline_offset"",""slide"":1,""shape_id"":3,""paragraph_index"":0,""run_index"":1,""value"":0.3}"
-        Case "delete_paragraph"
-            GetActionGuidance = _
-                "  REQUIRED: slide, shape_id, paragraph_index" & vbCrLf & _
-                "  EXAMPLE:  {""type"":""delete_paragraph"",""slide"":1,""shape_id"":3,""paragraph_index"":2}"
         ' ---- text-frame behavior ----
         Case "set_text_vertical_align"
             GetActionGuidance = _

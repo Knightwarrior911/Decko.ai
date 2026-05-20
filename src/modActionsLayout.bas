@@ -39,8 +39,9 @@ End Function
 Public Function NormalizeIdsArray(v As Variant, ByRef out() As Long, _
                                   Optional ByVal slideNum As Long = 0) As Long
     ' If slideNum > 0, each element may be a numeric Id or a string ref_name
-    ' (resolved via modActions.ResolveShapeRef). If slideNum = 0, elements
-    ' must be numeric (legacy behavior, kept for non-shape ID arrays).
+    ' (resolved via modActions.ResolveShapeRef). If slideNum = 0, accept
+    ' numeric or numeric-string only — string ref_names cannot be resolved
+    ' without a slide context, so a non-numeric string raises type_mismatch.
     Dim col As Object
     If TypeName(v) = "Collection" Then
         Set col = v
@@ -52,11 +53,7 @@ Public Function NormalizeIdsArray(v As Variant, ByRef out() As Long, _
         ReDim out(0 To col.Count - 1)
         Dim i As Long
         For i = 1 To col.Count
-            If slideNum > 0 Then
-                out(i - 1) = modActions.ResolveShapeRef(slideNum, col(i), "shape_ids[" & (i - 1) & "]")
-            Else
-                out(i - 1) = CLng(col(i))
-            End If
+            out(i - 1) = NormalizeOneId(col(i), slideNum, "shape_ids[" & (i - 1) & "]")
         Next i
         NormalizeIdsArray = col.Count
     ElseIf IsArray(v) Then
@@ -72,21 +69,29 @@ Public Function NormalizeIdsArray(v As Variant, ByRef out() As Long, _
         End If
         ReDim out(0 To hi - lo)
         For i = lo To hi
-            If slideNum > 0 Then
-                out(i - lo) = modActions.ResolveShapeRef(slideNum, v(i), "shape_ids[" & (i - lo) & "]")
-            Else
-                out(i - lo) = CLng(v(i))
-            End If
+            out(i - lo) = NormalizeOneId(v(i), slideNum, "shape_ids[" & (i - lo) & "]")
         Next i
         NormalizeIdsArray = hi - lo + 1
     Else
         ReDim out(0 To 0)
-        If slideNum > 0 Then
-            out(0) = modActions.ResolveShapeRef(slideNum, v, "shape_id")
-        Else
-            out(0) = CLng(v)
-        End If
+        out(0) = NormalizeOneId(v, slideNum, "shape_id")
         NormalizeIdsArray = 1
+    End If
+End Function
+
+Private Function NormalizeOneId(ByVal val As Variant, ByVal slideNum As Long, _
+                                ByVal label As String) As Long
+    If slideNum > 0 Then
+        NormalizeOneId = modActions.ResolveShapeRef(slideNum, val, label)
+        Exit Function
+    End If
+    ' slideNum = 0: numeric or numeric-string only. CLng on a non-numeric
+    ' string raises type_mismatch; surface a clearer error than VBA's default.
+    If IsNumeric(val) Then
+        NormalizeOneId = CLng(val)
+    Else
+        Err.Raise vbObjectError + 4010, "NormalizeIdsArray", _
+                  label & ": expected numeric id (slide context unavailable for ref_name resolution), got: " & CStr(val)
     End If
 End Function
 
@@ -626,25 +631,33 @@ Private Sub ApplyByScope(scope As String, propertyKind As String, _
                          fromHex As String, toHex As String)
     Dim pres As Presentation: Set pres = ActivePresentation
     Dim slideFilter As Long: slideFilter = ParseScope(scope)
+    ' Validate hex values once upfront. HexToRgb raises on bad input;
+    ' previously this raise was swallowed per-shape, leaving the caller
+    ' with no signal that the recolor never ran. Validate once, fail loud.
+    Dim fromRgb As Long: fromRgb = modActions.HexToRgb(fromHex)
+    Dim toRgb As Long: toRgb = modActions.HexToRgb(toHex)
     Dim i As Long
     For i = 1 To pres.Slides.Count
         If slideFilter = 0 Or slideFilter = i Then
             Dim sh As Shape
             For Each sh In pres.Slides(i).Shapes
-                ApplyToShape sh, propertyKind, fromHex, toHex
+                ApplyToShape sh, propertyKind, fromHex, toRgb
             Next sh
         End If
     Next i
 End Sub
 
 Private Sub ApplyToShape(sh As Shape, propertyKind As String, _
-                         fromHex As String, toHex As String)
+                         fromHex As String, toRgb As Long)
+    ' On Error Resume Next is intentional here: shapes that don't expose
+    ' Fill or TextFrame (e.g. placeholders, embeds) raise — those are
+    ' expected and skipped. fromHex/toRgb are pre-validated by caller.
     On Error Resume Next
     If propertyKind = "fill" Then
         If sh.Fill.Type = msoFillSolid Then
             Dim curHex As String: curHex = modExportSnapshot.RgbToHex(sh.Fill.ForeColor.RGB)
             If LCase(curHex) = LCase(fromHex) Then
-                sh.Fill.ForeColor.RGB = modActions.HexToRgb(toHex)
+                sh.Fill.ForeColor.RGB = toRgb
             End If
         End If
     ElseIf propertyKind = "font" Then
@@ -652,7 +665,7 @@ Private Sub ApplyToShape(sh As Shape, propertyKind As String, _
             If sh.TextFrame.HasText Then
                 Dim fc As String: fc = modExportSnapshot.RgbToHex(sh.TextFrame.TextRange.Font.Color.RGB)
                 If LCase(fc) = LCase(fromHex) Then
-                    sh.TextFrame.TextRange.Font.Color.RGB = modActions.HexToRgb(toHex)
+                    sh.TextFrame.TextRange.Font.Color.RGB = toRgb
                 End If
             End If
         End If
