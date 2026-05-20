@@ -39,7 +39,8 @@ def check_module() -> list[str]:
     except Exception as e:  # noqa: BLE001
         return [f"`from app import dock` failed: {type(e).__name__}: {e}"]
     for name in ("find_ppt_window", "compute_dock_rect",
-                 "start_dock_loop", "stop_dock_loop"):
+                 "start_dock_loop", "stop_dock_loop",
+                 "reflow_ppt_window", "restore_ppt_window"):
         if not callable(getattr(dock, name, None)):
             fails.append(f"app.dock.{name} missing or not callable")
     # compute_dock_rect math for the null-hwnd path.
@@ -74,6 +75,17 @@ def check_settings() -> list[str]:
     elif inst.dock_mode is not True:
         fails.append(f"Settings.dock_mode default is {inst.dock_mode!r}, "
                      "expected True")
+    # SP7 additions:
+    if not hasattr(inst, "decko_on_top"):
+        fails.append("Settings.decko_on_top field missing (SP7)")
+    elif inst.decko_on_top is not False:
+        fails.append(f"Settings.decko_on_top default is "
+                     f"{inst.decko_on_top!r}, expected False")
+    if not hasattr(inst, "resize_ppt_for_dock"):
+        fails.append("Settings.resize_ppt_for_dock field missing (SP7)")
+    elif inst.resize_ppt_for_dock is not True:
+        fails.append(f"Settings.resize_ppt_for_dock default is "
+                     f"{inst.resize_ppt_for_dock!r}, expected True")
     return fails
 
 
@@ -84,7 +96,8 @@ def check_frontend() -> list[str]:
     css = _read(CSS)
 
     for needle in ('id="undockBtn"', 'id="winMinBtn"',
-                   'id="winCloseBtn"', 'class="dragArea"'):
+                   'id="winCloseBtn"', 'class="dragArea"',
+                   'id="setDeckoOnTop"', 'id="setResizePpt"'):
         if needle not in html:
             fails.append(f"index.html missing {needle!r}")
 
