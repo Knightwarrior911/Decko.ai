@@ -168,7 +168,7 @@ function loadTheme() {
   applyTheme(localStorage.getItem("decko_theme") || "dark");
 }
 
-/* ---------- dock mode (SP6) ------------------------------------------ */
+/* ---------- dock mode (SP6/SP8) -------------------------------------- */
 function applyDockMode(enabled) {
   document.body.dataset.dock = enabled ? "on" : "off";
   const cb = $("setDockMode");
@@ -180,6 +180,46 @@ function applyDockMode(enabled) {
       : "Dock Decko to PowerPoint.";
     pin.textContent = enabled ? "📌" : "📍";
   }
+  // SP8: when leaving dock mode, ensure sidebar isn't stuck in pinned
+  // (hover-shown) state from a previous toggle.
+  if (!enabled) {
+    const side = $("side");
+    if (side) side.classList.remove("pinned");
+  }
+}
+
+/* SP8 — hover tab on the left edge of the chat pane reveals the sidebar
+   while the cursor is over it. Click the tab to pin the sidebar open.
+   Clicking outside (or anywhere in the chat thread) collapses it. */
+function wireSidebarHover() {
+  const tab = $("sideHoverTab");
+  const side = $("side");
+  if (!tab || !side) return;
+  let hideTimer = null;
+  const clear = () => { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } };
+  const arm = () => {
+    clear();
+    if (side.classList.contains("pinned")) return;
+    hideTimer = setTimeout(() => {
+      // CSS transform handles the hide; we just ensure no pin.
+      side.classList.remove("show-hover");
+    }, 160);
+  };
+  tab.addEventListener("mouseenter", () => {
+    clear();
+    side.classList.add("show-hover");
+  });
+  side.addEventListener("mouseenter", clear);
+  side.addEventListener("mouseleave", arm);
+  tab.addEventListener("click", (e) => {
+    e.stopPropagation();
+    side.classList.toggle("pinned");
+  });
+  document.addEventListener("click", (e) => {
+    if (document.body.dataset.dock !== "on") return;
+    if (side.contains(e.target) || tab.contains(e.target)) return;
+    side.classList.remove("pinned");
+  });
 }
 
 async function toggleDockMode() {
@@ -204,6 +244,7 @@ window.addEventListener("pywebviewready", async () => {
   loadTheme();
   bootSnapshot = await api.boot();
   applyDockMode(bootSnapshot.settings.dock_mode !== false);
+  wireSidebarHover();
   // Populate Settings dialog defaults from persisted settings.
   $("setProvider").value = bootSnapshot.settings.provider;
   $("setBaseUrl").value = bootSnapshot.settings.base_url || "";

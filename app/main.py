@@ -483,11 +483,8 @@ class Api:
                 _stop_existing_dock_loop()
                 rect = _dock.compute_dock_rect(_dock.find_ppt_window())
                 _apply_frameless_style(True)
-                try:
-                    w.move(rect[0], rect[1])
-                    w.resize(rect[2], rect[3])
-                except Exception:  # noqa: BLE001
-                    pass
+                # SP8: physical-px move/resize via ctypes.
+                _move_decko_physical(_decko_hwnd(), *rect)
                 # Force taskbar entry on frameless dock window (SP7).
                 _force_app_window_taskbar(_decko_hwnd())
                 _start_dock_loop_for_window(w)
@@ -505,8 +502,7 @@ class Api:
                     mleft, mtop, mright, mbottom = _dock._monitor_rect_for_hwnd(0)
                     cx = mleft + ((mright - mleft) - 1180) // 2
                     cy = mtop + ((mbottom - mtop) - 760) // 2
-                    w.move(cx, cy)
-                    w.resize(1180, 760)
+                    _move_decko_physical(_decko_hwnd(), cx, cy, 1180, 760)
                 except Exception:  # noqa: BLE001
                     pass
             return {"ok": True, "dock_mode": enabled}
@@ -659,11 +655,10 @@ def _dock_event_handler(name: str, payload: dict):
                     w.show()
                 except Exception:  # noqa: BLE001
                     pass
-                try:
-                    w.move(x, y)
-                    w.resize(ww, hh)
-                except Exception:  # noqa: BLE001
-                    pass
+                # SP8: use ctypes SetWindowPos (physical px), not
+                # pywebview move/resize (DIPs). On 200% scaling DIP
+                # math leaves Decko half-sized off-screen.
+                _move_decko_physical(_decko_hwnd(), x, y, ww, hh)
                 # SP7 reflow PPT to free Decko's gutter when enabled.
                 if ppt_hwnd and name in ("move_resize", "restore"):
                     try:
@@ -737,6 +732,46 @@ def _force_app_window_taskbar(hwnd: int):
         pass
 
 
+def _move_decko_physical(hwnd: int, x: int, y: int, w: int, h: int):
+    """SP8 — position the Decko window in PHYSICAL pixels.
+
+    pywebview's window is created with the System-Aware DPI context (it
+    sets process-wide DPI awareness before our main() runs). So
+    SetWindowPos on Decko's hwnd interprets coords in the System DPI
+    scale — on a 200% scaled monitor, width=380 becomes 190 physical.
+
+    Compensate by querying the window's actual DPI and scaling our
+    physical-px coords to the System DPI space before SetWindowPos.
+
+    For position (x, y): also scale, since those are likewise in System
+    DPI from SetWindowPos's perspective."""
+    if not sys.platform.startswith("win") or not hwnd:
+        return
+    try:
+        import ctypes
+        u = ctypes.windll.user32
+        SWP_NOZORDER = 0x0004
+        SWP_NOACTIVATE = 0x0010
+        # Query the actual DPI of the target window (per-monitor).
+        try:
+            win_dpi = int(u.GetDpiForWindow(int(hwnd)) or 96)
+        except Exception:  # noqa: BLE001
+            win_dpi = 96
+        # Empirically determined behavior for pywebview-created
+        # windows on a 200%-scaled monitor:
+        #   - SetWindowPos x/y → interpreted as PHYSICAL pixels.
+        #   - SetWindowPos w/h → interpreted as LOGICAL at 96 DPI; OS
+        #     scales them up to physical at the monitor's actual DPI.
+        # So leave x/y alone, multiply w/h by (win_dpi/96).
+        scale = win_dpi / 96.0 if win_dpi else 1.0
+        aw = int(round(w * scale))
+        ah = int(round(h * scale))
+        u.SetWindowPos(int(hwnd), 0, int(x), int(y), aw, ah,
+                       SWP_NOZORDER | SWP_NOACTIVATE)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _apply_on_top(hwnd: int, on_top: bool):
     """SetWindowPos with HWND_TOPMOST / HWND_NOTOPMOST. Lets the user
     toggle 'Keep Decko on top' live without restarting."""
@@ -765,43 +800,116 @@ def _start_dock_loop_for_window(_w):
         from app import dock
         hwnd = _decko_hwnd()
         _DOCK_LOOP = dock.start_dock_loop(hwnd, on_dock_event=_dock_event_handler)
+        _start_offscreen_watchdog(hwnd)
     except Exception:  # noqa: BLE001
         _DOCK_LOOP = None
+
+
+_WATCHDOG_THREAD = None
+_WATCHDOG_STOP = None
+
+
+def _start_offscreen_watchdog(decko_hwnd):
+    """SP8 — periodically verify Decko's window is on-screen and a
+    sensible size. If not, force-snap it to a known-good position.
+    Daemon thread, polls every 1s.
+
+    Targets the disappear bug where pywebview drops the window
+    off-screen on some DPI / monitor changes."""
+    import threading
+    global _WATCHDOG_THREAD, _WATCHDOG_STOP
+    if _WATCHDOG_THREAD is not None:
+        return
+    _WATCHDOG_STOP = threading.Event()
+
+    def _watch():
+        from app import dock as _dock
+        import time as _time
+        while _WATCHDOG_STOP is not None and not _WATCHDOG_STOP.is_set():
+            try:
+                hwnd = _decko_hwnd()
+                if hwnd and _dock.is_window_offscreen(hwnd):
+                    # Re-snap to a sensible position against the active PPT.
+                    rect = _dock.compute_dock_rect(_dock.find_ppt_window())
+                    if webview.windows:
+                        try:
+                            webview.windows[0].show()
+                        except Exception:  # noqa: BLE001
+                            pass
+                    _move_decko_physical(hwnd, *rect)
+            except Exception:  # noqa: BLE001
+                pass
+            _time.sleep(1.0)
+
+    _WATCHDOG_THREAD = threading.Thread(target=_watch, name="decko-watchdog",
+                                         daemon=True)
+    _WATCHDOG_THREAD.start()
 
 
 def _on_window_ready():
     """Pywebview start() callback — runs after the window is created."""
     from app.config import settings_from_persisted
     s = settings_from_persisted()
-    # SP7: force taskbar entry on every launch (frameless or not) so the
-    # user can always restore Decko from the taskbar after minimizing.
     try:
-        time.sleep(0.2)  # give pywebview time to register OS window
+        time.sleep(0.3)  # give pywebview time to register OS window
     except Exception:  # noqa: BLE001
         pass
     decko_hwnd = _decko_hwnd()
+    # SP7: force taskbar entry so the user can always restore from taskbar.
     _force_app_window_taskbar(decko_hwnd)
     _apply_on_top(decko_hwnd, bool(s.decko_on_top))
     if s.dock_mode:
+        # SP8: snap to physical-px dock rect AFTER the OS window exists,
+        # since pywebview's create_window used DIPs and lands wrong on
+        # high-DPI monitors.
+        try:
+            from app import dock as _dock
+            rect = _dock.compute_dock_rect(_dock.find_ppt_window())
+            _move_decko_physical(decko_hwnd, *rect)
+        except Exception:  # noqa: BLE001
+            pass
         _start_dock_loop_for_window(webview.windows[0] if webview.windows else None)
+
+
+def _set_process_dpi_aware():
+    """SP8 — make the process per-monitor DPI aware BEFORE creating any
+    window. Without this, GetWindowRect returns physical pixels while
+    pywebview's create_window/move/resize use logical DIPs at 96 DPI,
+    so on a 150% scaling monitor our dock rect gets multiplied by 1.5
+    and Decko lands off-screen at a tiny size."""
+    if not sys.platform.startswith("win"):
+        return
+    try:
+        import ctypes
+        # PROCESS_PER_MONITOR_DPI_AWARE = 2 (Win 8.1+)
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(2)
+            return
+        except Exception:  # noqa: BLE001
+            pass
+        # Older fallback (Vista+).
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:  # noqa: BLE001
+            pass
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def main() -> int:
     if "--selfcheck" in sys.argv[1:]:
         return _selfcheck()
+    _set_process_dpi_aware()
     api = Api()
     from app.config import settings_from_persisted
     s = settings_from_persisted()
     if s.dock_mode:
-        # Compute initial dock geometry against the active PowerPoint window.
-        try:
-            from app import dock as _dock
-            x, y, w, h = _dock.compute_dock_rect(_dock.find_ppt_window())
-        except Exception:  # noqa: BLE001
-            x, y, w, h = 100, 100, 380, 720
-        # SP7: drop on_top=True default; user controls via Settings.
+        # SP8: pywebview create_window uses logical DIPs, not physical
+        # pixels. We pass DIP-safe defaults and reposition with
+        # SetWindowPos (physical px) immediately after _on_window_ready
+        # fires, based on compute_dock_rect.
         webview.create_window("Decko", _web_index(), js_api=api,
-                              width=w, height=h, x=x, y=y,
+                              width=380, height=720, x=100, y=80,
                               frameless=True, easy_drag=True,
                               text_select=True)
     else:
